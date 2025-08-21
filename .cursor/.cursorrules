@@ -1,0 +1,110 @@
+# Cursor User Rules & Preferences — IDP CMS (Wagtail 7.1)
+
+> 目的：让 AI 在本项目中**按统一规则**生成与修改代码，保持可维护、可扩张、可回滚。
+
+## 0) 技术基线（不可违背）
+- 后端：**Django (4.2+) + Wagtail 7.1**，Python **3.11**；REST API（非 GraphQL）。
+- 前端：**Next.js (TypeScript)**，首屏 **SSR**，后续 **CSR** 无限滚动；可用 `?site=` 覆盖站点识别（dev 友好）。
+- 搜索：**OpenSearch**（索引版本化 + 别名切换；禁止在生产对现索引“就地改 mapping”）。
+- 数据/埋点：ClickHouse（曝光/点击/停留），最小依赖优先。
+- SSO：**Logto (OIDC)**；后端 `mozilla-django-oidc`，前端 `@logto/next`。
+- 多租户：Wagtail `Site` + 自有 `Tenant` 模型 + Stripe 订阅；**细粒度 RBAC**。
+- 部署：Docker Compose；可选**单根目录**挂载到 `/opt/idp-cms`。
+- 训练：LightGBM 排序（文件工件 + 别名 `models/alias.json`）；开关走 flags。
+
+## 1) 目录与边界（生成代码前必须检查）
+```
+authoring/                # Django + Wagtail（CMS/多租户/RBAC/SSO）
+apps/                     # 业务域应用：core/news/api/searchapp/saas/rbac
+portal/next/              # Next.js 门户（SSR + CSR）
+infra/                    # compose/systemd/CI/脚本
+scripts/                  # 批处理、训练、定时
+models/                   # 排序模型工件（*.txt, alias.json）
+config/                   # feature flags / 实验配置
+docs/                     # 文档与手册
+```
+- **后端新功能**：放到 `apps/<domain>/...`；可新建模块但**不要**把领域逻辑塞进 `authoring/authoring/settings/*`。
+- **API**：放 `apps/api/rest/`（REST 风格）；搜索封装放 `apps/searchapp/`。
+- **RBAC/租户**：改动放 `apps/rbac/*`、`apps/saas/*`；**绝不**把权限判定散落在视图里，统一调用 `apps/rbac/checks.py::has_perm`。
+- **前端页面**：放 `portal/next/src/pages/*`；公共 API 封装在 `src/lib/*`。
+
+## 2) 代码风格与质量
+- Python：PEP8 + **type hints** + Google/NumPy 风格 docstring；**尽量无状态**函数；I/O 与纯逻辑分层。
+- 严禁**静态/单例全局**持有数据库连接或搜索客户端；使用 Django 注入或按需构造（带超时）。
+- 迁移：每次改模型必须生成 `makemigrations`；**禁止**在 PR 里手写/拼装历史迁移。
+- 日志：用 `logging.getLogger(__name__)`；**不打印**秘密（token/password）。
+- 前端：**TypeScript 严格模式**；API 返回值建 `types`；组件无状态优先；SSR 部分注意 Node 环境变量。
+- 格式化：Python（black + isort），TS/JS（prettier + eslint）。
+
+## 3) API 约定（apps/api/rest）
+- 命名：`/api/<area>/<resource>`；幂等 GET，写操作 POST/PUT/PATCH/DELETE。
+- 多租户：请求上下文必须带 `tenant/site`（从 Host 或 `?site=`），**禁止**未过滤的裸查询。
+- 分页：**游标分页**，参数 `cursor`；返回 `{items, next_cursor, algo?}`。
+- Feature flags：读 `config/flags.yaml`；新开关文档化（默认关闭，灰度开启）。
+
+## 4) OpenSearch 规则（apps/searchapp）
+- **索引命名**：`news-<site>-v<yyyymmddhhmm>`；**别名**：`news-<site>`；重建→刷新→别名切换→旧索引延时删除。
+- mapping 改动：**新索引 + reindex**，不要在线修改现有索引 mapping。
+- 写入：统一通过 `apps/searchapp/indexing.py`；批量用 `_bulk`；异常回退日志齐全。
+- 查询：所有查询**强制**过滤 `tenant_id/site`；参数做白名单校验（size 上限、排序字段白名单）。
+
+## 5) RBAC & SSO
+- 权限枚举（最小集）：`content.create|edit|publish|delete`, `media.manage`, `analytics.view|export`, `feed.config`, `flags.manage`, `users.manage`, `scm.view|export`（如有 SCM）。
+- 校验：视图进入第一步执行 `has_perm(user, tenant, site, perm, channel?)`；**失败早返回** 403。
+- Logto：后端仅在**登录/回调**处触达 OIDC；组织到租户映射走 `apps/saas/auth_oidc.py`；**不要**在任意视图里重复解析 ID Token。
+
+## 6) Portal（Next.js）
+- 首屏 SSR：`getServerSideProps` 从 **Host** 或 `?site=` 识别站点；SSR 调后端用 `FEED_API_URL`（容器内 `authoring:8000`）。
+- CSR：浏览器侧调后端用 `NEXT_PUBLIC_FEED_API_URL`（dev 可是 `http://localhost:8000`）。
+- 列表流：无限滚动 + 游标；**不要**一次性拉过大页面（默认 `size ≤ 50`）。
+- 新页面：类型放 `src/types/*`；fetch 封装在 `src/lib/*`；catch 错误并展示降级。
+
+## 7) 训练与上线（ML 排序）
+- 导出：`apps/news/management/commands/export_content_features.py`
+- 训练：`scripts/ml/train_lgbm_example.py`；输出到 `models/lgbm_ranker_v*.txt`
+- 切换：`manage.py switch_model` + 更新 `models/alias.json`；**失败回退**到启发式。
+- Make：维护 `ml-export / ml-train / ml-switch / ml-enable / ml-train-push`；**新增任务必须可幂等**。
+
+## 8) 基础设施与环境
+- Compose：新增服务写入 **override**（不要改基础 `docker-compose.yaml`），支持 root 布局 `/opt/news-saas/*`。
+- 环境变量：
+  - SSR：`FEED_API_URL=http://authoring:8000`
+  - CSR：`NEXT_PUBLIC_FEED_API_URL=http://localhost:8000`（dev）
+  - 后端：`ALLOWED_HOSTS` 必含 `localhost, 127.0.0.1, 192.168.*.*, *.local`
+- 外部依赖可切换到 `.env.external`；单根目录用 `docker-compose.root.yaml`。
+
+## 9) 安全与合规
+- 绝不记录：密码、令牌、密钥、完整身份证号等敏感信息。
+- 所有外部请求设超时与重试上限；OpenSearch/Stripe/Logto 均做异常包装。
+- CSRF/CORS：仅放行必要来源；管理端默认启用 CSRF。
+- 上传：校验 MIME/大小/扩展名；静态/媒体 S3 配置走最小权限密钥。
+
+## 10) 测试与验证
+- Python：pytest + Django TestCase；最少覆盖**新 API 的 happy path + 权限拒绝 + 参数校验**。
+- 前端：Jest/React Testing Library；至少覆盖核心数据流组件（加载/空/错误）。
+- 本地自检脚本：允许在 `scripts/` 里新增 `verify_*` 脚本；必须可在 CI 运行。
+
+---
+
+# 对 Cursor 的“工作方式”要求（非常重要）
+
+1. **最小改动面**：优先以**补丁**形式修改现有文件；非必要不引入新依赖。
+2. **路径归位**：自动把新增代码落到约定目录（见 §1）；**禁止**把业务逻辑混入 settings/urls 等框架文件。
+3. **先计划再输出**：先给 5–10 行 *Plan*（文件清单 + 变更点），再给代码；复杂改动分批输出。
+4. **接口与权限**：创建/修改 API 时，**第一行先写**「权限校验调用与多租户过滤」；缺失时拒绝继续并给出修复方案。
+5. **OpenSearch 变更**：涉及 mapping 改动时，自动生成：模板/新索引名/重建脚本/别名切换步骤；**绝不**就地改现索引。
+6. **失败兜底**：前端/后端均需提供降级路径（SSR/CSR 出错、OS 查询失败 → 返回空/提示，不阻塞页面）。
+7. **配置最少、默认可跑**：新增特性默认**关闭**，挂旗 `config/flags.yaml`；文档注记如何开启。
+8. **生成后的动作**：同步生成（如需）迁移、管理命令、Make 任务、README 片段和测试样例。
+9. **危险操作提示**：涉及数据删除、索引删除、支付/计费逻辑，必须给出“演练环境/只读”建议与回滚步骤。
+10. **输出格式**：优先用“文件名 + 内容”或 **unified diff**；多文件改动给出清单。
+
+---
+
+## 附：常用变量与示例
+- `FEED_API_URL`（SSR）=`http://authoring:8000`
+- `NEXT_PUBLIC_FEED_API_URL`（CSR dev）=`http://localhost:8000`
+- OpenSearch 别名：`news-<site>`；新索引：`news-<site>-v<timestamp>`
+- RBAC 调用：`from apps.rbac.checks import has_perm`
+
+> 若本规则与代码中**已有实现**冲突，以**已有实现**为准；请在 PR 描述中指出冲突并给出迁移建议。

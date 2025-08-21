@@ -1,0 +1,2 @@
+docs-toc:
+	python3 scripts/dev/gen_toc.py docs/architecture.md

@@ -1,0 +1,10 @@
+ROOT_DIR ?= /opt/idp-cms
+COMPOSE_FILES = -f infra/local/docker-compose.yaml -f infra/local/docker-compose.root.yaml
+up-root:
+	docker compose $(COMPOSE_FILES) --env-file $(ROOT_DIR)/config/.env up -d --build
+down-root:
+	docker compose $(COMPOSE_FILES) --env-file $(ROOT_DIR)/config/.env down
+migrate-root:
+	docker compose $(COMPOSE_FILES) --env-file $(ROOT_DIR)/config/.env exec authoring python authoring/manage.py migrate
+seed-root:
+	docker compose $(COMPOSE_FILES) --env-file $(ROOT_DIR)/config/.env exec authoring python authoring/manage.py seed_plans

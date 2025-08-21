@@ -1,0 +1,16 @@
+{
+  "size": 200,
+  "query": {
+    "bool": {
+      "filter": [
+        {"term": {"site": "__SITE__"}},
+        {"term": {"channel": "__CHANNEL__"}},
+        {"range": {"publish_time": {"gte": "now-__HOURS__h"}}}
+      ]
+    }
+  },
+  "sort": [
+    {"ctr_1h": {"order": "desc"}},
+    {"publish_time": {"order": "desc"}}
+  ]
+}

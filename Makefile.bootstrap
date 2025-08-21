@@ -1,0 +1,10 @@
+COMPOSE_FILES ?= -f infra/local/docker-compose.yaml
+bootstrap-portal-only:
+	PORTAL=portal.local:8000 \
+	bash scripts/bootstrap/portal-only.sh
+bootstrap-single:
+	PORTAL=portal.local:8000 SITE=news.local:8000 NAME=News \
+	bash scripts/bootstrap/single.sh
+bootstrap-multi:
+	PORTAL=portal.local:8000 A_DOMAIN=site-a.local:8000 B_DOMAIN=site-b.local:8000 NAME=News \
+	bash scripts/bootstrap/multi.sh

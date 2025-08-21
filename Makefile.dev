@@ -1,0 +1,12 @@
+COMPOSE_BASE = -f infra/local/docker-compose.yaml
+COMPOSE_DEV  = -f docker-compose.override.yaml
+DEV_UID ?= $(shell id -u)
+DEV_GID ?= $(shell id -g)
+up-dev:
+	DEV_UID=$(DEV_UID) DEV_GID=$(DEV_GID) docker compose $(COMPOSE_BASE) $(COMPOSE_DEV) up -d --build
+down-dev:
+	docker compose $(COMPOSE_BASE) $(COMPOSE_DEV) down
+logs-dev:
+	docker compose $(COMPOSE_BASE) $(COMPOSE_DEV) logs -f --tail=200
+restart-dev:
+	docker compose $(COMPOSE_BASE) $(COMPOSE_DEV) restart $(or $(svc),authoring)

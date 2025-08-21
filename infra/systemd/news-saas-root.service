@@ -1,0 +1,13 @@
+[Unit]
+Description=News SaaS (compose, single-root in /opt/idp-cms)
+After=network-online.target docker.service
+Wants=network-online.target
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/idp-cms/app/infra/local
+EnvironmentFile=/opt/idp-cms/config/.env
+RemainAfterExit=yes
+ExecStart=/usr/bin/docker compose -f docker-compose.yaml -f docker-compose.root.yaml up -d --build
+ExecStop=/usr/bin/docker compose -f docker-compose.yaml -f docker-compose.root.yaml down
+[Install]
+WantedBy=multi-user.target
