@@ -18,7 +18,16 @@ def replace_in_dict(obj, old_value, new_value):
     if isinstance(obj, dict):
         for key, value in obj.items():
             if isinstance(value, str) and old_value in value:
-                obj[key] = value.replace(old_value, str(new_value))
+                # For string replacement, only convert to string if new_value is not a list
+                if isinstance(new_value, list):
+                    # If the old_value is the entire string, replace with the list
+                    if value == old_value:
+                        obj[key] = new_value
+                    else:
+                        # For partial replacement in strings, keep as string
+                        obj[key] = value.replace(old_value, str(new_value))
+                else:
+                    obj[key] = value.replace(old_value, str(new_value))
             elif value == old_value:
                 obj[key] = new_value
             elif isinstance(value, (dict, list)):
@@ -26,7 +35,16 @@ def replace_in_dict(obj, old_value, new_value):
     elif isinstance(obj, list):
         for i, value in enumerate(obj):
             if isinstance(value, str) and old_value in value:
-                obj[i] = value.replace(old_value, str(new_value))
+                # For string replacement, only convert to string if new_value is not a list
+                if isinstance(new_value, list):
+                    # If the old_value is the entire string, replace with the list
+                    if value == old_value:
+                        obj[i] = new_value
+                    else:
+                        # For partial replacement in strings, keep as string
+                        obj[i] = value.replace(old_value, str(new_value))
+                else:
+                    obj[i] = value.replace(old_value, str(new_value))
             elif value == old_value:
                 obj[i] = new_value
             elif isinstance(value, (dict, list)):
@@ -78,7 +96,7 @@ def build_query(name:str, **params)->dict:
                 if "must_not" in obj["query"]["function_score"]["query"]["bool"]:
                     # Find and remove the article_id terms query from must_not
                     must_not = obj["query"]["function_score"]["query"]["bool"]["must_not"]
-                    must_not[:] = [item for item in must_not if not (isinstance(item, dict) and "terms" in item and "article_id" in item["terms"])]
+                    must_not[:] = [item for item in must_not if not (isinstance(item, dict) and "terms" in item and ("article_id" in item["terms"] or "article_id.keyword" in item["terms"]))]
                     # If must_not is now empty, remove it entirely
                     if not must_not:
                         del obj["query"]["function_score"]["query"]["bool"]["must_not"]

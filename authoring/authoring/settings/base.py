@@ -7,8 +7,8 @@ from datetime import timedelta
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 # Add the project root to Python path for Docker container
-if str(BASE_DIR) not in sys.path:
-    sys.path.insert(0, str(BASE_DIR))
+# if str(BASE_DIR) not in sys.path:
+#     sys.path.insert(0, str(BASE_DIR))
 
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY","dev-secret")
 DEBUG = int(os.getenv("DJANGO_DEBUG","1")) == 1
@@ -30,6 +30,9 @@ INSTALLED_APPS = [
     "apps.news",
     "apps.searchapp",
     "apps.api",
+    "apps.ai_tools.apps.AiToolsConfig",
+    "apps.ai_news.apps.AiNewsConfig",
+    "apps.ai_tutorials.apps.AiTutorialsConfig",
 ]
 
 MIDDLEWARE = [
@@ -112,6 +115,15 @@ OPENSEARCH = {
     "URL": os.getenv("OPENSEARCH_URL","http://opensearch:9200"),
     "USERNAME": os.getenv("OPENSEARCH_USERNAME","admin"),
     "PASSWORD": os.getenv("OPENSEARCH_PASSWORD","OpenSearch2024!@#$%"),
+}
+
+# Fix for Wagtail 7.1 PostgreSQL search backend bug
+# Use database backend with disabled full-text search to avoid weights bug
+WAGTAILSEARCH_BACKENDS = {
+    'default': {
+        'BACKEND': 'wagtail.search.backends.database',
+        'SEARCH_CONFIG': None,  # Disable PostgreSQL full-text search to avoid weights bug
+    }
 }
 
 CLICKHOUSE_URL = os.getenv("CLICKHOUSE_URL","clickhouse://default:@clickhouse:9000/default")

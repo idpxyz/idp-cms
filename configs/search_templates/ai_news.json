@@ -1,0 +1,81 @@
+{
+    "size": 50,
+    "query": {
+        "function_score": {
+            "query": {
+                "bool": {
+                    "filter": [
+                        {
+                            "term": {
+                                "site": "__SITE__"
+                            }
+                        },
+                        {
+                            "term": {
+                                "channel": "ai-news"
+                            }
+                        },
+                        {
+                            "range": {
+                                "publish_time": {
+                                    "gte": "now-__HOURS__h"
+                                }
+                            }
+                        }
+                    ],
+                    "must_not": [
+                        {
+                            "terms": {
+                                "article_id.keyword": "__SEEN_IDS__"
+                            }
+                        }
+                    ],
+                    "should": [
+                        {
+                            "term": {
+                                "category": "__CATEGORY__"
+                            }
+                        },
+                        {
+                            "term": {
+                                "is_hot": true
+                            }
+                        },
+                        {
+                            "term": {
+                                "is_top": true
+                            }
+                        }
+                    ]
+                }
+            },
+            "functions": [
+                {
+                    "exp": {
+                        "publish_time": {
+                            "origin": "now",
+                            "scale": "6h",
+                            "decay": 0.5
+                        }
+                    }
+                },
+                {
+                    "field_value_factor": {
+                        "field": "read_count",
+                        "factor": 0.1,
+                        "missing": 1
+                    }
+                },
+                {
+                    "field_value_factor": {
+                        "field": "quality_score",
+                        "factor": 1,
+                        "missing": 1
+                    }
+                }
+            ],
+            "score_mode": "sum",
+            "boost_mode": "multiply"
+        }
+    }
+}

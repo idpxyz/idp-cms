@@ -10,7 +10,7 @@ class ArticlePageTag(TaggedItemBase):
 
 class ArticlePage(Page):
     introduction = models.TextField(blank=True)
-    body = RichTextField(features=["bold","italic","link","image","embed"])
+    body = RichTextField(features=["bold","italic","link","image"])
     channel_slug = models.SlugField(default="recommend")
     topic_slug = models.SlugField(blank=True, default="")
     author_name = models.CharField(max_length=64, blank=True, default="")

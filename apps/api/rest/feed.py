@@ -25,6 +25,7 @@ def feed(request):
     template = request.query_params.get("template", "recommend_default")
     channels = request.query_params.getlist("channel") or ["recommend","hot","tech"]
     hours = flag("recall.window_hours", 72)
+    sort_by = request.query_params.get("sort", "final_score")  # 新增排序参数
 
     # AB：10%使用更窄 24h 窗
     session = request.headers.get("X-AB-Session", "anon")
@@ -43,10 +44,10 @@ def feed(request):
     ]
 
     agg = fetch_agg_features([c["id"] for c in candidates], site=site)
-    ranked = score_and_diversify(candidates, agg)[:size]
+    ranked = score_and_diversify(candidates, agg, sort_by=sort_by)[:size]
 
     next_cursor = encode_cursor({
       "seen": (seen_ids + [r["id"] for r in ranked])[-200:],
       "ts": int(time.time()*1000)
     })
-    return Response({"items": ranked, "next_cursor": next_cursor, "debug": {"hours": hours, "template": template}})
+    return Response({"items": ranked, "next_cursor": next_cursor, "debug": {"hours": hours, "template": template, "sort_by": sort_by}})
