@@ -63,9 +63,11 @@ services:
     image: opensearchproject/opensearch-dashboards:3
     environment:
       - OPENSEARCH_HOSTS=["http://opensearch:9200"]
-      - OPENSEARCH_USERNAME=${OPENSEARCH_USERNAME:-admin}
-      - OPENSEARCH_PASSWORD=${OPENSEARCH_PASSWORD:-OpenSearch2024!@#$%}
+      - OPENSEARCH_SECURITY_DISABLED=true
+      - DISABLE_SECURITY_DASHBOARDS_PLUGIN=true
     ports: [ "5601:5601" ]
+    volumes:
+      - ./opensearch_dashboards.yml:/usr/share/opensearch-dashboards/config/opensearch_dashboards.yml:ro
     depends_on: [ opensearch ]
 
   clickhouse:
@@ -147,7 +149,7 @@ services:
       authoring:
         condition: service_started
     user: "root"
-    command: [ "sh", "-c", "rm -rf /app/.next && mkdir -p /app/.next && touch /app/.next/fallback-build-manifest.json && echo '{}' > /app/.next/fallback-build-manifest.json && npm run dev -- -p 3000" ]
+    command: [ "sh", "-c", "npm install && rm -rf /app/.next && mkdir -p /app/.next && touch /app/.next/fallback-build-manifest.json && echo '{}' > /app/.next/fallback-build-manifest.json && npm run dev -- -p 3000" ]
 
 volumes:
   pgdata: {}

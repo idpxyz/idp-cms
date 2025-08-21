@@ -1,0 +1,17 @@
+---
+# OpenSearch Dashboard configuration for development (security disabled)
+
+# Server configuration
+server.host: '0.0.0.0'
+server.port: 5601
+
+# OpenSearch connection - no authentication needed since security is disabled
+opensearch.hosts: ['http://opensearch:9200']
+
+# Basic settings
+opensearchDashboards.index: ".opensearch_dashboards"
+
+# Logging
+logging.silent: false
+logging.quiet: false
+logging.verbose: false
