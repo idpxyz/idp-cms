@@ -66,6 +66,7 @@ export default function NewsPage() {
 
       setNews(newsResponse.results);
       setCategories(categoriesResponse.categories);
+      // 使用API返回的分类统计数据，确保数据一致性
       setApiCategories(newsResponse.categories || {});
       setPagination({
         page: newsResponse.page,
@@ -93,7 +94,7 @@ export default function NewsPage() {
       };
 
       if (selectedCategory !== 'all') {
-        params.category = selectedCategory;
+        params.category = getCategoryEnglishName(selectedCategory);
       }
 
       if (searchQuery) {
@@ -139,6 +140,54 @@ export default function NewsPage() {
     setPagination(prev => ({ ...prev, page: 1 }));
   };
 
+  // 根据分类ID获取英文分类名称
+  const getCategoryEnglishName = (categoryId: string) => {
+    if (categoryId === 'all') return 'all';
+    
+    // 如果是cat_开头的ID，从categories数组中查找对应的英文名称
+    if (categoryId.startsWith('cat_')) {
+      const category = categories.find(cat => cat.id === categoryId);
+      if (category) {
+        // 中文到英文的映射
+        const categoryMap: Record<string, string> = {
+          '技术突破': 'technology',
+          '产品发布': 'product',
+          '投资融资': 'investment',
+          '研究突破': 'research',
+          '政策法规': 'policy',
+          '行业动态': 'industry',
+          '创业公司': 'startup',
+          '学术研究': 'academic',
+        };
+        return categoryMap[category.name] || category.name.toLowerCase();
+      }
+    }
+
+    // 如果直接传入中文名称，尝试转换
+    const categoryMap: Record<string, string> = {
+      '技术突破': 'technology',
+      '产品发布': 'product',
+      '投资融资': 'investment',
+      '研究突破': 'research',
+      '政策法规': 'policy',
+      '行业动态': 'industry',
+      '创业公司': 'startup',
+      '学术研究': 'academic',
+    };
+
+    if (categoryMap[categoryId]) {
+      return categoryMap[categoryId];
+    }
+
+    // 如果是英文名称，直接返回
+    if (Object.values(categoryMap).includes(categoryId)) {
+      return categoryId;
+    }
+
+    // 默认返回原值的小写形式
+    return categoryId.toLowerCase();
+  };
+
   // 处理排序
   const handleSortChange = (newSortBy: 'latest' | 'popular' | 'hot') => {
     setSortBy(newSortBy);
@@ -153,13 +202,24 @@ export default function NewsPage() {
   // 计算分类统计（使用API返回的统计数据）
   const getCategoryCount = (categoryId: string) => {
     if (categoryId === 'all') return pagination.total;
+    
+    // 如果是分类ID，需要找到对应的分类名称来查找计数
+    if (categoryId.startsWith('cat_')) {
+      const category = categories.find(cat => cat.id === categoryId);
+      if (category) {
+        // 直接使用分类对象中的count字段，这是最准确的数据
+        return category.count || 0;
+      }
+    }
+    
+    // 如果是分类名称，直接查找
     return apiCategories[categoryId] || 0;
   };
 
   // 过滤和排序新闻
   const filteredNews = news
     .filter(news => {
-      const matchesCategory = selectedCategory === 'all' || news.category === selectedCategory;
+      const matchesCategory = selectedCategory === 'all' || news.category === getCategoryEnglishName(selectedCategory);
       const matchesSearch = searchQuery === '' || 
         news.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         news.introduction.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -480,3 +540,4 @@ export default function NewsPage() {
     </div>
   );
 }
+

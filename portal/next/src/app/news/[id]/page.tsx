@@ -22,6 +22,9 @@ import {
 } from 'lucide-react';
 import Navigation from '@/components/Navigation';
 import { AINews } from '@/types/ai';
+import { aiNewsApi } from '@/lib/aiApiService';
+import { track } from '@/lib/track';
+import { withCurrentSiteParam } from '@/lib/siteDetection';
 
 export default function NewsDetailPage() {
   const params = useParams();
@@ -30,151 +33,158 @@ export default function NewsDetailPage() {
   const [relatedNews, setRelatedNews] = useState<AINews[]>([]);
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
-  // Mock news data (in real app, this would come from API)
-  const mockNews: AINews[] = [
-    {
-      id: 1,
-      title: 'OpenAI发布GPT-5，性能大幅提升，推理能力显著增强',
-      introduction: 'OpenAI今日正式发布GPT-5，新版本在推理能力、多模态理解和代码生成方面都有显著改进。相比GPT-4，新版本在复杂推理任务上的准确率提升了23%，在代码生成方面的效率提高了35%。',
-      body: `OpenAI今日正式发布GPT-5，新版本在推理能力、多模态理解和代码生成方面都有显著改进。相比GPT-4，新版本在复杂推理任务上的准确率提升了23%，在代码生成方面的效率提高了35%。
-
-## 技术架构升级
-
-GPT-5采用了全新的架构设计，引入了更先进的注意力机制和训练方法。新版本在以下几个方面都有重要突破：
-
-### 1. 推理能力提升
-- 复杂逻辑推理准确率提升23%
-- 数学问题解决能力显著增强
-- 多步骤问题分析更加准确
-
-### 2. 多模态理解
-- 图像理解能力大幅提升
-- 音频处理更加精准
-- 跨模态信息融合更加自然
-
-### 3. 代码生成优化
-- 代码质量提升35%
-- 支持更多编程语言
-- 代码注释和文档生成更加智能
-
-## 安全性和可靠性
-
-OpenAI在GPT-5的开发过程中特别注重安全性和可靠性：
-
-- 引入了更严格的训练数据筛选机制
-- 增强了有害内容识别和过滤能力
-- 改进了偏见检测和纠正算法
-- 提升了事实准确性验证
-
-## 性能测试结果
-
-在多个标准测试中，GPT-5都展现出了超越前代的能力：
-
-| 测试项目 | GPT-4 | GPT-5 | 提升幅度 |
-|---------|-------|-------|----------|
-| 数学推理 | 78.2% | 96.1% | +23% |
-| 代码生成 | 76.2% | 102.7% | +35% |
-| 逻辑分析 | 82.1% | 94.8% | +15% |
-| 创意写作 | 85.3% | 92.7% | +9% |
-
-## 商业应用前景
-
-GPT-5的发布为多个行业带来了新的可能性：
-
-### 企业应用
-- 更智能的客户服务
-- 高效的文档处理
-- 精准的数据分析
-
-### 教育领域
-- 个性化学习助手
-- 智能题库生成
-- 学习进度跟踪
-
-### 研发创新
-- 加速科研进程
-- 创新方案生成
-- 技术文档编写
-
-## 未来发展规划
-
-OpenAI CEO Sam Altman表示："GPT-5代表了我们在AI安全性和能力方面的重大进步。我们相信这个版本将为用户提供更可靠、更强大的AI助手体验。"
-
-新版本已经开始向部分用户开放测试，预计将在下个月全面发布。OpenAI计划在未来几个月内推出更多针对特定行业的定制版本。
-
-## 技术细节
-
-GPT-5采用了以下关键技术：
-
-- **改进的Transformer架构**：更高效的注意力机制
-- **多任务学习**：同时处理多种类型的任务
-- **强化学习优化**：基于人类反馈的持续改进
-- **知识蒸馏**：从更大模型中提取关键知识
-
-这些技术的结合使得GPT-5在保持高效推理的同时，具备了更强的泛化能力和适应性。`,
-      source: 'TechCrunch',
-      source_url: 'https://techcrunch.com',
-      category: 'technology',
-      tags: ['OpenAI', 'GPT-5', '技术突破', 'AI模型', '大语言模型', '自然语言处理'],
-      last_published_at: '2024-01-15T10:30:00',
-      is_hot: true,
-      is_top: true,
-      read_count: 15000,
-      image_url: '/images/news1.jpg',
-      url: '/news/1',
-      author_name: 'AI编辑部',
-      has_video: false
-    },
-    {
-      id: 2,
-      title: 'Google推出Gemini Ultra 2.0，在代码生成和数学推理方面表现优异',
-      introduction: 'Google今日发布Gemini Ultra 2.0，新版本在代码生成、数学推理和创意写作方面表现优异，特别是在多语言代码生成方面有显著提升。',
-      body: 'Google今日发布Gemini Ultra 2.0，新版本在代码生成、数学推理和创意写作方面表现优异，特别是在多语言代码生成方面有显著提升。\n\n新版本采用了Google最新的训练方法，在多个基准测试中都取得了优异成绩。在HumanEval代码生成测试中，Gemini Ultra 2.0的通过率达到了78.5%，超过了GPT-4的76.2%。\n\nGoogle AI负责人Jeff Dean表示："Gemini Ultra 2.0代表了我们在多模态AI领域的最新成果。新版本不仅在文本和代码方面表现出色，在图像理解和生成方面也有重要突破。"\n\n该版本已经开始向Google Cloud用户开放，预计将在本月底向所有用户开放。',
-      source: 'The Verge',
-      source_url: 'https://theverge.com',
-      category: 'product',
-      tags: ['Google', 'Gemini', '产品发布', '代码生成'],
-      last_published_at: '2024-01-14T14:15:00',
-      is_hot: true,
-      is_top: false,
-      read_count: 12000,
-      image_url: '/images/news2.jpg',
-      url: '/news/2',
-      author_name: 'AI编辑部',
-      has_video: false
-    },
-    {
-      id: 3,
-      title: 'AI投资热潮持续，2024年融资超500亿美元，生成式AI领域投资创历史新高',
-      introduction: '2024年生成式AI领域投资持续升温，全年融资总额超过500亿美元，创下历史新高。投资者对AI技术的信心不断增强。',
-      body: '2024年生成式AI领域投资持续升温，全年融资总额超过500亿美元，创下历史新高。投资者对AI技术的信心不断增强。\n\n根据CB Insights的最新报告，生成式AI初创公司在2024年获得了创纪录的投资，其中OpenAI、Anthropic和Cohere等头部公司占据了大部分资金。\n\n投资主要集中在以下几个领域：\n- 大语言模型开发\n- AI应用工具\n- 企业AI解决方案\n- AI基础设施\n\n风险投资家表示，AI技术的快速发展和商业化前景是吸引投资的主要原因。预计2025年AI投资将继续保持增长势头。',
-      source: 'Bloomberg',
-      source_url: 'https://bloomberg.com',
-      category: 'investment',
-      tags: ['投资', '融资', '生成式AI', '风险投资'],
-      last_published_at: '2024-01-13T09:45:00',
-      is_hot: true,
-      is_top: false,
-      read_count: 9800,
-      image_url: '/images/news3.jpg',
-      url: '/news/3',
-      author_name: 'AI编辑部',
-      has_video: false
-    }
-  ];
+  // 阅读跟踪相关状态
+  const [startTime, setStartTime] = useState<number>(Date.now());
+  const [hasTrackedView, setHasTrackedView] = useState(false);
   
   useEffect(() => {
-    const newsId = parseInt(params.id as string);
-    const foundNews = mockNews.find(n => n.id === newsId);
-    if (foundNews) {
-      setNews(foundNews);
-      // Find related news (same category, different news)
-      const related = mockNews.filter(n => n.id !== newsId && n.category === foundNews.category);
-      setRelatedNews(related);
+    const loadNewsDetail = async () => {
+      try {
+        const newsId = parseInt(params.id as string);
+        if (isNaN(newsId)) {
+          setError('无效的新闻ID');
+          return;
+        }
+        
+        // 如果点击的是同一篇新闻，不需要重新加载
+        if (news && news.id === newsId) {
+          return;
+        }
+        
+        // 如果点击的是不同新闻，显示局部loading
+        if (news) {
+          setLoading(true);
+        } else {
+          setLoading(true);
+        }
+        
+        setError(null);
+        
+        const response = await aiNewsApi.getNewsDetail(newsId);
+        
+        // 记录页面加载 (impression)
+        track("impression", [newsId.toString()]);
+        
+        // 更新阅读数量
+        let updatedReadCount = response.read_count;
+        try {
+          // 获取CSRF token
+          const csrfToken = document.cookie
+            .split('; ')
+            .find(row => row.startsWith('csrftoken='))
+            ?.split('=')[1];
+          
+          const readResponse = await fetch(`/api/ai-news/${newsId}/read`, {
+            method: 'POST',
+            headers: {
+              'X-Site-ID': 'localhost',
+              'X-CSRFToken': csrfToken || '',
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          if (readResponse.ok) {
+            const result = await readResponse.json();
+            // 更新前端状态中的阅读数量
+            if (result.success) {
+              updatedReadCount = result.new_read_count;
+            }
+          }
+        } catch (error) {
+          console.warn('Failed to update read count:', error);
+        }
+        
+        // 创建新的对象，确保React能检测到状态变化
+        const updatedResponse = {
+          ...response,
+          read_count: updatedReadCount
+        };
+        
+        setNews(updatedResponse);
+        setRelatedNews(updatedResponse.related_news || []);
+        
+        // 重置计时器
+        setStartTime(Date.now());
+        setHasTrackedView(false);
+      } catch (error) {
+        console.error('Failed to load news detail:', error);
+        setError('新闻内容加载失败，请稍后重试');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    if (params.id) {
+      loadNewsDetail();
     }
   }, [params.id]);
   
+  // 阅读时间跟踪
+  useEffect(() => {
+    if (!news || hasTrackedView) return;
+    
+    // 5秒后记录为有效阅读 (view)
+    const viewTimer = setTimeout(() => {
+      const dwellTime = Date.now() - startTime;
+      track("view", [news.id.toString()], dwellTime);
+      setHasTrackedView(true);
+    }, 5000);
+    
+    // 页面卸载时记录停留时间
+    const handleBeforeUnload = () => {
+      if (!hasTrackedView) {
+        const dwellTime = Date.now() - startTime;
+        track("view", [news.id.toString()], dwellTime);
+      }
+    };
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      clearTimeout(viewTimer);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [news, startTime, hasTrackedView]);
+  
+  if (loading && !news) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navigation />
+        <div className="pt-16 text-center py-12">
+          <div className="text-gray-400 mb-4">
+            <Clock className="w-16 h-16 mx-auto animate-spin" />
+          </div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">加载中...</h3>
+          <p className="text-gray-600">正在获取新闻详情...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navigation />
+        <div className="pt-16 text-center py-12">
+          <div className="text-red-400 mb-4">
+            <Clock className="w-16 h-16 mx-auto" />
+          </div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">加载失败</h3>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            重试
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (!news) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -183,7 +193,14 @@ GPT-5采用了以下关键技术：
           <div className="text-gray-400 mb-4">
             <Clock className="w-16 h-16 mx-auto" />
           </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">加载中...</h3>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">新闻不存在</h3>
+          <p className="text-gray-600 mb-4">找不到指定的新闻内容</p>
+          <button 
+            onClick={() => router.push(withCurrentSiteParam('/news'))}
+            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            返回资讯列表
+          </button>
         </div>
       </div>
     );
@@ -194,6 +211,11 @@ GPT-5采用了以下关键技术：
   };
   
   const handleShare = () => {
+    // 跟踪分享操作
+    if (news) {
+      track("share", [news.id.toString()], undefined, "native");
+    }
+    
     if (navigator.share) {
       navigator.share({
         title: news.title,
@@ -208,14 +230,37 @@ GPT-5采用了以下关键技术：
   };
   
   const handleBookmark = () => {
-    setIsBookmarked(!isBookmarked);
+    const newBookmarkState = !isBookmarked;
+    setIsBookmarked(newBookmarkState);
+    
+    // 跟踪书签操作
+    if (news) {
+      track(newBookmarkState ? "bookmark" : "unbookmark", [news.id.toString()]);
+    }
   };
   
   const handleLike = () => {
-    setIsLiked(!isLiked);
+    const newLikeState = !isLiked;
+    setIsLiked(newLikeState);
+    
+    // 跟踪点赞操作
+    if (news) {
+      track(newLikeState ? "like" : "unlike", [news.id.toString()]);
+    }
   };
   
-  const formatContent = (content: string) => {
+  // 智能内容格式检测和渲染
+  const detectContentFormat = (content: string): 'html' | 'markdown' | 'plaintext' => {
+    if (content.includes('<p>') || content.includes('<div>') || content.includes('<h')) {
+      return 'html';
+    }
+    if (content.includes('##') || content.includes('###') || content.match(/- .+/g)) {
+      return 'markdown';
+    }
+    return 'plaintext';
+  };
+
+  const formatMarkdownContent = (content: string) => {
     return content.split('\n').map((line, index) => {
       if (line.startsWith('## ')) {
         return <h2 key={index} className="text-2xl font-bold text-gray-900 mt-8 mb-4">{line.substring(3)}</h2>;
@@ -235,6 +280,35 @@ GPT-5采用了以下关键技术：
         return <p key={index} className="text-gray-700 leading-relaxed mb-4">{line}</p>;
       }
     });
+  };
+
+  const formatPlaintextContent = (content: string) => {
+    return content.split('\n').map((line, index) => {
+      if (line.trim() === '') {
+        return <br key={index} />;
+      }
+      return <p key={index} className="text-gray-700 leading-relaxed mb-4">{line}</p>;
+    });
+  };
+
+  const renderContent = (content: string) => {
+    const format = detectContentFormat(content);
+    
+    switch (format) {
+      case 'html':
+        return (
+          <div 
+            dangerouslySetInnerHTML={{ __html: content }}
+            className="text-gray-700 leading-relaxed [&>p]:mb-4 [&>h1]:text-2xl [&>h1]:font-bold [&>h1]:mt-8 [&>h1]:mb-4 [&>h2]:text-xl [&>h2]:font-semibold [&>h2]:mt-6 [&>h2]:mb-3 [&>ul]:ml-6 [&>li]:mb-2"
+          />
+        );
+      case 'markdown':
+        return <div>{formatMarkdownContent(content)}</div>;
+      case 'plaintext':
+        return <div>{formatPlaintextContent(content)}</div>;
+      default:
+        return <p className="text-gray-700">{content}</p>;
+    }
   };
   
   return (
@@ -261,7 +335,16 @@ GPT-5采用了以下关键技术：
             
             {/* Main Content */}
             <div className="lg:col-span-3">
-              <article className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+              <article className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden relative">
+                {/* Loading Overlay - 只在有内容且正在加载时显示 */}
+                {loading && news && (
+                  <div className="absolute inset-0 bg-white bg-opacity-90 z-10 flex items-center justify-center rounded-lg">
+                    <div className="text-center">
+                      <Clock className="w-8 h-8 mx-auto animate-spin text-blue-600 mb-2" />
+                      <p className="text-sm text-gray-600">正在加载新内容...</p>
+                    </div>
+                  </div>
+                )}
                 
                 {/* Header */}
                 <div className="p-8 border-b border-gray-200">
@@ -339,7 +422,7 @@ GPT-5采用了以下关键技术：
                 {/* Content */}
                 <div className="p-8">
                   <div className="prose prose-lg max-w-none">
-                    {news.body && formatContent(news.body)}
+                    {news.body && renderContent(news.body)}
                   </div>
                 </div>
                 
@@ -366,13 +449,22 @@ GPT-5采用了以下关键技术：
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium text-gray-700">分享到：</span>
                     <div className="flex items-center space-x-3">
-                      <button className="p-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
+                      <button 
+                        onClick={() => track("share", [news.id.toString()], undefined, "twitter")}
+                        className="p-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                      >
                         <Twitter className="w-4 h-4" />
                       </button>
-                      <button className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                      <button 
+                        onClick={() => track("share", [news.id.toString()], undefined, "facebook")}
+                        className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                      >
                         <Facebook className="w-4 h-4" />
                       </button>
-                      <button className="p-2 bg-blue-700 text-white rounded-lg hover:bg-blue-800 transition-colors">
+                      <button 
+                        onClick={() => track("share", [news.id.toString()], undefined, "linkedin")}
+                        className="p-2 bg-blue-700 text-white rounded-lg hover:bg-blue-800 transition-colors"
+                      >
                         <Linkedin className="w-4 h-4" />
                       </button>
                       <button
@@ -400,7 +492,11 @@ GPT-5采用了以下关键技术：
                         <div
                           key={related.id}
                           className="p-3 rounded-lg border border-gray-100 hover:border-blue-200 transition-colors cursor-pointer"
-                          onClick={() => router.push(`/news/${related.id}`)}
+                          onClick={() => {
+                            track("click", [related.id.toString()]);
+                            // 使用 replace 而不是 push，避免在历史记录中创建新条目，同时保持站点参数
+                            router.replace(withCurrentSiteParam(`/news/${related.id}`));
+                          }}
                         >
                           <h4 className="font-medium text-gray-900 text-sm mb-2 line-clamp-2 hover:text-blue-600 transition-colors">
                             {related.title}
