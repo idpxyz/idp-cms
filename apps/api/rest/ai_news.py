@@ -1,6 +1,7 @@
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
+from django.db.models import Q, Case, When, Value, IntegerField
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
@@ -39,7 +40,13 @@ def ai_news(request):
             else:
                 queryset = queryset.filter(category__name__icontains=category)
         if search:
-            queryset = queryset.filter(title__icontains=search)
+            # 使用jieba分词进行全文搜索
+            from apps.api.utils.search_utils import apply_search
+            queryset = apply_search(queryset, search, fields=[
+                ('title', 10),        # 标题匹配权重最高
+                ('introduction', 5),   # 简介匹配权重其次
+                ('body', 1)           # 正文匹配权重最低
+            ])
         if is_hot is not None:
             queryset = queryset.filter(is_hot=is_hot.lower() == 'true')
         if is_top is not None:
