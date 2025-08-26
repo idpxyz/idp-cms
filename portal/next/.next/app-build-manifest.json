@@ -3,22 +3,53 @@
     "/layout": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
+      "static/css/app/layout.css",
       "static/chunks/app/layout.js"
-    ],
-    "/feed/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/feed/page.js"
     ],
     "/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/page.js"
     ],
-    "/_not-found/page": [
+    "/api-management/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/_not-found/page.js"
+      "static/chunks/app/api-management/page.js"
+    ],
+    "/news/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/news/page.js"
+    ],
+    "/feed/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/feed/page.js"
+    ],
+    "/news/[id]/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/news/[id]/page.js"
+    ],
+    "/search/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/search/page.js"
+    ],
+    "/tools/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/tools/page.js"
+    ],
+    "/tutorials/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/tutorials/page.js"
+    ],
+    "/admin/cache/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/admin/cache/page.js"
     ]
   }
 }

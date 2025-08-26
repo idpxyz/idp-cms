@@ -72,10 +72,14 @@ services:
 
   clickhouse:
     image: clickhouse/clickhouse-server:24.3
+    environment:
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_PASSWORD: "thends"
     ports: [ "8123:8123", "9123:9000" ]
     volumes:
       - chdata:/var/lib/clickhouse
       - ../../:/app
+      - ./clickhouse-users.xml:/etc/clickhouse-server/users.d/custom-users.xml
     healthcheck:
       test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8123/ping" ]
       interval: 30s
@@ -88,6 +92,8 @@ services:
     environment:
       # 开发期常见主机放行（可在外部用 ALLOWED_HOSTS 覆写）
       ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost,127.0.0.1,192.168.8.195,portal.local,site-a.local,site-b.local}
+      # 自动初始化分类
+      AUTO_INIT_CATEGORIES: "true"
     user: "${DEV_UID:-1000}:${DEV_GID:-1000}"
     volumes: [ "../../:/app" ]
     working_dir: /app
@@ -103,7 +109,7 @@ services:
       clickhouse:
         condition: service_healthy
     ports: [ "8000:8000" ] # 如使用 Cursor 端口转发，可去掉此行避免端口冲突
-    command: python authoring/manage.py runserver 0.0.0.0:8000
+    command: sh /app/infra/local/start_authoring.sh
 
   celery:
     build: { context: ../../, dockerfile: authoring/Dockerfile }
@@ -134,6 +140,7 @@ services:
     env_file: ../../.env
     environment:
       # ★ SSR 在容器内访问后端（服务名 authoring）
+      DJANGO_API_URL: ${DJANGO_API_URL:-http://authoring:8000}
       FEED_API_URL: ${FEED_API_URL:-http://authoring:8000}
       # ★ CSR 在浏览器访问后端；Cursor 端口转发时默认走 localhost
       NEXT_PUBLIC_FEED_API_URL: ${NEXT_PUBLIC_FEED_API_URL:-http://localhost:8000}

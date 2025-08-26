@@ -17,7 +17,7 @@ ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS","*").split(",")
 INSTALLED_APPS = [
     "django.contrib.admin","django.contrib.auth","django.contrib.contenttypes",
     "django.contrib.sessions","django.contrib.messages","django.contrib.staticfiles",
-    # Wagtail - Core apps only, avoiding problematic migrations
+    # Wagtail - Core apps (workflow is built-in to wagtail core in 7.1)
     "wagtail","wagtail.admin","wagtail.users","wagtail.documents","wagtail.images",
     "wagtail.snippets","wagtail.sites","wagtail.contrib.settings",
     "modelcluster","taggit",
@@ -30,9 +30,6 @@ INSTALLED_APPS = [
     "apps.news",
     "apps.searchapp",
     "apps.api",
-    "apps.ai_tools.apps.AiToolsConfig",
-    "apps.ai_news.apps.AiNewsConfig",
-    "apps.ai_tutorials.apps.AiTutorialsConfig",
 ]
 
 MIDDLEWARE = [
@@ -71,13 +68,31 @@ DATABASES = {
     }
 }
 
-CACHES = {"default": {
-    "BACKEND": "django.core.cache.backends.redis.RedisCache",
-    "LOCATION": os.getenv("REDIS_URL","redis://redis:6379/1"),
-}}
+# 优化缓存配置
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": os.getenv("REDIS_URL", "redis://redis:6379/1"),
+        "KEY_PREFIX": "idp_cms",
+        "TIMEOUT": 300,  # 默认5分钟超时
+        "VERSION": 1,
+    },
+    "api": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": os.getenv("REDIS_URL", "redis://redis:6379/1"),
+        "KEY_PREFIX": "idp_cms_api",
+        "TIMEOUT": 600,  # API缓存10分钟超时
+        "VERSION": 1,
+    }
+}
+
+# 缓存中间件配置
+CACHE_MIDDLEWARE_SECONDS = 300  # 5分钟
+CACHE_MIDDLEWARE_KEY_PREFIX = "idp_cms_middleware"
+CACHE_MIDDLEWARE_ALIAS = "default"
 
 LANGUAGE_CODE = "zh-hans"
-TIME_ZONE = os.getenv("DJANGO_TIME_ZONE","UTC")
+TIME_ZONE = os.getenv("DJANGO_TIME_ZONE","Asia/Shanghai")  # 默认使用中国时区
 USE_I18N = True
 USE_TZ = True
 
@@ -103,9 +118,14 @@ REST_FRAMEWORK = {"DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRen
 
 CELERY_BROKER_URL = os.getenv("REDIS_URL","redis://redis:6379/1")
 CELERY_RESULT_BACKEND = os.getenv("REDIS_URL","redis://redis:6379/1")
+
+# Celery时区配置
+CELERY_TIMEZONE = TIME_ZONE  # 使用Django的时区设置
+CELERY_ENABLE_UTC = False    # 禁用UTC，使用本地时区
+
 CELERY_BEAT_SCHEDULE = {
     "update-ctr-features-every-minute": {
-        "task": "apps.searchapp.metrics.update_ctr_features",
+        "task": "apps.searchapp.tasks.update_ctr_features",
         "schedule": timedelta(minutes=1),
         "args": []
     }
@@ -126,8 +146,30 @@ WAGTAILSEARCH_BACKENDS = {
     }
 }
 
-CLICKHOUSE_URL = os.getenv("CLICKHOUSE_URL","clickhouse://default:@clickhouse:9000/default")
-SITE_HOSTNAME = os.getenv("SITE_HOSTNAME","site-a.local")
+CLICKHOUSE_URL = os.getenv("CLICKHOUSE_URL","clickhouse://default:thends@clickhouse:9000/default")
+SITE_HOSTNAME = os.getenv("SITE_HOSTNAME","localhost")
+
+# 多站点配置
+MULTI_SITE_ENABLED = True
+DEFAULT_SITE_IDENTIFIER = "localhost"
+
+# CSRF配置 - 允许前端域名
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:3001",
+    "http://127.0.0.1:3001",
+]
+
+# 开发环境CSRF设置
+CSRF_COOKIE_SECURE = False  # 开发环境设为False
+CSRF_COOKIE_HTTPONLY = False  # 允许JavaScript访问
+CSRF_USE_SESSIONS = False  # 使用cookie而不是session
+
+# 开发环境：禁用CSRF保护（仅用于开发）
+CSRF_COOKIE_SECURE = False
+CSRF_COOKIE_HTTPONLY = False
+CSRF_USE_SESSIONS = False
 
 # CORS settings
 CORS_ALLOW_ALL_ORIGINS = os.getenv("CORS_ALLOW_ALL_ORIGINS", "True").lower() == "true"  # For development only
@@ -148,4 +190,5 @@ CORS_ALLOW_HEADERS = [
     "x-csrftoken",
     "x-requested-with",
     "x-ab-session",  # Allow our custom header (lowercase)
+    "x-site-id",     # Allow site identification header
 ]

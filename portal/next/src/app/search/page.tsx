@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useReducer, useCallback, useRef, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { Search, Filter, Clock, TrendingUp, Newspaper, Zap, BookOpen, User, ArrowRight, Sparkles, Target } from "lucide-react";
@@ -8,6 +8,72 @@ import { fetchFeed } from "@/lib/feed";
 import { aiToolsApi, aiNewsApi } from "@/lib/aiApiService";
 import { FeedItem } from "@/types/feed";
 import { AITool, AINews } from "@/types/ai";
+
+// 状态管理类型定义
+interface SearchState {
+  results: SearchResult[];
+  loading: boolean;
+  loadingMore: boolean;
+  hasMore: boolean;
+  currentPage: number;
+  activeFilter: 'all' | 'tools' | 'news' | 'recommendations' | 'tutorials';
+  sortBy: 'relevance' | 'date' | 'popularity';
+  searchInput: string;
+  searchLoading: boolean;
+  isInitialized: boolean;
+}
+
+type SearchAction = 
+  | { type: 'SET_LOADING'; payload: boolean }
+  | { type: 'SET_LOADING_MORE'; payload: boolean }
+  | { type: 'SET_RESULTS'; payload: SearchResult[] }
+  | { type: 'APPEND_RESULTS'; payload: SearchResult[] }
+  | { type: 'SET_HAS_MORE'; payload: boolean }
+  | { type: 'SET_CURRENT_PAGE'; payload: number }
+  | { type: 'SET_ACTIVE_FILTER'; payload: 'all' | 'tools' | 'news' | 'recommendations' | 'tutorials' }
+  | { type: 'SET_SORT_BY'; payload: 'relevance' | 'date' | 'popularity' }
+  | { type: 'SET_SEARCH_INPUT'; payload: string }
+  | { type: 'SET_SEARCH_LOADING'; payload: boolean }
+  | { type: 'SET_INITIALIZED'; payload: boolean }
+  | { type: 'RESET_STATE' };
+
+// 状态reducer
+const searchReducer = (state: SearchState, action: SearchAction): SearchState => {
+  switch (action.type) {
+    case 'SET_LOADING':
+      return { ...state, loading: action.payload };
+    case 'SET_LOADING_MORE':
+      return { ...state, loadingMore: action.payload };
+    case 'SET_RESULTS':
+      return { ...state, results: action.payload };
+    case 'APPEND_RESULTS':
+      return { ...state, results: [...state.results, ...action.payload] };
+    case 'SET_HAS_MORE':
+      return { ...state, hasMore: action.payload };
+    case 'SET_CURRENT_PAGE':
+      return { ...state, currentPage: action.payload };
+    case 'SET_ACTIVE_FILTER':
+      return { ...state, activeFilter: action.payload };
+    case 'SET_SORT_BY':
+      return { ...state, sortBy: action.payload };
+    case 'SET_SEARCH_INPUT':
+      return { ...state, searchInput: action.payload };
+    case 'SET_SEARCH_LOADING':
+      return { ...state, searchLoading: action.payload };
+    case 'SET_INITIALIZED':
+      return { ...state, isInitialized: action.payload };
+    case 'RESET_STATE':
+      return {
+        ...state,
+        results: [],
+        currentPage: 1,
+        hasMore: true,
+        activeFilter: 'all'
+      };
+    default:
+      return state;
+  }
+};
 
 interface SearchResult {
   type: 'recommendation' | 'tool' | 'news' | 'tutorial';
@@ -23,36 +89,45 @@ export default function SearchPage() {
   const searchParams = useSearchParams();
   const query = searchParams.get('q') || '';
   
-  const [results, setResults] = useState<SearchResult[]>([]);
-  const [loading, setLoading] = useState(!!query); // 如果有查询参数，初始状态为加载中
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [activeFilter, setActiveFilter] = useState<'all' | 'tools' | 'news' | 'recommendations' | 'tutorials'>('all');
-  const [sortBy, setSortBy] = useState<'relevance' | 'date' | 'popularity'>('relevance');
-  const [searchInput, setSearchInput] = useState<string>(query);
-  const [searchLoading, setSearchLoading] = useState(false);
-  const [isInitialized, setIsInitialized] = useState(false);
+  // 使用useReducer替代多个useState，提高性能
+  const [state, dispatch] = useReducer(searchReducer, {
+    results: [],
+    loading: !!query,
+    loadingMore: false,
+    hasMore: true,
+    currentPage: 1,
+    activeFilter: 'all' as const,
+    sortBy: 'relevance' as const,
+    searchInput: query,
+    searchLoading: false,
+    isInitialized: false,
+  });
+  
   const sentinel = useRef<HTMLDivElement>(null);
 
-  const searchCategories = [
-    { id: 'all', label: '全部', icon: Search, count: results.length },
-    { id: 'recommendations', label: '智能推荐', icon: Target, count: results.filter(r => r.type === 'recommendation').length },
-    { id: 'tools', label: 'AI工具', icon: Zap, count: results.filter(r => r.type === 'tool').length },
-    { id: 'news', label: 'AI资讯', icon: Newspaper, count: results.filter(r => r.type === 'news').length },
-    { id: 'tutorials', label: '技术教程', icon: BookOpen, count: results.filter(r => r.type === 'tutorial').length },
-  ];
+  // 使用useMemo优化分类统计计算，避免重复计算
+  const searchCategories = useMemo(() => [
+    { id: 'all', label: '全部', icon: Search, count: state.results.length },
+    { id: 'recommendations', label: '智能推荐', icon: Target, count: state.results.filter(r => r.type === 'recommendation').length },
+    { id: 'tools', label: 'AI工具', icon: Zap, count: state.results.filter(r => r.type === 'tool').length },
+    { id: 'news', label: 'AI资讯', icon: Newspaper, count: state.results.filter(r => r.type === 'news').length },
+    { id: 'tutorials', label: '技术教程', icon: BookOpen, count: state.results.filter(r => r.type === 'tutorial').length },
+  ], [state.results]);
 
-  const performSearch = useCallback(async (page = 1, append = false) => {
-    if (!query.trim()) return;
+  const performSearch = useCallback(async (page = 1, append = false, searchQuery?: string) => {
+    const currentQuery = searchQuery || query;
+    
+    if (!currentQuery.trim()) {
+      return;
+    }
     
     if (page === 1) {
-      setLoading(true);
-      setResults([]);
-      setCurrentPage(1);
-      setHasMore(true);
+      dispatch({ type: 'SET_LOADING', payload: true });
+      dispatch({ type: 'SET_RESULTS', payload: [] });
+      dispatch({ type: 'SET_CURRENT_PAGE', payload: 1 });
+      dispatch({ type: 'SET_HAS_MORE', payload: true });
     } else {
-      setLoadingMore(true);
+      dispatch({ type: 'SET_LOADING_MORE', payload: true });
     }
 
     try {
@@ -67,15 +142,15 @@ export default function SearchPage() {
       // 并行搜索各个数据源
       const [feedResponse, toolsResponse, newsResponse] = await Promise.allSettled([
         fetchFeed(undefined, 'final_score'),
-        aiToolsApi.getTools({ search: query, size: toolsPageSize * page, offset: toolsPageSize * (page - 1) }),
-        aiNewsApi.getNews({ search: query, size: newsPageSize * page, offset: newsPageSize * (page - 1) })
+        aiToolsApi.getTools({ search: currentQuery, size: toolsPageSize * page, page: page }),
+        aiNewsApi.getNews({ search: currentQuery, size: newsPageSize * page, page: page })
       ]);
 
       // 处理智能推荐结果（只在第一页加载）
       if (page === 1 && feedResponse.status === 'fulfilled') {
         const recommendations = feedResponse.value.items
           .filter(item => {
-            const lowerQuery = query.toLowerCase();
+            const lowerQuery = currentQuery.toLowerCase();
             const titleMatch = item.title.toLowerCase().includes(lowerQuery);
             const bodyMatch = item.body?.toLowerCase().includes(lowerQuery);
             const tagsMatch = item.tags && typeof item.tags === 'string' 
@@ -113,7 +188,7 @@ export default function SearchPage() {
         
         pageTools.forEach(tool => {
           // 检查是否已存在，避免重复
-          const exists = (append ? results : []).some(r => r.type === 'tool' && r.id === tool.id.toString());
+          const exists = (append ? state.results : []).some((r: SearchResult) => r.type === 'tool' && r.id === tool.id.toString());
           if (!exists) {
             searchResults.push({
               type: 'tool',
@@ -141,7 +216,7 @@ export default function SearchPage() {
         
         pageNews.forEach(article => {
           // 检查是否已存在，避免重复
-          const exists = (append ? results : []).some(r => r.type === 'news' && r.id === article.id.toString());
+          const exists = (append ? state.results : []).some((r: SearchResult) => r.type === 'news' && r.id === article.id.toString());
           if (!exists) {
             searchResults.push({
               type: 'news',
@@ -168,19 +243,19 @@ export default function SearchPage() {
 
       // 设置结果
       if (append && page > 1) {
-        setResults(prev => [...prev, ...searchResults]);
+        dispatch({ type: 'APPEND_RESULTS', payload: searchResults });
       } else {
-        setResults(searchResults);
+        dispatch({ type: 'SET_RESULTS', payload: searchResults });
       }
 
       // 检查是否还有更多数据
-      setHasMore(searchResults.length >= 8); // 如果返回的结果少于8条，认为没有更多数据
-      setCurrentPage(page);
+      dispatch({ type: 'SET_HAS_MORE', payload: searchResults.length >= 8 }); // 如果返回的结果少于8条，认为没有更多数据
+      dispatch({ type: 'SET_CURRENT_PAGE', payload: page });
     } catch (error) {
       console.error('Search failed:', error);
     } finally {
-      setLoading(false);
-      setLoadingMore(false);
+      dispatch({ type: 'SET_LOADING', payload: false });
+      dispatch({ type: 'SET_LOADING_MORE', payload: false });
     }
   }, [query]);
 
@@ -210,30 +285,24 @@ export default function SearchPage() {
   };
 
   const loadMore = useCallback(() => {
-    if (!loadingMore && hasMore && query) {
-      performSearch(currentPage + 1, true);
+    if (!state.loadingMore && state.hasMore && query) {
+      performSearch(state.currentPage + 1, true, query);
     }
-  }, [loadingMore, hasMore, currentPage, query, performSearch]);
+  }, [state.loadingMore, state.hasMore, state.currentPage, query, performSearch]);
 
   useEffect(() => {
-    if (query && !isInitialized) {
-      setSearchInput(query);
-      setResults([]);
-      setCurrentPage(1);
-      setHasMore(true);
-      setActiveFilter('all');
-      performSearch(1, false);
-      setIsInitialized(true);
-    } else if (query && isInitialized) {
-      // URL查询变化时的处理
-      setSearchInput(query);
-      setResults([]);
-      setCurrentPage(1);
-      setHasMore(true);
-      setActiveFilter('all');
-      performSearch(1, false);
+    if (query && !state.isInitialized) {
+      // 初始化时，如果有URL查询参数，执行搜索
+      dispatch({ type: 'SET_SEARCH_INPUT', payload: query });
+      dispatch({ type: 'RESET_STATE' });
+      performSearch(1, false, query);
+      dispatch({ type: 'SET_INITIALIZED', payload: true });
+    } else if (!query && !state.isInitialized) {
+      // 如果没有查询参数，初始化状态但不执行搜索
+      dispatch({ type: 'SET_INITIALIZED', payload: true });
     }
-  }, [query, isInitialized]);
+    // 移除对 state.searchInput 的依赖，避免用户输入时自动搜索
+  }, [query, state.isInitialized, performSearch]);
 
   // 监听浏览器前进/后退按钮
   useEffect(() => {
@@ -241,13 +310,10 @@ export default function SearchPage() {
       const urlParams = new URLSearchParams(window.location.search);
       const newQuery = urlParams.get('q') || '';
       if (newQuery !== query) {
-        setSearchInput(newQuery);
-        setResults([]);
-        setCurrentPage(1);
-        setHasMore(true);
-        setActiveFilter('all');
+        dispatch({ type: 'SET_SEARCH_INPUT', payload: newQuery });
+        dispatch({ type: 'RESET_STATE' });
         if (newQuery) {
-          performSearch(1, false);
+          performSearch(1, false, newQuery);
         }
       }
     };
@@ -258,11 +324,11 @@ export default function SearchPage() {
 
   // 无限滚动监听
   useEffect(() => {
-    if (!sentinel.current || !hasMore) return;
+    if (!sentinel.current || !state.hasMore) return;
     
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting && !loading && !loadingMore && hasMore) {
+        if (entry.isIntersecting && !state.loading && !state.loadingMore && state.hasMore) {
           loadMore();
         }
       },
@@ -271,16 +337,16 @@ export default function SearchPage() {
     
     observer.observe(sentinel.current);
     return () => observer.disconnect();
-  }, [loadMore, loading, loadingMore, hasMore]);
+  }, [loadMore, state.loading, state.loadingMore, state.hasMore]);
 
-  // 当筛选或排序改变时，重新搜索
+  // 当筛选或排序改变时，重新搜索（只在有查询参数时）
   useEffect(() => {
-    if (query) {
-      setCurrentPage(1);
-      setHasMore(true);
-      performSearch(1, false);
+    if (query && state.isInitialized) {
+      dispatch({ type: 'SET_CURRENT_PAGE', payload: 1 });
+      dispatch({ type: 'SET_HAS_MORE', payload: true });
+      performSearch(1, false, query);
     }
-  }, [activeFilter, sortBy]);
+  }, [state.activeFilter, state.sortBy, query, performSearch, state.isInitialized]);
 
   const handleNewSearch = (newQuery: string) => {
     if (!newQuery.trim()) return;
@@ -289,148 +355,55 @@ export default function SearchPage() {
     const newUrl = `/search?q=${encodeURIComponent(newQuery)}`;
     window.history.pushState(null, '', newUrl);
     
-    // 直接更新状态并重新搜索
-    setResults([]);
-    setCurrentPage(1);
-    setHasMore(true);
-    setActiveFilter('all');
+    // 更新查询状态
+    dispatch({ type: 'SET_SEARCH_INPUT', payload: newQuery });
     
-    // 创建新的performSearch调用，基于新查询
-    const newPerformSearch = async () => {
-      if (!newQuery.trim()) return;
-      
-      setLoading(true);
-      try {
-        const searchResults: SearchResult[] = [];
-        const pageSize = 10;
-        const feedPageSize = Math.ceil(pageSize * 0.4);
-        const toolsPageSize = Math.ceil(pageSize * 0.3);
-        const newsPageSize = Math.ceil(pageSize * 0.3);
-
-        const [feedResponse, toolsResponse, newsResponse] = await Promise.allSettled([
-          fetchFeed(undefined, 'final_score'),
-          aiToolsApi.getTools({ search: newQuery, size: toolsPageSize }),
-          aiNewsApi.getNews({ search: newQuery, size: newsPageSize })
-        ]);
-
-        // 处理智能推荐结果
-        if (feedResponse.status === 'fulfilled') {
-          const recommendations = feedResponse.value.items
-            .filter(item => {
-              const lowerQuery = newQuery.toLowerCase();
-              const titleMatch = item.title.toLowerCase().includes(lowerQuery);
-              const bodyMatch = item.body?.toLowerCase().includes(lowerQuery);
-              const tagsMatch = item.tags && typeof item.tags === 'string' 
-                ? item.tags.toLowerCase().includes(lowerQuery) 
-                : false;
-              
-              return titleMatch || bodyMatch || tagsMatch;
-            })
-            .slice(0, feedPageSize);
-
-          recommendations.forEach(item => {
-            searchResults.push({
-              type: 'recommendation',
-              id: item.id,
-              title: item.title,
-              description: item.body?.slice(0, 150) + '...' || '',
-              url: `/news/${item.id}`,
-              score: item.final_score,
-              metadata: {
-                channel: item.channel,
-                publish_time: item.publish_time,
-                pop_24h: item.pop_24h
-              }
-            });
-          });
-        }
-
-        // 处理AI工具结果
-        if (toolsResponse.status === 'fulfilled') {
-          const tools = toolsResponse.value.results || [];
-          tools.forEach(tool => {
-            searchResults.push({
-              type: 'tool',
-              id: tool.id.toString(),
-              title: tool.title,
-              description: tool.description,
-              url: tool.tool_url,
-              metadata: {
-                category: tool.category,
-                pricing: tool.pricing,
-                rating: tool.rating
-              }
-            });
-          });
-        }
-
-        // 处理AI新闻结果
-        if (newsResponse.status === 'fulfilled') {
-          const news = newsResponse.value.results || [];
-          news.forEach(article => {
-            searchResults.push({
-              type: 'news',
-              id: article.id.toString(),
-              title: article.title,
-              description: article.introduction,
-              url: `/news/${article.id}`,
-              metadata: {
-                source: article.source,
-                publish_time: article.last_published_at,
-                read_count: article.read_count
-              }
-            });
-          });
-        }
-
-        // 根据相关性排序
-        searchResults.sort((a, b) => {
-          const aRelevance = calculateRelevance(a, newQuery);
-          const bRelevance = calculateRelevance(b, newQuery);
-          return bRelevance - aRelevance;
-        });
-
-        setResults(searchResults);
-        setHasMore(searchResults.length >= 8);
-        setCurrentPage(1);
-      } catch (error) {
-        console.error('Search failed:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
+    // 重置搜索状态
+    dispatch({ type: 'RESET_STATE' });
     
-    newPerformSearch();
+    // 直接调用现有的 performSearch 函数，避免重复代码
+    performSearch(1, false, newQuery);
+  };
+
+  // 处理搜索输入变化，只更新状态，不自动搜索
+  const handleSearchInputChange = (value: string) => {
+    dispatch({ type: 'SET_SEARCH_INPUT', payload: value });
+    
+    // 如果输入为空，清空结果
+    if (!value.trim()) {
+      dispatch({ type: 'SET_RESULTS', payload: [] });
+      dispatch({ type: 'SET_LOADING', payload: false });
+    }
   };
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    handleNewSearch(searchInput);
+    handleNewSearch(state.searchInput);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
-      handleNewSearch(searchInput);
+      handleNewSearch(state.searchInput);
     }
   };
 
-  const filteredResults = results.filter(result => {
-    if (activeFilter === 'all') return true;
-    if (activeFilter === 'recommendations') return result.type === 'recommendation';
-    if (activeFilter === 'tools') return result.type === 'tool';
-    if (activeFilter === 'news') return result.type === 'news';
-    if (activeFilter === 'tutorials') return result.type === 'tutorial';
+  const filteredResults = state.results.filter((result: SearchResult) => {
+    if (state.activeFilter === 'all') return true;
+    if (state.activeFilter === 'recommendations') return result.type === 'recommendation';
+    if (state.activeFilter === 'tools') return result.type === 'tool';
+    if (state.activeFilter === 'news') return result.type === 'news';
+    if (state.activeFilter === 'tutorials') return result.type === 'tutorial';
     return true;
   });
 
   const sortedResults = [...filteredResults].sort((a, b) => {
-    if (sortBy === 'relevance') {
+    if (state.sortBy === 'relevance') {
       return calculateRelevance(b, query) - calculateRelevance(a, query);
-    } else if (sortBy === 'date') {
+    } else if (state.sortBy === 'date') {
       const aDate = new Date(a.metadata?.publish_time || a.metadata?.last_published_at || '1970-01-01');
       const bDate = new Date(b.metadata?.publish_time || b.metadata?.last_published_at || '1970-01-01');
       return bDate.getTime() - aDate.getTime();
-    } else if (sortBy === 'popularity') {
+    } else if (state.sortBy === 'popularity') {
       const aPopularity = a.metadata?.pop_24h || a.metadata?.read_count || a.metadata?.rating || 0;
       const bPopularity = b.metadata?.pop_24h || b.metadata?.read_count || b.metadata?.rating || 0;
       return bPopularity - aPopularity;
@@ -460,20 +433,20 @@ export default function SearchPage() {
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
                   type="text"
-                  value={searchInput}
-                  onChange={(e) => setSearchInput(e.target.value)}
+                  value={state.searchInput}
+                  onChange={(e) => handleSearchInputChange(e.target.value)}
                   onKeyPress={handleKeyPress}
                   placeholder="搜索AI工具、资讯、技术..."
                   className="w-full pl-10 pr-6 py-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  disabled={searchLoading}
+                  disabled={state.searchLoading}
                 />
               </div>
               <button 
                 type="submit"
-                disabled={searchLoading || !searchInput.trim()}
+                disabled={state.searchLoading || !state.searchInput.trim()}
                 className="btn-primary px-6 py-3 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
               >
-                {searchLoading ? (
+                {state.searchLoading ? (
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
                     <span>搜索中...</span>
@@ -488,10 +461,10 @@ export default function SearchPage() {
           <div className="flex items-center justify-between mb-6">
             <div>
               <h1 className="text-2xl font-bold text-gray-900">
-                搜索结果
+                {query ? '搜索结果' : '搜索'}
               </h1>
               <p className="text-gray-600 mt-1">
-                为 "{query}" 找到 {sortedResults.length} 个结果
+                {query ? `为 "${query}" 找到 ${sortedResults.length} 个结果` : '输入关键词开始搜索AI工具、资讯、技术教程'}
               </p>
             </div>
             
@@ -500,8 +473,8 @@ export default function SearchPage() {
               <div className="flex items-center space-x-2">
                 <span className="text-sm font-medium text-gray-700">排序:</span>
                 <select 
-                  value={sortBy} 
-                  onChange={(e) => setSortBy(e.target.value as any)}
+                  value={state.sortBy} 
+                  onChange={(e) => dispatch({ type: 'SET_SORT_BY', payload: e.target.value as any })}
                   className="text-sm border border-gray-300 rounded-md px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value="relevance">相关性</option>
@@ -512,34 +485,36 @@ export default function SearchPage() {
             </div>
           </div>
 
-          {/* Category Filters */}
-          <div className="flex items-center space-x-4 overflow-x-auto pb-2">
-            {searchCategories.map((category) => (
-              <button
-                key={category.id}
-                onClick={() => setActiveFilter(category.id as any)}
-                className={`flex items-center space-x-2 px-4 py-2 rounded-lg whitespace-nowrap transition-colors ${
-                  activeFilter === category.id
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                <category.icon className="w-4 h-4" />
-                <span className="font-medium">{category.label}</span>
-                <span className={`text-xs px-2 py-0.5 rounded-full ${
-                  activeFilter === category.id ? 'bg-blue-500' : 'bg-gray-300'
-                }`}>
-                  {category.count}
-                </span>
-              </button>
-            ))}
-          </div>
+          {/* Category Filters - 只在有查询时显示 */}
+          {query && (
+            <div className="flex items-center space-x-4 overflow-x-auto pb-2">
+              {searchCategories.map((category) => (
+                <button
+                  key={category.id}
+                  onClick={() => dispatch({ type: 'SET_ACTIVE_FILTER', payload: category.id as any })}
+                  className={`flex items-center space-x-2 px-4 py-2 rounded-lg whitespace-nowrap transition-colors ${
+                    state.activeFilter === category.id
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  <category.icon className="w-4 h-4" />
+                  <span className="font-medium">{category.label}</span>
+                  <span className={`text-xs px-2 py-0.5 rounded-full ${
+                    state.activeFilter === category.id ? 'bg-blue-500' : 'bg-gray-300'
+                  }`}>
+                    {category.count}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </header>
 
       {/* Search Results */}
       <main className="max-w-6xl mx-auto px-4 py-8">
-        {loading ? (
+        {state.loading ? (
           <div className="text-center py-12">
             <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -563,7 +538,7 @@ export default function SearchPage() {
             {/* 无限滚动加载指示器 */}
             <div ref={sentinel} className="h-1" />
             
-            {loadingMore && (
+            {state.loadingMore && (
               <div className="text-center py-8">
                 <div className="inline-flex items-center justify-center space-x-2">
                   <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
@@ -572,7 +547,7 @@ export default function SearchPage() {
               </div>
             )}
 
-            {!hasMore && sortedResults.length > 10 && (
+            {!state.hasMore && sortedResults.length > 10 && (
               <div className="text-center py-8">
                 <div className="text-gray-500">
                   <p className="text-lg font-medium mb-2">🎉 所有搜索结果已加载完毕</p>

@@ -1,6 +1,7 @@
 # Cursor User Rules & Preferences — IDP CMS (Wagtail 7.1)
 
 > 目的：让 AI 在本项目中**按统一规则**生成与修改代码，保持可维护、可扩张、可回滚。
+> 输出：不要输出你的任何想法和总结，只输出代码。
 
 ## 0) 技术基线（不可违背）
 - 后端：**Django (4.2+) + Wagtail 7.1**，Python **3.11**；REST API（非 GraphQL）。

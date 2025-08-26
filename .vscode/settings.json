@@ -8,10 +8,11 @@
             "requestTimeout": 30000,
             "enableTls": false,
             "previewLimit": 50,
+            "password": "thends",
             "username": "default",
             "driver": "ClickHouse",
-            "name": "IDP-CMS ClickHouse",
-            "password": ""
+            "name": "IDP-CMS ClickHouse"
         }
-    ]
+    ],
+    "git.ignoreLimitWarning": true
 }

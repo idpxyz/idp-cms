@@ -15,6 +15,7 @@
 - [Feature Flags 与 A/B](#feature-flags-与-ab)
 - [ML 排序与自动化](#ml-排序与自动化)
 - [多租户与计费](#多租户与计费)
+- [多站点架构](#多站点架构)
 - [SSO（Logto）](#ssologto)
 - [细粒度 RBAC](#细粒度-rbac)
 - [部署与外部依赖复用](#部署与外部依赖复用)
@@ -33,6 +34,7 @@
 - **检索**：OpenSearch（按站点别名、版本化重建、零停机切换）
 - **数据**：ClickHouse（曝光/点击/停留埋点 + 分钟聚合）
 - **前端**：Next.js Portal（信息流：首屏 SSR + 后续 CSR 无限滚动），Logto SSO
+- **多站点架构**：动态站点识别、数据隔离、统一管理（详见 [多站点架构](#多站点架构)）
 - **SaaS 能力**：租户/订阅（Stripe）、API Key + 限流 + 审计、细粒度 RBAC（频道/PageRoot）
 - **算法**：启发式 + LightGBM 排序（训练 → 上线 → 灰度）
 - **自动化**：Make 任务、一键训练、Cron/systemd/Actions 夜间上线
@@ -106,6 +108,89 @@ README.md                 # 快速上手与操作指引
 - 建站：`apps/core/management/commands/add_site.py`（自动创建 Tenant + FREE 订阅 + 默认 API Key）。
 - 计费：`/console/upgrade`（Stripe Checkout）、`/console/billing/portal`（Customer Portal）→ `/billing/webhook` 同步订阅。
 - 限流：按 `plan.api_rpm` 每租户每分钟令牌桶；阈值告警：`ALERT_WEBHOOK_URL`。
+
+## 多站点架构
+
+系统支持在同一套基础设施上运行多个独立站点，每个站点拥有独立的内容、配置和数据隔离。
+
+### 核心特性
+- **动态站点识别**：通过 Host header 或 URL 参数自动识别当前站点
+- **数据完全隔离**：每个站点使用独立的 OpenSearch 索引
+- **统一管理界面**：集成 Wagtail Sites 框架进行内容管理
+- **灵活的配置**：支持站点特定的功能和模板
+
+### 架构组件
+
+#### 1. 站点识别模块 (`apps/core/site_utils.py`)
+```python
+def get_site_from_request(request) -> str:
+    """
+    站点识别优先级:
+    1. URL参数 ?site=  
+    2. Host header
+    3. 默认配置
+    """
+```
+
+#### 2. 数据隔离层
+- **OpenSearch 索引**：每站点独立索引 (`news_{site}_articles`)
+- **ClickHouse 数据**：按 `site` 字段逻辑隔离
+- **Wagtail Sites**：内容管理层面的站点配置
+
+#### 3. API 端点适配
+- **Feed API** (`/api/feed`)：自动根据站点返回对应内容
+- **站点检测**：`debug.site` 字段显示识别结果
+- **性能优化**：站点特定的缓存策略
+
+### 当前支持站点
+
+| 站点标识符 | 域名 | 索引名称 |
+|----------|------|----------|
+| `localhost` | `localhost`, `127.0.0.1` | `news_localhost_articles` |
+| `site-a.local` | `site-a.local` | `news_site_a_local_articles` |
+| `site-b.local` | `site-b.local` | `news_site_b_local_articles` |
+| `portal.local` | `portal.local` | `news_portal_local_articles` |
+
+### 管理命令
+
+```bash
+# 创建所有站点的配置和索引
+docker compose exec authoring python authoring/manage.py setup_sites
+
+# 仅创建 Wagtail Sites 配置  
+docker compose exec authoring python authoring/manage.py setup_sites --create-sites
+
+# 仅创建 OpenSearch 索引
+docker compose exec authoring python authoring/manage.py setup_sites --create-indices
+```
+
+### API 使用示例
+
+```bash
+# 通过 Host header 访问特定站点
+curl -H "Host: site-a.local" "http://localhost:8000/api/feed?size=5"
+
+# 通过 URL 参数指定站点
+curl "http://localhost:8000/api/feed?site=site-b.local&size=5"
+```
+
+### 配置文件
+
+- **站点映射**：`apps/core/site_utils.py` 中的 `SITE_MAPPINGS`
+- **Django 设置**：`MULTI_SITE_ENABLED = True`
+- **环境变量**：`.env` 中的 `SITE_HOSTNAME`
+
+### 扩展新站点
+
+1. 更新 `apps/core/site_utils.py` 中的站点映射
+2. 添加域名到 `ALLOWED_HOSTS`
+3. 运行 `setup_sites` 命令创建资源
+4. 配置 Nginx 反向代理（生产环境）
+
+详细文档请参考：
+- [多站点架构指南](./多站点架构指南.md)
+- [多站点API文档](./多站点API文档.md)  
+- [多站点部署运维指南](./多站点部署运维指南.md)
 
 ## SSO（Logto）
 - 后端：`mozilla-django-oidc`，`/oidc/authenticate/` 登录；`auth_oidc.py` 将 organizations 元数据中的 `hostname` → `Tenant`，可授 `OIDC_DEFAULT_ROLE`。

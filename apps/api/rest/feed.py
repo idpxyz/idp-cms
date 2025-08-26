@@ -5,6 +5,7 @@ from django.conf import settings
 from apps.searchapp.client import get_client, index_name_for
 from apps.searchapp.queries import build_query
 from apps.core.flags import flag, ab_bucket
+from apps.core.site_utils import get_site_from_request
 from .features import fetch_agg_features
 from .rank import score_and_diversify
 
@@ -17,7 +18,8 @@ def decode_cursor(token: str|None) -> dict:
 
 @api_view(["GET"])
 def feed(request):
-    site = request.query_params.get("site", settings.SITE_HOSTNAME)
+    # 使用智能站点识别
+    site = get_site_from_request(request)
     size = int(request.query_params.get("size", 20))
     cursor = decode_cursor(request.query_params.get("cursor"))
     seen_ids = cursor.get("seen", [])
@@ -50,4 +52,14 @@ def feed(request):
       "seen": (seen_ids + [r["id"] for r in ranked])[-200:],
       "ts": int(time.time()*1000)
     })
-    return Response({"items": ranked, "next_cursor": next_cursor, "debug": {"hours": hours, "template": template, "sort_by": sort_by}})
+    return Response({
+        "items": ranked, 
+        "next_cursor": next_cursor, 
+        "debug": {
+            "hours": hours, 
+            "template": template, 
+            "sort_by": sort_by,
+            "site": site,
+            "host": request.get_host()
+        }
+    })

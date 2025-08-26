@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState, useCallback } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { fetchFeed } from "@/lib/feed";
 import { track } from "@/lib/track";
 import { FeedItem } from "@/types/feed";
@@ -8,6 +8,7 @@ import Navigation from "@/components/Navigation";
 
 export default function FeedPage(){
   const searchParams = useSearchParams();
+  const router = useRouter();
   const searchQuery = searchParams.get('search');
   const [items, setItems] = useState<FeedItem[]>([]);
   const [cursor, setCursor] = useState<string|undefined>();
@@ -16,6 +17,47 @@ export default function FeedPage(){
   const [sortBy, setSortBy] = useState<string>('final_score');
   const [isInitialized, setIsInitialized] = useState(false);
   const sentinel = useRef<HTMLDivElement>(null);
+
+  // 处理文章点击
+  const handleItemClick = useCallback(async (item: FeedItem) => {
+    // 发送点击跟踪
+    track("click", [item.article_id]);
+    
+    try {
+      // 先尝试获取实际的内容ID
+      const response = await fetch(`/api/feed-to-content/${item.article_id}`);
+      
+      if (response.ok) {
+        const mapping = await response.json();
+        // 使用映射后的真实ID和URL
+        router.push(mapping.url);
+      } else {
+        // 如果映射失败，回退到原来的逻辑
+        console.warn(`Mapping failed for ${item.article_id}, using fallback navigation`);
+        
+        // 根据channel确定路由路径
+        let path = '';
+        if (item.channel === 'ai-news' || item.channel === 'news' || item.channel === 'tech' || item.channel === 'recommend') {
+          // 大部分内容都导航到新闻页面
+          path = `/news/${item.article_id}`;
+        } else if (item.channel === 'ai-tools' || item.channel === 'tools') {
+          path = `/tools/${item.article_id}`;
+        } else if (item.channel === 'ai-tutorials' || item.channel === 'tutorials') {
+          path = `/tutorials/${item.article_id}`;
+        } else {
+          // 默认导航到新闻页面
+          path = `/news/${item.article_id}`;
+        }
+        
+        router.push(path);
+      }
+    } catch (error) {
+      console.error('Error mapping feed article ID:', error);
+      // 发生错误时回退到原来的逻辑
+      const path = `/news/${item.article_id}`;
+      router.push(path);
+    }
+  }, [router]);
 
   const load = useCallback(async (isRefresh = false) => {
     // 如果不是刷新且没有更多数据，直接返回
@@ -145,8 +187,8 @@ export default function FeedPage(){
           {items.map((item, index) => (
             <article 
               key={`${sortBy}-${item.id}-${index}`} 
-              className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow cursor-pointer"
-              onClick={() => track("click", [item.id])}
+              className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md hover:border-blue-300 transition-all cursor-pointer active:scale-[0.99]"
+              onClick={() => handleItemClick(item)}
             >
               <div className="flex items-start space-x-4">
                 <div className="flex-shrink-0">

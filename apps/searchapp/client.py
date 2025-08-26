@@ -24,5 +24,17 @@ def get_client():
         retry_on_timeout=True,
     )
 
-def index_name_for(site:str)->str:
-    return f"news_{site.replace('.','_')}_articles"
+def index_name_for(site: str) -> str:
+    """
+    生成站点对应的索引名称
+    
+    Args:
+        site: 站点标识符
+        
+    Returns:
+        str: 索引名称
+    """
+    from apps.core.site_utils import normalize_site_identifier
+    
+    normalized_site = normalize_site_identifier(site)
+    return f"news_{normalized_site}_articles"

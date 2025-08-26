@@ -1,10 +1,14 @@
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from datetime import datetime, timezone
 from clickhouse_driver import Client
 from django.conf import settings
+from django.views.decorators.csrf import csrf_exempt
 
 @api_view(["POST"])
+@csrf_exempt
+@permission_classes([AllowAny])
 def track(request):
     ch = Client.from_url(settings.CLICKHOUSE_URL)
     p = request.data

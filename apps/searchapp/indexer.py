@@ -4,10 +4,18 @@ class ArticleIndexer:
     def to_doc(self, page) -> dict:
         """将页面转换为索引文档"""
         tags = [t.name for t in getattr(page, "tags", []).all()] if hasattr(page, "tags") else []
+        
+        # 标准化站点标识符 - 开发环境统一使用localhost
+        site_hostname = page.get_site().hostname
+        if site_hostname in ['site-a.local', 'site-b.local', 'portal.local']:
+            site_identifier = 'localhost'
+        else:
+            site_identifier = site_hostname
+            
         return {
             "article_id": str(page.id),
-            "tenant": page.get_site().hostname,
-            "site": page.get_site().hostname,
+            "tenant": site_identifier,
+            "site": site_identifier,
             "channel": getattr(page, "channel_slug","recommend"),
             "topic": getattr(page, "topic_slug",""),
             "tags": tags,

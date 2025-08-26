@@ -183,9 +183,6 @@ final_score = 0.6 × recall_score + 0.3 × ctr_1h + 0.1 × quality_score
 | 模板名称 | 描述 | 适用场景 |
 |----------|------|----------|
 | `recommend_default` | 默认推荐模板 | 通用内容推荐 |
-| `ai_news` | AI新闻模板 | AI新闻专题 |
-| `ai_tools` | AI工具模板 | AI工具推荐 |
-| `ai_tutorials` | AI教程模板 | AI教程推荐 |
 | `channel_hot` | 热门频道模板 | 热门内容推荐 |
 
 ## 错误处理
