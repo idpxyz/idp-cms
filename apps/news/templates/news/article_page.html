@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% load wagtailcore_tags wagtailimages_tags %}
+
+{% block content %}
+<article class="article-page">
+    <header class="article-header">
+        {% if page.cover %}
+            <div class="article-cover">
+                {% image page.cover max-1200x600 as cover_image %}
+                <img src="{{ cover_image.url }}" alt="{{ page.title }}" class="w-full">
+            </div>
+        {% endif %}
+        
+        <div class="article-meta">
+            <h1 class="article-title">{{ page.title }}</h1>
+            {% if page.excerpt %}
+                <p class="article-excerpt">{{ page.excerpt }}</p>
+            {% endif %}
+            <div class="article-info">
+                <span class="publish-date">发布时间：{{ page.publish_at|date:"Y-m-d H:i" }}</span>
+                {% if page.source_site %}
+                    <span class="source-site">来源：{{ page.source_site.hostname }}</span>
+                {% endif %}
+            </div>
+        </div>
+    </header>
+
+    <div class="article-body">
+        {{ page.body|richtext }}
+    </div>
+
+    <footer class="article-footer">
+        <div class="article-tags">
+            {% if page.tags.all %}
+                <span>标签：</span>
+                {% for tag in page.tags.all %}
+                    <span class="tag">{{ tag.name }}</span>
+                {% endfor %}
+            {% endif %}
+        </div>
+    </footer>
+</article>
+{% endblock %}

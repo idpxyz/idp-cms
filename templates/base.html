@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{{ page.title }}{% endblock %}</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #f8f9fa;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .article-page {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .article-header {
+            padding: 40px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .article-cover {
+            margin-bottom: 30px;
+        }
+
+        .article-cover img {
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .article-title {
+            font-size: 2.8em;
+            font-weight: 700;
+            margin: 20px 0;
+            color: #212529;
+            line-height: 1.2;
+        }
+
+        .article-excerpt {
+            font-size: 1.3em;
+            color: #6c757d;
+            margin: 20px 0;
+            line-height: 1.5;
+        }
+
+        .article-info {
+            color: #868e96;
+            font-size: 0.95em;
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .article-body {
+            padding: 40px;
+            line-height: 1.7;
+            font-size: 1.1em;
+            color: #495057;
+        }
+
+        .article-footer {
+            padding: 30px 40px;
+            background: #f8f9fa;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .tag {
+            background: #e9ecef;
+            color: #495057;
+            padding: 6px 12px;
+            margin: 0 8px 8px 0;
+            border-radius: 20px;
+            font-size: 0.9em;
+            display: inline-block;
+        }
+
+        .tag:hover {
+            background: #dee2e6;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+
+            .article-header,
+            .article-body,
+            .article-footer {
+                padding: 20px;
+            }
+
+            .article-title {
+                font-size: 2.2em;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        {% block content %}{% endblock %}
+    </div>
+</body>
+
+</html>

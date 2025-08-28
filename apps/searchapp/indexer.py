@@ -26,7 +26,7 @@ class ArticleIndexer:
             "region": getattr(page, "region","global"),
             "publish_time": (page.first_published_at.isoformat() if page.first_published_at else None),
             "pop_1h": 0.0, "pop_24h": 0.0, "ctr_1h": 0.0, "ctr_24h": 0.0,
-            "quality_score": 1.0, "lang": getattr(page, "language","zh"),
+            "quality_score": 1.0, "lang": getattr(page.language, "code", "zh") if hasattr(page, 'language') and page.language else "zh",
         }
 
 # 向后兼容

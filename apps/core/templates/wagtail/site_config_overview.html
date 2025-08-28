@@ -1,0 +1,336 @@
+{% extends "wagtailadmin/base.html" %}
+{% load wagtailadmin_tags wagtailcore_tags %}
+
+{% block content %}
+<div class="nice-padding">
+    <h1 class="icon icon-site">站点配置概览</h1>
+
+    <div class="help-block help-info">
+        <p>这里显示了所有站点的配置状态和关键信息。点击站点名称可以快速编辑配置。</p>
+    </div>
+
+    <div class="row">
+        {% for config in configs %}
+        <div class="col6">
+            <div class="card">
+                <div class="card-header">
+                    <h3>
+                        {% if config.settings %}
+                        <a href="{% url 'wagtailsnippets_core_sitesettings:edit' config.settings.id %}"
+                            class="icon icon-site">
+                            {{ config.site.site_name }}
+                        </a>
+                        {% else %}
+                        <span class="icon icon-site">{{ config.site.site_name }}</span>
+                        {% endif %}
+                    </h3>
+                    <small class="text-muted">{{ config.site.hostname }}</small>
+                </div>
+
+                <div class="card-body">
+                    {% if config.settings %}
+                    <!-- 配置状态 -->
+                    <div class="status-indicator">
+                        <span
+                            class="status {% if config.status.is_valid %}status-positive{% else %}status-negative{% endif %}">
+                            配置状态: {{ config.status.score }}/100
+                        </span>
+                    </div>
+
+                    {% if config.status.warnings %}
+                    <div class="help-block help-warning">
+                        <p><strong>⚠️ 警告 ({{ config.status.warnings|length }}):</strong></p>
+                        <ul>
+                            {% for warning in config.status.warnings %}
+                            <li>{{ warning }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+
+                    {% if config.status.errors %}
+                    <div class="help-block help-critical">
+                        <p><strong>❌ 错误 ({{ config.status.errors|length }}):</strong></p>
+                        <ul>
+                            {% for error in config.status.errors %}
+                            <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+
+                    <!-- 配置摘要 -->
+                    {% if config.summary %}
+                    <div class="config-summary">
+                        <h4>功能状态</h4>
+                        <div class="feature-grid">
+                            {% for feature, enabled in config.summary.features.items %}
+                            <div class="feature-item">
+                                <span class="feature-name">{{ feature|title }}</span>
+                                <span class="feature-status {% if enabled %}enabled{% else %}disabled{% endif %}">
+                                    {% if enabled %}✅{% else %}❌{% endif %}
+                                </span>
+                            </div>
+                            {% endfor %}
+                        </div>
+
+                        <h4>UI配置</h4>
+                        <div class="ui-config">
+                            <p><strong>主题:</strong> {{ config.summary.ui.theme }}</p>
+                            <p><strong>主色调:</strong>
+                                <span class="color-preview"
+                                    style="background-color: {{ config.summary.ui.primary_color }}; width: 20px; height: 20px; display: inline-block; border: 1px solid #ccc;"></span>
+                                {{ config.summary.ui.primary_color }}
+                            </p>
+                            <p><strong>深色模式:</strong> {% if config.summary.ui.dark_mode %}启用{% else %}禁用{% endif %}</p>
+                        </div>
+
+                        <h4>性能配置</h4>
+                        <div class="perf-config">
+                            <p><strong>缓存时间:</strong> {{ config.summary.performance.cache_timeout }}</p>
+                            <p><strong>每页文章数:</strong> {{ config.summary.performance.max_articles_per_page }}</p>
+                            <p><strong>CDN:</strong> {% if config.summary.performance.cdn_enabled %}启用{% else %}禁用{%
+                                endif %}</p>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- 操作按钮 -->
+                    <div class="action-buttons">
+                        <a href="{% url 'wagtailsnippets_core_sitesettings:edit' config.settings.id %}"
+                            class="button button-small button-primary">
+                            编辑配置
+                        </a>
+                        <a href="{% url 'wagtailsnippets_core_sitesettings:list' %}"
+                            class="button button-small button-secondary">
+                            查看所有配置
+                        </a>
+                    </div>
+
+                    {% else %}
+                    <!-- 配置不存在 -->
+                    <div class="help-block help-critical">
+                        <p><strong>❌ 配置不存在</strong></p>
+                        <p>此站点还没有配置信息，请先创建配置。</p>
+                    </div>
+
+                    <div class="action-buttons">
+                        <a href="{% url 'wagtailsnippets_core_sitesettings:add' %}?site={{ config.site.id }}"
+                            class="button button-small button-primary">
+                            创建配置
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        {% if forloop.counter|divisibleby:2 and not forloop.last %}
+    </div>
+    <div class="row">
+        {% endif %}
+        {% endif %}
+        {% endfor %}
+    </div>
+
+    <!-- 统计信息 -->
+    <div class="stats-panel">
+        <h3>配置统计</h3>
+        <div class="row">
+            <div class="col3">
+                <div class="stat-item">
+                    <div class="stat-number">{{ configs|length }}</div>
+                    <div class="stat-label">总站点数</div>
+                </div>
+            </div>
+            <div class="col3">
+                <div class="stat-item">
+                    <div class="stat-number">
+                        {% with valid_configs=configs|dictsort:"status.is_valid"|dictsortreversed:"status.is_valid" %}
+                        {{ valid_configs|slice:":1"|length }}
+                        {% endwith %}
+                    </div>
+                    <div class="stat-label">有效配置</div>
+                </div>
+            </div>
+            <div class="col3">
+                <div class="stat-item">
+                    <div class="stat-number">
+                        {% with avg_score=configs|dictsort:"status.score"|dictsortreversed:"status.score" %}
+                        {% for score_config in avg_score %}
+                        {% if forloop.first %}
+                        {{ score_config.status.score }}
+                        {% endif %}
+                        {% endfor %}
+                        {% endwith %}
+                    </div>
+                    <div class="stat-label">最高配置分数</div>
+                </div>
+            </div>
+            <div class="col3">
+                <div class="stat-item">
+                    <div class="stat-number">
+                        {% with min_score=configs|dictsort:"status.score" %}
+                        {% for score_config in min_score %}
+                        {% if forloop.first %}
+                        {{ score_config.status.score }}
+                        {% endif %}
+                        {% endfor %}
+                        {% endwith %}
+                    </div>
+                    <div class="stat-label">最低配置分数</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .card {
+        border: 1px solid #e1e1e1;
+        border-radius: 4px;
+        margin-bottom: 20px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .card-header {
+        background: #f8f9fa;
+        padding: 15px;
+        border-bottom: 1px solid #e1e1e1;
+    }
+
+    .card-header h3 {
+        margin: 0;
+        font-size: 18px;
+    }
+
+    .card-header small {
+        color: #6c757d;
+    }
+
+    .card-body {
+        padding: 15px;
+    }
+
+    .status-indicator {
+        margin-bottom: 15px;
+    }
+
+    .status {
+        padding: 4px 8px;
+        border-radius: 3px;
+        font-size: 12px;
+        font-weight: bold;
+    }
+
+    .status-positive {
+        background: #d4edda;
+        color: #155724;
+    }
+
+    .status-negative {
+        background: #f8d7da;
+        color: #721c24;
+    }
+
+    .feature-grid {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 8px;
+        margin: 10px 0;
+    }
+
+    .feature-item {
+        display: contents;
+    }
+
+    .feature-name {
+        font-size: 14px;
+    }
+
+    .feature-status {
+        text-align: center;
+    }
+
+    .feature-status.enabled {
+        color: #28a745;
+    }
+
+    .feature-status.disabled {
+        color: #dc3545;
+    }
+
+    .ui-config,
+    .perf-config {
+        margin: 15px 0;
+    }
+
+    .ui-config p,
+    .perf-config p {
+        margin: 5px 0;
+        font-size: 14px;
+    }
+
+    .color-preview {
+        border-radius: 3px;
+        vertical-align: middle;
+    }
+
+    .action-buttons {
+        margin-top: 15px;
+        text-align: right;
+    }
+
+    .action-buttons .button {
+        margin-left: 5px;
+    }
+
+    .stats-panel {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 4px;
+        margin-top: 30px;
+    }
+
+    .stat-item {
+        text-align: center;
+        padding: 20px;
+    }
+
+    .stat-number {
+        font-size: 32px;
+        font-weight: bold;
+        color: #007cba;
+    }
+
+    .stat-label {
+        font-size: 14px;
+        color: #6c757d;
+        margin-top: 5px;
+    }
+
+    .help-block {
+        padding: 10px;
+        border-radius: 3px;
+        margin: 10px 0;
+    }
+
+    .help-info {
+        background: #d1ecf1;
+        border: 1px solid #bee5eb;
+        color: #0c5460;
+    }
+
+    .help-warning {
+        background: #fff3cd;
+        border: 1px solid #ffeaa7;
+        color: #856404;
+    }
+
+    .help-critical {
+        background: #f8d7da;
+        border: 1px solid #f5c6cb;
+        color: #721c24;
+    }
+</style>
+{% endblock %}

@@ -5,15 +5,16 @@ from .alias import write_alias
 from .indexer import article_to_doc
 from clickhouse_driver import Client
 from django.conf import settings
+from config.celery import app
 
-@shared_task(autoretry_for=(Exception,), retry_backoff=True, max_retries=3)
+@app.task(autoretry_for=(Exception,), retry_backoff=True, max_retries=3)
 def upsert_article_doc(page_id:int):
     page = Page.objects.filter(id=page_id).specific().first()
     if not page or not page.live: return
     idx = write_alias(page.get_site().hostname)
     get_client().index(index=idx, id=str(page.id), body=article_to_doc(page))
 
-@shared_task
+@app.task
 def delete_article_doc(page_id:int):
     try:
         # Use SITE_HOSTNAME alias to try delete; for multi-tenant you may loop indices.
@@ -21,7 +22,7 @@ def delete_article_doc(page_id:int):
     except Exception:
         pass
 
-@shared_task
+@app.task
 def update_ctr_features(site:str=None):
     site = site or settings.SITE_HOSTNAME
     ch = Client.from_url(settings.CLICKHOUSE_URL)

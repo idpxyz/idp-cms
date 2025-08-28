@@ -1,9 +1,1 @@
-{
-  "/tutorials/page": "app/tutorials/page.js",
-  "/api-management/page": "app/api-management/page.js",
-  "/news/[id]/page": "app/news/[id]/page.js",
-  "/search/page": "app/search/page.js",
-  "/news/page": "app/news/page.js",
-  "/page": "app/page.js",
-  "/feed/page": "app/feed/page.js"
-}
+{}

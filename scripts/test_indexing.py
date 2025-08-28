@@ -13,7 +13,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(BASE_DIR))
 
 # 设置Django环境
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'authoring.authoring.settings.base')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings.base')
 django.setup()
 
 from apps.news.models.article import ArticlePage

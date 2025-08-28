@@ -1,0 +1,86 @@
+analytics:
+  baidu_analytics_id: BA-PORTAL-001
+  export_enabled: true
+  google_analytics_id: GA-PORTAL-001
+  retention_days: 365
+  track_performance: true
+  track_user_behavior: true
+content:
+  allow_aggregate: true
+  auto_publish: false
+  content_approval_required: true
+  content_retention_days: 1095
+  date_format: '%Y-%m-%d'
+  default_language: zh
+  supported_languages:
+  - zh
+  - en
+  timezone: Asia/Shanghai
+created_at: '2025-08-25T00:00:00'
+custom:
+  admin_panel_access: true
+  aggregation_sources:
+  - site-a.local
+  - site-b.local
+  - localhost
+  content_categories:
+  - 推荐
+  - 热门
+  - 最新
+  - 精选
+  content_style: 聚合展示
+  dashboard_enabled: true
+  debug_mode: false
+  enable_hot_reload: false
+  log_level: INFO
+  multi_site_management: true
+  show_debug_info: false
+  target_audience: 管理员和高级用户
+description: 整合多站点内容的统一门户和管理中心
+features:
+  ai_recommendation: true
+  analytics_enabled: true
+  api_access: true
+  comments_enabled: false
+  content_moderation: false
+  recommendation: true
+  rss_feed: true
+  search_enabled: true
+  sitemap: true
+  social_login: true
+  user_registration: false
+performance:
+  api_rate_limit: 5000
+  cache_timeout: 1800
+  cdn_enabled: true
+  image_compression: true
+  lazy_loading: true
+  max_articles_per_page: 10
+  max_search_results: 50
+seo:
+  default_description: ''
+  default_keywords: ''
+  default_title: ''
+  meta_description: 智能内容聚合门户，AI驱动的个性化资讯推荐平台
+  meta_keywords: 智能门户,内容聚合,AI推荐,个性化资讯,多站点管理
+  meta_title: IDP-CMS 智能门户 | Portal
+  robots_txt_enabled: true
+  sitemap: true
+  sitemap_enabled: true
+  social_meta_tags: true
+  structured_data: true
+site_id: portal.local
+site_name: 统一门户入口
+site_url: https://portal.local
+ui:
+  dark_mode_enabled: true
+  favicon_url: /static/images/portal-favicon.ico
+  font_family: Inter, sans-serif
+  logo_url: /static/images/portal-logo.png
+  primary_color: '#7C3AED'
+  secondary_color: '#4B5563'
+  show_breadcrumbs: true
+  show_reading_time: false
+  theme: portal
+updated_at: '2025-08-27T13:24:14.073460'
+version: '1.0'

@@ -27,6 +27,8 @@ import { aiToolsApi, aiNewsApi } from '@/lib/aiApiService';
 import { fetchFeed } from '@/lib/feed';
 import { FeedItem } from '@/types/feed';
 import { getCurrentSite, getSiteDisplayName } from '@/lib/siteDetection';
+import SEOLayout from '@/components/SEOLayout';
+import PortalSummary from '@/components/PortalSummary';
 
 export default function HomePage() {
   const { setCurrentView } = useAIPortalStore();
@@ -182,7 +184,10 @@ export default function HomePage() {
   const topNews = news.find((n) => n.is_top);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <SEOLayout
+      title={`${getSiteDisplayName(currentSite)} - AI工具导航 · 行业资讯聚合`}
+      description={`${getSiteDisplayName(currentSite)} 提供最新的AI工具和行业资讯，帮助您探索AI的无限可能。`}
+    >
       <Navigation />
 
       {/* Hero Section - 新闻门户风格 */}
@@ -404,6 +409,11 @@ export default function HomePage() {
                   )}
                 </div>
 
+                {/* 门户聚合摘要 */}
+                <div className="mt-8">
+                  <PortalSummary site={currentSite} />
+                </div>
+
                 {/* 热门话题 */}
                 <HotTopics />
 
@@ -417,7 +427,7 @@ export default function HomePage() {
 
       {/* Newsletter Section */}
       <NewsletterSection />
-    </div>
+    </SEOLayout>
   );
 }
 

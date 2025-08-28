@@ -1,5 +1,5 @@
 from django.core.management.base import BaseCommand
-from authoring.celery import app
+from config.celery import app
 
 
 class Command(BaseCommand):

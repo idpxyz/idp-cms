@@ -1,0 +1,119 @@
+[33mcommit 13bcf3db42ba68a7789960a029d5dba7f65b9331[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32maivoya[m[33m)[m
+Author: tops <tops@idp-cms.com>
+Date:   Tue Aug 26 21:29:11 2025 +0800
+
+    重构AI新闻系统：优化分页、分类、搜索功能，添加中文分词支持
+
+[33mcommit 8430c349782d41b372a39de3086bca47e2bfc84d[m
+Author: tops <tops@idp-cms.com>
+Date:   Tue Aug 26 20:47:45 2025 +0800
+
+    feat: 添加中文分词搜索支持
+    
+    1. 添加jieba分词支持:
+    - 安装jieba依赖
+    - 创建search_utils工具类
+    - 实现分词搜索功能
+    
+    2. 优化搜索逻辑:
+    - 支持标题、简介、正文搜索
+    - 添加字段权重（标题10分，简介5分，正文1分）
+    - 支持多词组合搜索
+    
+    3. 添加.gitignore配置
+
+[33mcommit 7f72f2d871427d852a66822186d74de6110b95f8[m
+Author: tops <tops@idp-cms.com>
+Date:   Tue Aug 26 17:48:02 2025 +0800
+
+    fix: 修复新闻页面分页和分类问题
+    
+    1. 修复分类数据处理:
+    - 使用category__slug和category__name替代原有的category字段
+    - 添加分类名称的中英文映射
+    - 优化分类过滤逻辑
+    
+    2. 优化分页实现:
+    - 修复分页计数问题
+    - 添加分页参数验证
+    - 改进分页数据结构
+    
+    3. 改进错误处理:
+    - 添加更详细的错误信息
+    - 优化错误状态码
+    - 添加调试日志
+
+[33mcommit 98202cf9853adf59a955b9cedaa9186f8fb6d609[m[33m ([m[1;31morigin/aivoya[m[33m)[m
+Author: tops <tops@idp-cms.com>
+Date:   Fri Aug 22 01:20:37 2025 +0800
+
+    feat: 添加数据生成脚本和修复加载状态
+    
+    新增功能:
+    🗄️ 数据生成脚本:
+    - 自动生成ClickHouse用户行为测试数据
+    - 生成7天的impression/click/dwell事件
+    - 支持多文章、多渠道的真实数据模拟
+    - 30,000+条事件记录，提供完整的推荐基础数据
+    
+    🔧 修复问题:
+    - 修复智能推荐页面和搜索页面的加载状态闪烁问题
+    - 优化状态管理，避免先显示空状态再显示内容
+    - 改进搜索页面的无刷新跳转体验
+    - 完善浏览器前进/后退导航支持
+    
+    📊 验证结果:
+    - ClickHouse连接正常，数据生成成功
+    - 推荐API返回正确的评分和CTR数据
+    - Portal前端正常显示智能推荐内容
+    - 搜索功能完整运行
+
+[33mcommit fc90d19d71402d9348b0fbecc466b9be0d55be12[m
+Author: tops <tops@idp-cms.com>
+Date:   Fri Aug 22 00:52:51 2025 +0800
+
+    feat: 完善Portal智能推荐和搜索功能
+    
+    主要功能改进:
+    ✨ 新增功能:
+    - 新增AI工具、AI资讯、AI教程模块和API
+    - 实现完整的搜索结果页面，支持多源聚合搜索
+    - 添加智能推荐页面的排序功能(智能推荐/热门/最新/高点击率)
+    - 集成OpenSearch智能推荐到Portal首页
+    - 实现无限滚动和懒加载功能
+    - 添加专业的导航栏组件
+    
+    🔧 技术优化:
+    - 修复Wagtail 7.1 PostgreSQL搜索后端bug
+    - 优化ClickHouse连接管理，增加重连机制
+    - 改进OpenSearch查询模板，修复must_not条件处理
+    - 优化Portal加载状态管理，避免空状态闪烁
+    - 实现搜索页面无刷新跳转和浏览器导航支持
+    
+    📱 用户体验:
+    - 专业的搜索界面设计，支持分类筛选和排序
+    - 流畅的加载动画和状态转换
+    - 响应式布局，支持移动端访问
+    - 智能的内容推荐算法集成
+    
+    🛠 后端改进:
+    - 新增AI相关数据模型和API端点
+    - 完善OpenSearch索引和查询逻辑
+    - 集成ClickHouse analytics用于内容评分
+    - 优化feed排序和多样化算法
+    
+    📚 文档完善:
+    - 添加Feed API使用文档
+    - 创建开发指南和基础功能说明
+
+[33mcommit 9660567f56e305e1eb079b4f52e4e84d21b2db44[m
+Author: tops <tops@idp-cms.com>
+Date:   Fri Aug 22 00:24:07 2025 +0800
+
+    init: commit all changes to aivoya branch
+
+[33mcommit d10b572bde98d110734b23b0a67d957f05850a98[m[33m ([m[1;31morigin/main[m[33m, [m[1;32mmain[m[33m)[m
+Author: tops <tops@idp-cms.com>
+Date:   Thu Aug 21 10:20:37 2025 +0800
+
+    Initial commit

@@ -1,0 +1,971 @@
+"""
+核心模型定义
+
+包含系统核心功能所需的模型：
+- Channel: 频道模型
+- Region: 地区模型
+- SiteSettings: 站点配置模型
+"""
+
+from django.db import models
+from django.core.cache import cache
+from django import forms
+from wagtail.models import Site
+from wagtail.admin.panels import FieldPanel, MultiFieldPanel
+from wagtail.snippets.models import register_snippet
+from modelcluster.models import ClusterableModel
+from taggit.models import TaggedItemBase
+from modelcluster.fields import ParentalKey
+from taggit.managers import TaggableManager
+
+
+# 标签关联模型（需要在主模型之前定义）
+class ChannelTaggedItem(TaggedItemBase):
+    """
+    频道标签关联模型
+    用于给频道添加标签，便于分类和搜索
+    """
+    content_object = ParentalKey('Channel', on_delete=models.CASCADE, related_name="tagged_items")
+
+
+class RegionTaggedItem(TaggedItemBase):
+    """
+    地区标签关联模型
+    用于给地区添加标签，便于分类和搜索
+    """
+    content_object = ParentalKey('Region', on_delete=models.CASCADE, related_name="tagged_items")
+
+
+@register_snippet
+class Language(models.Model):
+    """
+    语言模型
+    用于管理支持的语言
+    """
+    code = models.CharField(max_length=10, unique=True, verbose_name="语言代码")
+    name = models.CharField(max_length=50, verbose_name="语言名称")
+    native_name = models.CharField(max_length=50, verbose_name="本地语言名称")
+    is_active = models.BooleanField(default=True, verbose_name="是否启用")
+    order = models.IntegerField(default=0, verbose_name="排序")
+    
+    panels = [
+        FieldPanel('code'),
+        FieldPanel('name'),
+        FieldPanel('native_name'),
+        FieldPanel('is_active'),
+        FieldPanel('order'),
+    ]
+    
+    class Meta:
+        verbose_name = "语言"
+        verbose_name_plural = "语言"
+        ordering = ['order', 'code']
+        db_table = "core_language"
+    
+    def __str__(self):
+        return f"{self.name} ({self.code})"
+
+
+
+@register_snippet
+class CustomConfigItem(models.Model):
+    """
+    自定义配置项模型
+    用于管理站点的自定义配置
+    """
+    name = models.CharField(max_length=100, verbose_name="配置名称")
+    key = models.CharField(max_length=100, unique=True, verbose_name="配置键")
+    config_type = models.CharField(max_length=20, default='string', verbose_name="配置类型")
+    default_value = models.TextField(blank=True, verbose_name="默认值")
+    description = models.TextField(blank=True, verbose_name="配置描述")
+    is_active = models.BooleanField(default=True, verbose_name="是否启用")
+    order = models.IntegerField(default=0, verbose_name="排序")
+    
+    panels = [
+        FieldPanel('name'),
+        FieldPanel('key'),
+        FieldPanel('config_type', widget=forms.Select(choices=[
+            ('boolean', '布尔值'),
+            ('string', '字符串'),
+            ('integer', '整数'),
+            ('float', '浮点数'),
+            ('json', 'JSON对象'),
+        ])),
+        FieldPanel('default_value'),
+        FieldPanel('description'),
+        FieldPanel('is_active'),
+        FieldPanel('order'),
+    ]
+    
+    class Meta:
+        verbose_name = "自定义配置项"
+        verbose_name_plural = "自定义配置项"
+        ordering = ['order', 'name']
+        db_table = "core_custom_config_item"
+    
+    def __str__(self):
+        return f"{self.name} ({self.key})"
+
+
+@register_snippet
+class Theme(models.Model):
+    """
+    主题模型
+    用于管理可用的UI主题
+    """
+    name = models.CharField(max_length=50, verbose_name="主题名称")
+    key = models.CharField(max_length=50, unique=True, verbose_name="主题标识")
+    description = models.TextField(blank=True, verbose_name="主题描述")
+    preview_image = models.URLField(blank=True, verbose_name="预览图片URL")
+    is_active = models.BooleanField(default=True, verbose_name="是否启用")
+    order = models.IntegerField(default=0, verbose_name="排序")
+    
+    panels = [
+        FieldPanel('name'),
+        FieldPanel('key'),
+        FieldPanel('description'),
+        FieldPanel('preview_image'),
+        FieldPanel('is_active'),
+        FieldPanel('order'),
+    ]
+    
+    class Meta:
+        verbose_name = "主题"
+        verbose_name_plural = "主题"
+        ordering = ['order', 'name']
+        db_table = "core_theme"
+    
+    def __str__(self):
+        return f"{self.name} ({self.key})"
+
+
+@register_snippet
+class Font(models.Model):
+    """
+    字体模型
+    用于管理可用的字体
+    """
+    name = models.CharField(max_length=100, verbose_name="字体名称")
+    css_value = models.CharField(max_length=200, verbose_name="CSS值")
+    category = models.CharField(max_length=50, verbose_name="字体分类")
+    description = models.TextField(blank=True, verbose_name="字体描述")
+    is_active = models.BooleanField(default=True, verbose_name="是否启用")
+    order = models.IntegerField(default=0, verbose_name="排序")
+    
+    panels = [
+        FieldPanel('name'),
+        FieldPanel('css_value'),
+        FieldPanel('category'),
+        FieldPanel('description'),
+        FieldPanel('is_active'),
+        FieldPanel('order'),
+    ]
+    
+    class Meta:
+        verbose_name = "字体"
+        verbose_name_plural = "字体"
+        ordering = ['order', 'name']
+        db_table = "core_font"
+    
+    def __str__(self):
+        return f"{self.name} ({self.css_value})"
+
+
+@register_snippet
+class Timezone(models.Model):
+    """
+    时区模型
+    用于管理可用的时区
+    """
+    name = models.CharField(max_length=100, verbose_name="时区名称")
+    value = models.CharField(max_length=50, unique=True, verbose_name="时区值")
+    offset = models.CharField(max_length=20, verbose_name="时区偏移")
+    description = models.TextField(blank=True, verbose_name="时区描述")
+    is_active = models.BooleanField(default=True, verbose_name="是否启用")
+    order = models.IntegerField(default=0, verbose_name="排序")
+    
+    panels = [
+        FieldPanel('name'),
+        FieldPanel('value'),
+        FieldPanel('offset'),
+        FieldPanel('description'),
+        FieldPanel('is_active'),
+        FieldPanel('order'),
+    ]
+    
+    class Meta:
+        verbose_name = "时区"
+        verbose_name_plural = "时区"
+        ordering = ['order', 'name']
+        db_table = "core_timezone"
+    
+    def __str__(self):
+        return f"{self.name} ({self.value})"
+
+
+@register_snippet
+class DateFormat(models.Model):
+    """
+    日期格式模型
+    用于管理可用的日期格式
+    """
+    name = models.CharField(max_length=50, verbose_name="格式名称")
+    format_string = models.CharField(max_length=50, unique=True, verbose_name="格式字符串")
+    example = models.CharField(max_length=50, verbose_name="示例")
+    description = models.TextField(blank=True, verbose_name="格式描述")
+    is_active = models.BooleanField(default=True, verbose_name="是否启用")
+    order = models.IntegerField(default=0, verbose_name="排序")
+    
+    panels = [
+        FieldPanel('name'),
+        FieldPanel('format_string'),
+        FieldPanel('example'),
+        FieldPanel('description'),
+        FieldPanel('is_active'),
+        FieldPanel('order'),
+    ]
+    
+    class Meta:
+        verbose_name = "日期格式"
+        verbose_name_plural = "日期格式"
+        ordering = ['order', 'name']
+        db_table = "core_date_format"
+    
+    def __str__(self):
+        return f"{self.name} ({self.format_string})"
+
+
+@register_snippet
+class Channel(ClusterableModel):
+    """
+    频道模型
+    
+    用于对文章进行分类和组织
+    """
+    name = models.CharField(max_length=100, verbose_name="频道名称")
+    slug = models.SlugField(max_length=100, unique=True, verbose_name="频道标识")
+    description = models.TextField(blank=True, verbose_name="频道描述")
+    order = models.IntegerField(default=0, verbose_name="排序")
+    is_active = models.BooleanField(default=True, verbose_name="是否启用")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="更新时间")
+    
+    # 多站点支持
+    sites = models.ManyToManyField(Site, related_name="channels", verbose_name="关联站点")
+    
+    # 标签支持
+    tags = TaggableManager(through=ChannelTaggedItem, blank=True, verbose_name="标签",
+                          help_text="为频道添加标签，便于分类和搜索")
+    
+    # Wagtail管理界面配置
+    panels = [
+        MultiFieldPanel([
+            FieldPanel('name'),
+            FieldPanel('slug'),
+            FieldPanel('description'),
+        ], heading="基本信息"),
+        
+        MultiFieldPanel([
+            FieldPanel('order'),
+            FieldPanel('is_active'),
+        ], heading="显示设置"),
+        
+        MultiFieldPanel([
+            FieldPanel('sites', widget=forms.CheckboxSelectMultiple),
+        ], heading="关联站点"),
+        
+        MultiFieldPanel([
+            FieldPanel('tags'),
+        ], heading="标签分类"),
+    ]
+    
+    class Meta:
+        verbose_name = "频道"
+        verbose_name_plural = "频道"
+        ordering = ["order", "name"]
+        db_table = "core_channel"
+    
+    def __str__(self):
+        return self.name
+    
+    def save(self, *args, **kwargs):
+        # 保存后清除相关缓存
+        super().save(*args, **kwargs)
+        self.clear_cache()
+    
+    def delete(self, *args, **kwargs):
+        # 删除后清除相关缓存
+        super().delete(*args, **kwargs)
+        self.clear_cache()
+    
+    def clear_cache(self):
+        """清除相关缓存"""
+        for site in self.sites.all():
+            cache_keys = [
+                f"channels:site:{site.hostname}",
+                f"channel:{self.slug}",
+                "channels:all"
+            ]
+            for key in cache_keys:
+                cache.delete(key)
+
+
+@register_snippet  
+class Region(ClusterableModel):
+    """
+    地区模型
+    
+    用于对文章进行地理分类
+    """
+    name = models.CharField(max_length=100, verbose_name="地区名称")
+    slug = models.SlugField(max_length=100, unique=True, verbose_name="地区标识")
+    description = models.TextField(blank=True, verbose_name="地区描述")
+    order = models.IntegerField(default=0, verbose_name="排序")
+    is_active = models.BooleanField(default=True, verbose_name="是否启用")
+    parent = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, 
+                              related_name="children", verbose_name="父级地区")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="更新时间")
+    
+    # 多站点支持
+    sites = models.ManyToManyField(Site, related_name="regions", verbose_name="关联站点")
+    
+    # 标签支持  
+    tags = TaggableManager(through=RegionTaggedItem, blank=True, verbose_name="标签",
+                          help_text="为地区添加标签，便于分类和搜索")
+    
+    # Wagtail管理界面配置
+    panels = [
+        MultiFieldPanel([
+            FieldPanel('name'),
+            FieldPanel('slug'),
+            FieldPanel('description'),
+        ], heading="基本信息"),
+        
+        MultiFieldPanel([
+            FieldPanel('parent'),
+            FieldPanel('order'),
+            FieldPanel('is_active'),
+        ], heading="层级设置"),
+        
+        MultiFieldPanel([
+            FieldPanel('sites', widget=forms.CheckboxSelectMultiple),
+        ], heading="关联站点"),
+        
+        MultiFieldPanel([
+            FieldPanel('tags'),
+        ], heading="标签分类"),
+    ]
+    
+    class Meta:
+        verbose_name = "地区"
+        verbose_name_plural = "地区"
+        ordering = ["order", "name"]
+        db_table = "core_region"
+    
+    def __str__(self):
+        return self.name
+    
+    def save(self, *args, **kwargs):
+        # 保存后清除相关缓存
+        super().save(*args, **kwargs)
+        self.clear_cache()
+    
+    def delete(self, *args, **kwargs):
+        # 删除后清除相关缓存
+        super().delete(*args, **kwargs)
+        self.clear_cache()
+    
+    def clear_cache(self):
+        """清除相关缓存"""
+        for site in self.sites.all():
+            cache_keys = [
+                f"regions:site:{site.hostname}",
+                f"region:{self.slug}",
+                "regions:all"
+            ]
+            for key in cache_keys:
+                cache.delete(key)
+
+
+@register_snippet
+class SiteSettings(models.Model):
+    """
+    站点配置模型
+    
+    存储每个站点的具体配置信息，包括功能开关、UI主题、SEO设置等
+    """
+    site = models.OneToOneField(Site, on_delete=models.CASCADE, related_name="settings", verbose_name="关联站点")
+    
+    # 品牌配置
+    brand_name = models.CharField(max_length=200, blank=True, verbose_name="品牌名称")
+    brand_logo = models.URLField(blank=True, verbose_name="品牌Logo URL")
+    brand_description = models.TextField(blank=True, verbose_name="品牌描述")
+    
+    # 功能开关配置
+    recommendation = models.BooleanField(default=True, verbose_name="推荐功能")
+    search_enabled = models.BooleanField(default=True, verbose_name="搜索功能")
+    comments_enabled = models.BooleanField(default=False, verbose_name="评论系统")
+    user_registration = models.BooleanField(default=True, verbose_name="用户注册")
+    social_login = models.BooleanField(default=False, verbose_name="社交登录")
+    content_moderation = models.BooleanField(default=False, verbose_name="内容审核")
+    api_access = models.BooleanField(default=True, verbose_name="API访问")
+    rss_feed = models.BooleanField(default=True, verbose_name="RSS订阅")
+    sitemap = models.BooleanField(default=True, verbose_name="站点地图")
+    
+    # UI主题配置
+    theme = models.CharField(max_length=50, default="default", verbose_name="主题")
+    primary_color = models.CharField(max_length=7, default="#3B82F6", verbose_name="主色调")
+    secondary_color = models.CharField(max_length=7, default="#6B7280", verbose_name="辅助色")
+    font_family = models.CharField(max_length=100, default="Inter, sans-serif", verbose_name="字体")
+    logo_url = models.URLField(blank=True, verbose_name="Logo URL")
+    favicon_url = models.URLField(blank=True, verbose_name="Favicon URL")
+    show_breadcrumbs = models.BooleanField(default=True, verbose_name="显示面包屑")
+    show_reading_time = models.BooleanField(default=True, verbose_name="显示阅读时间")
+    dark_mode_enabled = models.BooleanField(default=True, verbose_name="深色模式")
+    
+    # SEO配置
+    default_title = models.CharField(max_length=200, blank=True, verbose_name="默认页面标题")
+    default_description = models.TextField(blank=True, verbose_name="默认页面描述")
+    default_keywords = models.CharField(max_length=500, blank=True, verbose_name="默认关键词")
+    robots_txt_enabled = models.BooleanField(default=True, verbose_name="启用robots.txt")
+    structured_data = models.BooleanField(default=True, verbose_name="结构化数据")
+    social_meta_tags = models.BooleanField(default=True, verbose_name="社交元标签")
+    
+    # 分析配置
+    google_analytics_id = models.CharField(max_length=50, blank=True, verbose_name="Google Analytics ID")
+    baidu_analytics_id = models.CharField(max_length=50, blank=True, verbose_name="百度统计ID")
+    track_user_behavior = models.BooleanField(default=True, verbose_name="跟踪用户行为")
+    track_performance = models.BooleanField(default=True, verbose_name="跟踪性能")
+    retention_days = models.IntegerField(default=90, verbose_name="数据保留天数")
+    export_enabled = models.BooleanField(default=True, verbose_name="允许数据导出")
+    
+    # 内容配置
+    default_language = models.CharField(max_length=10, default="zh", verbose_name="默认语言")
+    supported_languages = models.ManyToManyField(Language, blank=True, verbose_name="支持的语言",
+                                               help_text="选择此站点支持的语言")
+    timezone = models.CharField(max_length=50, default="Asia/Shanghai", verbose_name="时区")
+    date_format = models.CharField(max_length=20, default="%Y-%m-%d", verbose_name="日期格式")
+    content_retention_days = models.IntegerField(default=365, verbose_name="内容保留天数")
+    auto_publish = models.BooleanField(default=False, verbose_name="自动发布")
+    content_approval_required = models.BooleanField(default=False, verbose_name="需要内容审核")
+    allow_aggregate = models.BooleanField(default=True, verbose_name="允许内容聚合")
+    
+    # 性能配置
+    cache_timeout = models.IntegerField(default=300, verbose_name="缓存超时时间(秒)")
+    max_articles_per_page = models.IntegerField(default=20, verbose_name="每页最大文章数")
+    max_search_results = models.IntegerField(default=100, verbose_name="最大搜索结果数")
+    api_rate_limit = models.IntegerField(default=1000, verbose_name="API请求限制(每小时)")
+    image_compression = models.BooleanField(default=True, verbose_name="图片压缩")
+    cdn_enabled = models.BooleanField(default=False, verbose_name="启用CDN")
+    lazy_loading = models.BooleanField(default=True, verbose_name="懒加载")
+    
+    # 区域特定配置
+    region = models.ForeignKey(Region, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="所属区域")
+    region_order = models.IntegerField(default=0, verbose_name="区域排序")
+    
+    # 自定义配置
+    custom_config = models.ManyToManyField(CustomConfigItem, blank=True, verbose_name="自定义配置",
+                                         help_text="选择此站点启用的自定义配置项")
+    
+    # 元数据
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="更新时间")
+    
+    # Wagtail管理界面配置 - 专业控件优化版本
+    panels = [
+        MultiFieldPanel([
+            FieldPanel('brand_name'),
+            FieldPanel('brand_description'),
+            FieldPanel('brand_logo'),
+            FieldPanel('logo_url'),
+        ], heading="品牌配置"),
+        
+        MultiFieldPanel([
+            FieldPanel('recommendation'),
+            FieldPanel('search_enabled'),
+            FieldPanel('comments_enabled'),
+            FieldPanel('user_registration'),
+            FieldPanel('social_login'),
+            FieldPanel('content_moderation'),
+            FieldPanel('api_access'),
+            FieldPanel('rss_feed'),
+            FieldPanel('sitemap'),
+        ], heading="功能开关"),
+        
+        MultiFieldPanel([
+            FieldPanel('theme', widget=forms.Select(choices=lambda: [
+                (theme.key, theme.name) for theme in Theme.objects.filter(is_active=True).order_by('order')
+            ])),
+            FieldPanel('primary_color', widget=forms.TextInput(attrs={'type': 'color'})),
+            FieldPanel('secondary_color', widget=forms.TextInput(attrs={'type': 'color'})),
+            FieldPanel('font_family', widget=forms.Select(choices=lambda: [
+                (font.css_value, font.name) for font in Font.objects.filter(is_active=True).order_by('order')
+            ])),
+            FieldPanel('favicon_url'),
+            FieldPanel('show_breadcrumbs'),
+            FieldPanel('show_reading_time'),
+            FieldPanel('dark_mode_enabled'),
+        ], heading="UI主题"),
+        
+        MultiFieldPanel([
+            FieldPanel('default_title'),
+            FieldPanel('default_description'),
+            FieldPanel('default_keywords'),
+            FieldPanel('robots_txt_enabled'),
+            FieldPanel('structured_data'),
+            FieldPanel('social_meta_tags'),
+        ], heading="SEO配置"),
+        
+        MultiFieldPanel([
+            FieldPanel('google_analytics_id'),
+            FieldPanel('baidu_analytics_id'),
+            FieldPanel('track_user_behavior'),
+            FieldPanel('track_performance'),
+            FieldPanel('retention_days', widget=forms.NumberInput(attrs={'min': 1, 'max': 365})),
+            FieldPanel('export_enabled'),
+        ], heading="分析配置"),
+        
+        MultiFieldPanel([
+            FieldPanel('default_language', widget=forms.Select(choices=lambda: [
+                (lang.code, f"{lang.name} ({lang.native_name})") for lang in Language.objects.filter(is_active=True).order_by('order')
+            ])),
+            FieldPanel('supported_languages', widget=forms.CheckboxSelectMultiple),
+            FieldPanel('timezone', widget=forms.Select(choices=lambda: [
+                (tz.value, f"{tz.name} ({tz.offset})") for tz in Timezone.objects.filter(is_active=True).order_by('order')
+            ])),
+            FieldPanel('date_format', widget=forms.Select(choices=lambda: [
+                (df.format_string, df.example) for df in DateFormat.objects.filter(is_active=True).order_by('order')
+            ])),
+            FieldPanel('content_retention_days', widget=forms.NumberInput(attrs={'min': 30, 'max': 3650})),
+            FieldPanel('auto_publish'),
+            FieldPanel('content_approval_required'),
+            FieldPanel('allow_aggregate'),
+        ], heading="内容配置"),
+        
+        MultiFieldPanel([
+            FieldPanel('cache_timeout', widget=forms.NumberInput(attrs={'min': 60, 'max': 86400, 'step': 60})),
+            FieldPanel('max_articles_per_page', widget=forms.NumberInput(attrs={'min': 5, 'max': 100})),
+            FieldPanel('max_search_results', widget=forms.NumberInput(attrs={'min': 10, 'max': 1000})),
+            FieldPanel('api_rate_limit', widget=forms.NumberInput(attrs={'min': 100, 'max': 10000})),
+            FieldPanel('image_compression'),
+            FieldPanel('cdn_enabled'),
+            FieldPanel('lazy_loading'),
+        ], heading="性能配置"),
+        
+        MultiFieldPanel([
+            FieldPanel('region', widget=forms.Select),
+            FieldPanel('region_order', widget=forms.NumberInput(attrs={'min': 0, 'max': 999})),
+            FieldPanel('custom_config', widget=forms.CheckboxSelectMultiple),
+        ], heading="区域和自定义配置"),
+    ]
+    
+    class Meta:
+        verbose_name = "站点配置"
+        verbose_name_plural = "站点配置"
+        db_table = "core_site_settings"
+    
+    def __str__(self):
+        # 显示站点名称、主机名和品牌名称，便于区分
+        brand_info = f" - {self.brand_name}" if self.brand_name else ""
+        return f"{self.site.site_name} ({self.site.hostname}){brand_info} 配置"
+    
+    def save(self, *args, **kwargs):
+        # 保存后清除相关缓存
+        super().save(*args, **kwargs)
+        self.clear_cache()
+    
+    def delete(self, *args, **kwargs):
+        # 删除后清除相关缓存
+        super().delete(*args, **kwargs)
+        self.clear_cache()
+    
+    def clear_cache(self):
+        """清除相关缓存"""
+        cache_keys = [
+            f"site:{self.site.hostname}",
+            f"settings:site:{self.site.hostname}",
+            "settings:all"
+        ]
+        for key in cache_keys:
+            cache.delete(key)
+    
+    def clean(self):
+        """验证配置数据"""
+        from django.core.exceptions import ValidationError
+        
+        # 验证颜色格式
+        if self.primary_color and not self._is_valid_color(self.primary_color):
+            raise ValidationError({'primary_color': '主色调必须是有效的十六进制颜色代码'})
+        
+        if self.secondary_color and not self._is_valid_color(self.secondary_color):
+            raise ValidationError({'secondary_color': '辅助色必须是有效的十六进制颜色代码'})
+        
+        # 验证数值范围
+        if self.cache_timeout < 0:
+            raise ValidationError({'cache_timeout': '缓存超时时间不能为负数'})
+        
+        if self.max_articles_per_page < 1:
+            raise ValidationError({'max_articles_per_page': '每页文章数必须大于0'})
+        
+        if self.api_rate_limit < 1:
+            raise ValidationError({'api_rate_limit': 'API请求限制必须大于0'})
+    
+    def _is_valid_color(self, color):
+        """验证颜色格式是否为有效的十六进制颜色"""
+        import re
+        pattern = r'^#(?:[0-9a-fA-F]{3}){1,2}$'
+        return bool(re.match(pattern, color))
+    
+    @property
+    def is_production_site(self):
+        """是否为生产环境站点"""
+        return not self.site.hostname.startswith(('localhost', '127.0.0.1'))
+    
+    @property
+    def supported_languages_list(self):
+        """获取支持的语言列表"""
+        return [lang.code for lang in self.supported_languages.all()]
+    
+    @property
+    def custom_config_dict(self):
+        """获取自定义配置字典"""
+        config_dict = {}
+        for item in self.custom_config.all():
+            if item.is_active:
+                # 根据配置类型转换值
+                if item.config_type == 'boolean':
+                    config_dict[item.key] = item.default_value.lower() == 'true'
+                elif item.config_type == 'integer':
+                    try:
+                        config_dict[item.key] = int(item.default_value)
+                    except ValueError:
+                        config_dict[item.key] = item.default_value
+                elif item.config_type == 'float':
+                    try:
+                        config_dict[item.key] = float(item.default_value)
+                    except ValueError:
+                        config_dict[item.key] = item.default_value
+                elif item.config_type == 'json':
+                    import json
+                    try:
+                        config_dict[item.key] = json.loads(item.default_value)
+                    except json.JSONDecodeError:
+                        config_dict[item.key] = item.default_value
+                else:
+                    config_dict[item.key] = item.default_value
+        return config_dict
+    
+    def clean(self):
+        """验证配置数据"""
+        import json
+        from django.core.exceptions import ValidationError
+        
+        # 验证颜色格式
+        if self.primary_color and not self._is_valid_color(self.primary_color):
+            raise ValidationError({'primary_color': '主色调必须是有效的十六进制颜色代码'})
+        
+        if self.secondary_color and not self._is_valid_color(self.secondary_color):
+            raise ValidationError({'secondary_color': '辅助色必须是有效的十六进制颜色代码'})
+        
+        # 验证数值范围
+        if self.cache_timeout < 60:
+            raise ValidationError({'cache_timeout': '缓存超时时间不能少于60秒'})
+        
+        if self.max_articles_per_page < 5 or self.max_articles_per_page > 100:
+            raise ValidationError({'max_articles_per_page': '每页文章数必须在5-100之间'})
+        
+        if self.api_rate_limit < 100:
+            raise ValidationError({'api_rate_limit': 'API请求限制不能少于100'})
+        
+
+
+    
+    @property
+    def cache_headers(self):
+        """获取缓存相关的HTTP头"""
+        return {
+            'Cache-Control': f'public, s-maxage={self.cache_timeout}, stale-while-revalidate={self.cache_timeout//2}',
+            'ETag': f'"{self.updated_at.isoformat()}"'
+        }
+    
+    @property
+    def seo_meta(self):
+        """获取SEO元数据"""
+        return {
+            'title': self.default_title or self.site.site_name,
+            'description': self.default_description or self.brand_description,
+            'keywords': self.default_keywords,
+            'robots': 'index, follow' if self.robots_txt_enabled else 'noindex, nofollow'
+        }
+    
+    @property
+    def config_summary(self):
+        """获取配置摘要"""
+        return {
+            'site_info': {
+                'hostname': self.site.hostname,
+                'site_name': self.site.site_name,
+                'is_production': self.is_production_site,
+            },
+            'features': {
+                'recommendation': self.recommendation,
+                'search': self.search_enabled,
+                'comments': self.comments_enabled,
+                'user_registration': self.user_registration,
+                'social_login': self.social_login,
+                'content_moderation': self.content_moderation,
+                'api_access': self.api_access,
+                'rss_feed': self.rss_feed,
+                'sitemap': self.sitemap,
+            },
+            'ui': {
+                'theme': self.theme,
+                'primary_color': self.primary_color,
+                'secondary_color': self.secondary_color,
+                'font_family': self.font_family,
+                'dark_mode': self.dark_mode_enabled,
+            },
+            'performance': {
+                'cache_timeout': f"{self.cache_timeout}s",
+                'max_articles_per_page': self.max_articles_per_page,
+                'api_rate_limit': f"{self.api_rate_limit}/hour",
+                'cdn_enabled': self.cdn_enabled,
+            },
+            'analytics': {
+                'google_analytics': bool(self.google_analytics_id),
+                'baidu_analytics': bool(self.baidu_analytics_id),
+                'track_user_behavior': self.track_user_behavior,
+                'track_performance': self.track_performance,
+            }
+        }
+    
+    @property
+    def config_status(self):
+        """获取配置状态"""
+        warnings = []
+        errors = []
+        
+        # 检查关键配置
+        if not self.brand_name:
+            warnings.append("品牌名称未设置")
+        
+        if not self.default_title:
+            warnings.append("默认页面标题未设置")
+        
+        if not self.default_description:
+            warnings.append("默认页面描述未设置")
+        
+        if self.cache_timeout < 60:
+            warnings.append("缓存时间过短（建议至少60秒）")
+        
+        if self.max_articles_per_page > 100:
+            warnings.append("每页文章数过多（建议不超过100）")
+        
+        # 检查生产环境配置
+        if self.is_production_site:
+            if not self.google_analytics_id and not self.baidu_analytics_id:
+                warnings.append("生产环境建议配置分析工具")
+            
+            if not self.robots_txt_enabled:
+                warnings.append("生产环境建议启用robots.txt")
+        
+        return {
+            'is_valid': len(errors) == 0,
+            'warnings': warnings,
+            'errors': errors,
+            'score': max(0, 100 - len(warnings) * 10 - len(errors) * 20)
+        }
+    
+    @classmethod
+    def get_for_site(cls, site):
+        """获取站点的配置，如果不存在则创建默认配置"""
+        # 获取默认值
+        try:
+            default_language = Language.objects.filter(is_active=True).order_by('order').first()
+            default_timezone = Timezone.objects.filter(is_active=True).order_by('order').first()
+            default_theme = Theme.objects.filter(is_active=True).order_by('order').first()
+            default_font = Font.objects.filter(is_active=True).order_by('order').first()
+            default_date_format = DateFormat.objects.filter(is_active=True).order_by('order').first()
+        except:
+            # 如果模型不存在，使用硬编码默认值
+            default_language = "zh"
+            default_timezone = "Asia/Shanghai"
+            default_theme = "default"
+            default_font = "Inter, sans-serif"
+            default_date_format = "%Y-%m-%d"
+        
+        settings, created = cls.objects.get_or_create(
+            site=site,
+            defaults={
+                "brand_name": site.site_name,
+                "default_language": getattr(default_language, 'code', default_language) if hasattr(default_language, 'code') else default_language,
+                "timezone": getattr(default_timezone, 'value', default_timezone) if hasattr(default_timezone, 'value') else default_timezone,
+                "cache_timeout": 300,
+                "max_articles_per_page": 20,
+                "track_user_behavior": True,
+                # 功能开关默认值
+                "recommendation": True,
+                "search_enabled": True,
+                "comments_enabled": False,
+                "user_registration": True,
+                "social_login": False,
+                "content_moderation": False,
+                "api_access": True,
+                "rss_feed": True,
+                "sitemap": True,
+                # UI主题默认值
+                "theme": getattr(default_theme, 'key', default_theme) if hasattr(default_theme, 'key') else default_theme,
+                "primary_color": "#3B82F6",
+                "secondary_color": "#6B7280",
+                "font_family": getattr(default_font, 'css_value', default_font) if hasattr(default_font, 'css_value') else default_font,
+                "show_breadcrumbs": True,
+                "show_reading_time": True,
+                "dark_mode_enabled": True,
+                # SEO默认值
+                "robots_txt_enabled": True,
+                "structured_data": True,
+                "social_meta_tags": True,
+                # 分析默认值
+                "track_performance": True,
+                "retention_days": 90,
+                "export_enabled": True,
+                # 内容默认值
+                "timezone": getattr(default_timezone, 'value', default_timezone) if hasattr(default_timezone, 'value') else default_timezone,
+                "date_format": getattr(default_date_format, 'format_string', default_date_format) if hasattr(default_date_format, 'format_string') else default_date_format,
+                "content_retention_days": 365,
+                "auto_publish": False,
+                "content_approval_required": False,
+                "allow_aggregate": True,
+                # 性能默认值
+                "max_search_results": 100,
+                "api_rate_limit": 1000,
+                "image_compression": True,
+                "cdn_enabled": False,
+                "lazy_loading": True,
+                # 区域默认值
+                "region": None,
+                "region_order": 0,
+            }
+        )
+        return settings
+
+
+class CDNProvider(models.Model):
+    """CDN服务提供商模型"""
+    name = models.CharField(max_length=100, verbose_name="CDN名称")
+    provider_type = models.CharField(
+        max_length=50, 
+        choices=[
+            ('aliyun', '阿里云CDN'),
+            ('tencent', '腾讯云CDN'),
+            ('baidu', '百度云CDN'),
+            ('cloudflare', 'Cloudflare'),
+            ('aws', 'AWS CloudFront'),
+            ('azure', 'Azure CDN'),
+            ('custom', '自定义CDN'),
+        ],
+        verbose_name="CDN类型"
+    )
+    api_key = models.CharField(max_length=255, verbose_name="API密钥")
+    api_secret = models.CharField(max_length=255, verbose_name="API密钥")
+    endpoint_url = models.URLField(verbose_name="API端点")
+    is_active = models.BooleanField(default=True, verbose_name="是否启用")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="更新时间")
+    
+    class Meta:
+        verbose_name = "CDN服务提供商"
+        verbose_name_plural = "CDN服务提供商"
+        ordering = ['name']
+    
+    def __str__(self):
+        return f"{self.name} ({self.get_provider_type_display()})"
+    
+    # Wagtail管理面板
+    panels = [
+        FieldPanel('name'),
+        FieldPanel('provider_type'),
+        FieldPanel('api_key'),
+        FieldPanel('api_secret'),
+        FieldPanel('endpoint_url'),
+        FieldPanel('is_active'),
+    ]
+
+
+class SiteCDNConfig(models.Model):
+    """站点CDN配置模型"""
+    site = models.OneToOneField('wagtailcore.Site', on_delete=models.CASCADE, verbose_name="站点")
+    cdn_provider = models.ForeignKey(CDNProvider, on_delete=models.CASCADE, verbose_name="CDN服务提供商")
+    
+    # CDN域名配置
+    cdn_domain = models.CharField(max_length=255, verbose_name="CDN域名")
+    cdn_ssl_enabled = models.BooleanField(default=True, verbose_name="启用HTTPS")
+    
+    # 缓存策略
+    cache_strategy = models.CharField(
+        max_length=50,
+        choices=[
+            ('aggressive', '激进缓存'),
+            ('balanced', '平衡缓存'),
+            ('conservative', '保守缓存'),
+        ],
+        default='balanced',
+        verbose_name="缓存策略"
+    )
+    
+    # 地区配置
+    regions = models.ManyToManyField('Region', blank=True, verbose_name="服务地区")
+    
+    # 自定义配置
+    custom_config = models.JSONField(default=dict, verbose_name="自定义配置")
+    
+    # 状态和统计
+    is_active = models.BooleanField(default=True, verbose_name="是否启用")
+    last_cache_purge = models.DateTimeField(null=True, blank=True, verbose_name="最后缓存清除时间")
+    cache_hit_rate = models.FloatField(default=0.0, verbose_name="缓存命中率")
+    
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="更新时间")
+    
+    class Meta:
+        verbose_name = "站点CDN配置"
+        verbose_name_plural = "站点CDN配置"
+    
+    def __str__(self):
+        return f"{self.site.site_name} - {self.cdn_provider.name} CDN配置"
+    
+    def get_cache_timeout(self):
+        """获取缓存超时时间"""
+        strategy_timeouts = {
+            'aggressive': 3600,    # 1小时
+            'balanced': 1800,      # 30分钟
+            'conservative': 900,   # 15分钟
+        }
+        return strategy_timeouts.get(self.cache_strategy, 1800)
+    
+    def get_surrogate_keys(self):
+        """获取Surrogate-Key缓存标签"""
+        keys = [f"site:{self.site.hostname}"]
+        
+        # 添加地区标签
+        for region in self.regions.all():
+            keys.append(f"region:{region.slug}")
+        
+        # 添加CDN提供商标签
+        keys.append(f"cdn:{self.cdn_provider.provider_type}")
+        
+        return keys
+    
+    # Wagtail管理面板
+    panels = [
+        FieldPanel('site'),
+        FieldPanel('cdn_provider'),
+        FieldPanel('cdn_domain'),
+        FieldPanel('cdn_ssl_enabled'),
+        FieldPanel('cache_strategy'),
+        FieldPanel('regions'),
+        FieldPanel('custom_config'),
+        FieldPanel('is_active'),
+    ]
+

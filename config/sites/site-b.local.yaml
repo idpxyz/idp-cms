@@ -1,0 +1,84 @@
+analytics:
+  baidu_analytics_id: BA-SITEB-001
+  export_enabled: true
+  google_analytics_id: GA-SITEB-001
+  retention_days: 90
+  track_performance: true
+  track_user_behavior: true
+content:
+  allow_aggregate: true
+  auto_publish: true
+  content_approval_required: false
+  content_retention_days: 180
+  date_format: '%m月%d日'
+  default_language: zh
+  supported_languages:
+  - zh
+  - en
+  - ja
+  timezone: Asia/Shanghai
+created_at: '2025-08-25T00:00:00'
+custom:
+  breaking_news_enabled: true
+  content_categories:
+  - 科技
+  - 体育
+  - 财经
+  - 娱乐
+  - 社会
+  - 国际
+  content_style: 快速资讯
+  debug_mode: false
+  enable_hot_reload: false
+  live_updates: true
+  log_level: INFO
+  show_debug_info: false
+  target_audience: 大众用户
+description: 涵盖科技、体育、财经等多领域的综合性资讯门户
+features:
+  ai_recommendation: true
+  analytics_enabled: true
+  api_access: true
+  comments_enabled: true
+  content_moderation: false
+  recommendation: true
+  rss_feed: true
+  search_enabled: true
+  sitemap: true
+  social_login: true
+  user_registration: true
+performance:
+  api_rate_limit: 2000
+  cache_timeout: 180
+  cdn_enabled: true
+  image_compression: true
+  lazy_loading: true
+  max_articles_per_page: 25
+  max_search_results: 200
+seo:
+  default_description: ''
+  default_keywords: ''
+  default_title: ''
+  meta_description: 及时准确的科技、体育、财经资讯，AI智能推荐个性化内容
+  meta_keywords: 资讯门户,科技新闻,体育资讯,财经新闻,AI推荐
+  meta_title: 综合资讯门户 | Site B
+  robots_txt_enabled: true
+  sitemap: true
+  sitemap_enabled: true
+  social_meta_tags: true
+  structured_data: true
+site_id: site-b.local
+site_name: 综合资讯门户
+site_url: https://site-b.local
+ui:
+  dark_mode_enabled: true
+  favicon_url: /static/images/site-b-favicon.ico
+  font_family: Noto Sans SC, sans-serif
+  logo_url: /static/images/site-b-logo.png
+  primary_color: '#DC2626'
+  secondary_color: '#374151'
+  show_breadcrumbs: true
+  show_reading_time: true
+  theme: news
+updated_at: '2025-08-27T13:24:14.118383'
+version: '1.0'

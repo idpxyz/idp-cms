@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<clickhouse>
+    <users>
+        <default>
+            <!-- 设置密码 -->
+            <password>thends</password>
+            <!-- 允许从任何IP访问（开发环境） -->
+            <networks>
+                <ip>::/0</ip>
+            </networks>
+            <!-- 给予所有权限 -->
+            <profile>default</profile>
+            <quota>default</quota>
+            <!-- 允许访问所有数据库 -->
+            <access_management>1</access_management>
+        </default>
+    </users>
+</clickhouse>
