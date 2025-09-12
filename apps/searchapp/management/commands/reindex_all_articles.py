@@ -25,7 +25,7 @@ class Command(BaseCommand):
         
         client = get_client()
         index = write_alias(site)
-        indexer = ArticleIndexer()
+        indexer = ArticleIndexer(target_site=site)
         
         # 如果需要清空索引
         if clear and not dry_run:

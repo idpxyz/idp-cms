@@ -1,0 +1,80 @@
+from django.db import models
+from django import forms
+from django.core.cache import cache
+from wagtail.snippets.models import register_snippet
+from wagtail.admin.panels import FieldPanel, MultiFieldPanel
+from django.utils.translation import gettext_lazy as _
+from modelcluster.models import ClusterableModel
+from taggit.managers import TaggableManager
+from taggit.models import TaggedItemBase
+from modelcluster.fields import ParentalKey
+
+class RegionTaggedItem(TaggedItemBase):
+    content_object = ParentalKey(
+        'Region',
+        related_name='tagged_items',
+        on_delete=models.CASCADE
+    )
+
+@register_snippet
+class Region(ClusterableModel):
+    """地区模型"""
+    name = models.CharField(max_length=100, verbose_name="名称")
+    slug = models.SlugField(unique=True, verbose_name="标识符")
+    description = models.TextField(blank=True, verbose_name="描述")
+    parent = models.ForeignKey('self', null=True, blank=True, on_delete=models.CASCADE,
+                              related_name='children', verbose_name="上级地区")
+    order = models.IntegerField(default=0, verbose_name="排序")
+    is_active = models.BooleanField(default=True, verbose_name="是否启用")
+    sites = models.ManyToManyField('wagtailcore.Site', blank=True, verbose_name="关联站点")
+    tags = TaggableManager(through=RegionTaggedItem, blank=True, verbose_name="标签",
+                          help_text="为地区添加标签，便于分类和搜索")
+    created_at = models.DateTimeField(auto_now_add=True, null=True, verbose_name="创建时间")
+    updated_at = models.DateTimeField(auto_now=True, null=True, verbose_name="更新时间")
+    
+    panels = [
+        MultiFieldPanel([
+            FieldPanel('name'),
+            FieldPanel('slug'),
+            FieldPanel('description'),
+        ], heading="基本信息"),
+        
+        MultiFieldPanel([
+            FieldPanel('parent'),
+            FieldPanel('order'),
+            FieldPanel('is_active'),
+        ], heading="层级设置"),
+        
+        MultiFieldPanel([
+            FieldPanel('sites', widget=forms.CheckboxSelectMultiple),
+        ], heading="关联站点"),
+        
+        MultiFieldPanel([
+            FieldPanel('tags'),
+        ], heading="标签分类"),
+    ]
+    
+    class Meta:
+        verbose_name = "地区"
+        verbose_name_plural = "地区"
+        ordering = ['order', 'name']
+        db_table = "core_region"
+    
+    def __str__(self):
+        if self.parent:
+            return f"{self.parent.name} - {self.name}"
+        return self.name
+        
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        self.clear_cache()
+        
+    def delete(self, *args, **kwargs):
+        self.clear_cache()
+        super().delete(*args, **kwargs)
+        
+    def clear_cache(self):
+        """清除相关缓存"""
+        cache.delete_many([
+            f'region_tree_{site.id}' for site in self.sites.all()
+        ])

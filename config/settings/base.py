@@ -61,9 +61,13 @@ LOCAL_APPS = [
     "apps.news",
     "apps.searchapp",
     "apps.api",
+    "apps.media",  # 媒体管理应用
 ]
 
-INSTALLED_APPS = DJANGO_APPS + WAGTAIL_APPS + THIRD_PARTY_APPS + LOCAL_APPS
+# 品牌化应用必须在wagtail.admin之前，按照官方文档要求
+INSTALLED_APPS = DJANGO_APPS + [
+    "apps.branding",  # 品牌化应用，放在wagtail.admin之前
+] + WAGTAIL_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
 # 中间件配置
 MIDDLEWARE = [
@@ -73,6 +77,13 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "apps.branding.middleware.AdminRememberMeMiddleware",  # 记住我功能
+    "apps.core.middleware.CorrelationIdMiddleware",
+    # "apps.api.middleware.idempotency.RetryableErrorMiddleware",  # 暂时禁用，待排查
+    # "apps.api.middleware.idempotency.IdempotencyMiddleware",  # 暂时禁用，待进一步验证
+    # "apps.api.middleware.response_standard.APIResponseStandardMiddleware",  # 暂时禁用，待修复
+    # "apps.api.middleware.idempotency.IdempotencyMiddleware",  # 暂时禁用，待修复 
+    # "apps.api.middleware.idempotency.CircuitBreakerResponseMiddleware",  # 暂时禁用，待修复
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "wagtail.contrib.redirects.middleware.RedirectMiddleware",
@@ -162,26 +173,69 @@ MEDIA_ROOT = BASE_DIR / "media"
 
 # 文件存储配置（支持S3/MinIO）
 if os.getenv("MINIO_ENDPOINT"):
+    # MinIO 内部访问配置（用于上传）
     DEFAULT_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
-    AWS_S3_ENDPOINT_URL = os.getenv("MINIO_ENDPOINT")
     AWS_ACCESS_KEY_ID = os.getenv("MINIO_ACCESS_KEY")
     AWS_SECRET_ACCESS_KEY = os.getenv("MINIO_SECRET_KEY")
     AWS_STORAGE_BUCKET_NAME = os.getenv("MINIO_BUCKET", "media")
-    AWS_S3_SIGNATURE_VERSION = "s3v4"
-    AWS_S3_ADDRESSING_STYLE = "virtual"
+    AWS_S3_ENDPOINT_URL = os.getenv("MINIO_ENDPOINT")
+    AWS_S3_REGION_NAME = "us-east-1"
     
-    # MinIO 特定配置
+    # 外部访问域名配置
+    AWS_S3_CUSTOM_DOMAIN = f"{os.getenv('MINIO_PUBLIC_DOMAIN', 'localhost:9002')}/{AWS_STORAGE_BUCKET_NAME}"
+    
+    # 强制使用自定义域名生成URL
+    AWS_S3_USE_SSL = False
+    AWS_QUERYSTRING_AUTH = False
+    AWS_DEFAULT_ACL = None
+    
+    # 存储选项 - 多桶配置
+    STORAGES = {
+        "default": {
+            "BACKEND": "apps.core.storages.PublicMediaStorage",
+        },
+        "private": {
+            "BACKEND": "apps.core.storages.PrivateMediaStorage",
+        },
+        "staticfiles": {
+            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+        },
+    }
+    
+    # S3 兼容性设置
+    AWS_S3_ADDRESSING_STYLE = "path"
+    AWS_S3_SIGNATURE_VERSION = "s3v4"
     AWS_S3_VERIFY = False
+    AWS_S3_FILE_OVERWRITE = False
+    
+    # 公共访问 URL 设置
+    AWS_QUERYSTRING_AUTH = False
+    AWS_DEFAULT_ACL = None
+    AWS_S3_URL_PROTOCOL = "http:"
+    
+    # 禁用不必要的功能
     AWS_DEFAULT_ACL = None
     AWS_QUERYSTRING_AUTH = False
     AWS_S3_FILE_OVERWRITE = False
-    AWS_LOCATION = ''
+    AWS_S3_VERIFY = False
+    AWS_S3_USE_SSL = False
     
-    # 确保使用 MinIO 而不是本地存储
-    STORAGES = {
-        'default': {'BACKEND': 'storages.backends.s3boto3.S3Boto3Storage'},
-        'staticfiles': {'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage'}
-    }
+    # 强制使用路径方式访问
+    AWS_S3_ADDRESSING_STYLE = 'path'
+    
+    # S3 兼容性设置
+    AWS_S3_SIGNATURE_VERSION = 's3v4'
+    AWS_LOCATION = ''  # 根目录
+    
+    # URL 配置
+    AWS_S3_URL_PROTOCOL = 'http:'
+    
+    # 确保生成的URL使用公共访问地址
+    AWS_S3_PUBLIC_URL_PROTOCOL = 'http:'
+    
+    # Wagtail 媒体文件配置
+    WAGTAILIMAGES_UPLOAD_PATH = "images/"
+    WAGTAILDOCS_UPLOAD_PATH = "documents/"
 else:
     # 本地存储配置（开发环境备用）
     STORAGES = {
@@ -192,9 +246,11 @@ else:
 # 站点配置
 SITE_ID = 1
 
-# Wagtail配置
+    # Wagtail配置
 WAGTAIL_SITE_NAME = "IDP-CMS"
 WAGTAILADMIN_BASE_URL = os.getenv("WAGTAIL_BASE_URL", "http://localhost:8000")
+
+# 直接扩展 Wagtail 的 Site 模型，无需自定义模型配置
 
 # DRF配置
 REST_FRAMEWORK = {
@@ -220,7 +276,60 @@ CORS_ALLOW_CREDENTIALS = True
 # Celery配置
 CELERY_TIMEZONE = TIME_ZONE
 CELERY_ENABLE_UTC = False
-CELERY_BEAT_SCHEDULE = {}
+CELERY_BEAT_SCHEDULE = {
+    # 媒体文件清理任务
+    'cleanup-orphan-files': {
+        'task': 'apps.media.tasks.cleanup_orphan_files',
+        'schedule': 3600.0,  # 每小时执行一次
+    },
+    'cleanup-temp-files': {
+        'task': 'apps.media.tasks.cleanup_temp_files', 
+        'schedule': 86400.0,  # 每天执行一次
+    },
+    'cleanup-old-renditions': {
+        'task': 'apps.media.tasks.cleanup_old_renditions',
+        'schedule': 86400.0,  # 每天执行一次
+    },
+    'generate-storage-stats': {
+        'task': 'apps.media.tasks.generate_storage_stats',
+        'schedule': 3600.0,  # 每小时生成一次统计
+    },
+    
+    # 存储监控任务
+    'storage-health-check': {
+        'task': 'storage.health_check',
+        'schedule': 300.0,  # 每5分钟执行一次健康检查
+    },
+    'storage-collect-metrics': {
+        'task': 'storage.collect_metrics', 
+        'schedule': 600.0,  # 每10分钟收集一次指标
+    },
+    'storage-full-monitoring': {
+        'task': 'storage.full_monitoring',
+        'schedule': 1800.0,  # 每30分钟执行一次完整监控
+    },
+    'storage-cleanup-metrics': {
+        'task': 'storage.cleanup_old_metrics',
+        'schedule': 86400.0,  # 每天清理一次旧数据
+    },
+
+    # DB↔OpenSearch 一致性巡检
+    'db-opensearch-consistency': {
+        'task': 'apps.searchapp.tasks.check_db_opensearch_consistency',
+        'schedule': 600.0,  # 每10分钟检查一次
+    },
+    # Headlines/Hot 预计算任务
+    'compute-headlines': {
+        'task': 'apps.api.tasks.aggregations.compute_headlines',
+        'schedule': 60.0,  # 每分钟刷新一次短缓存
+        'options': {'queue': 'default'},
+    },
+    'compute-hot': {
+        'task': 'apps.api.tasks.aggregations.compute_hot',
+        'schedule': 60.0,  # 每分钟刷新一次短缓存
+        'options': {'queue': 'default'},
+    },
+}
 
 # 默认broker配置（生产环境）
 CELERY_BROKER_URL = os.getenv("REDIS_URL", "redis://redis:6379/1")
@@ -232,11 +341,11 @@ LOGGING = {
     "disable_existing_loggers": False,
     "formatters": {
         "verbose": {
-            "format": "{levelname} {asctime} {module} {process:d} {thread:d} {message}",
+            "format": "{levelname} {asctime} {module} {process:d} {thread:d} cid={correlation_id} {message}",
             "style": "{",
         },
         "simple": {
-            "format": "{levelname} {message}",
+            "format": "{levelname} cid={correlation_id} {message}",
             "style": "{",
         },
     },
@@ -246,12 +355,19 @@ LOGGING = {
             "class": "logging.FileHandler",
             "filename": BASE_DIR / "logs" / "django.log",
             "formatter": "verbose",
+            "filters": ["request_context"],
         },
         "console": {
             "level": "DEBUG",
             "class": "logging.StreamHandler",
             "formatter": "simple",
+            "filters": ["request_context"],
         },
+    },
+    "filters": {
+        "request_context": {
+            "()": "apps.core.middleware.RequestLogContextFilter",
+        }
     },
     "root": {
         "handlers": ["console"],
@@ -288,3 +404,36 @@ if not DEBUG:
 
 # 默认主键字段类型
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# =====================
+# 存储监控配置
+# =====================
+
+# 存储监控告警邮件
+STORAGE_ALERT_EMAILS = [
+    # 'admin@aivoya.com',
+    # 'ops@aivoya.com',
+]
+
+# 监控 API 认证令牌
+MONITORING_API_TOKEN = 'monitoring-token-change-in-production'
+
+# 存储监控阈值配置
+STORAGE_MONITORING_THRESHOLDS = {
+    'storage_usage_percent': 80,  # 存储使用率告警阈值
+    'object_count_max': 100000,   # 对象数量告警阈值
+    'error_rate_percent': 5,      # 错误率告警阈值
+    'response_time_ms': 1000,     # 响应时间告警阈值
+}
+
+# =====================
+# 媒体路径配置
+# =====================
+
+# 租户配置 - 控制是否在路径中使用租户标识
+MEDIA_USE_TENANT = False  # 设为 False 可移除路径中的租户部分
+MEDIA_TENANT_NAME = 'aivoya'  # 租户标识名称，仅在 MEDIA_USE_TENANT=True 时使用
+
+# 路径示例:
+# MEDIA_USE_TENANT=True:  aivoya/portal/default/2025/09/originals/hash.png
+# MEDIA_USE_TENANT=False: portal/default/2025/09/originals/hash.pngorigins

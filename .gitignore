@@ -56,3 +56,25 @@ Thumbs.db
 celerybeat-schedule
 *.pid
 *.sock
+
+*storybook.log
+storybook-static
+# Next.js build cache
+portal/next/.next/cache/
+portal/next/.next/prerender-manifest.json
+portal/next/.next/server/server-reference-manifest.json
+portal/next/.next/trace
+
+# Celery beat schedule
+celerybeat-schedule
+
+# Static files build artifacts
+staticfiles/wagtailadmin/js/
+staticfiles/css/
+staticfiles/images/
+
+# Test reports
+infra/local/theme_test_report_*.md
+
+# Data files
+data_consistency_report.json

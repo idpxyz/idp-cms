@@ -1,5 +1,9 @@
 from django.conf import settings
 from opensearchpy import OpenSearch
+import socket
+import functools
+from apps.core.utils.circuit_breaker import get_breaker, CircuitOpenError
+
 
 def get_client():
     cfg = settings.OPENSEARCH
@@ -13,16 +17,36 @@ def get_client():
         # 对于HTTP，保持原样
         hosts = [url]
     
-    return OpenSearch(
+    os_client = OpenSearch(
         hosts=hosts,
         http_auth=(cfg["USERNAME"], cfg["PASSWORD"]),
         use_ssl=use_ssl,
         verify_certs=False,
         ssl_show_warn=False,
-        timeout=30,
-        max_retries=3,
-        retry_on_timeout=True,
+        timeout=10,
+        max_retries=1,
+        retry_on_timeout=False,
     )
+
+    # Wrap critical top-level methods with circuit breaker
+    breaker = get_breaker("opensearch", failure_threshold=5, recovery_timeout=30, rolling_window=60)
+
+    def wrap(method_name: str):
+        orig = getattr(os_client, method_name)
+        @functools.wraps(orig)
+        def wrapper(*args, **kwargs):
+            return breaker.call(orig, *args, **kwargs)
+        return wrapper
+
+    # Only wrap request-like methods, do NOT wrap namespaces like 'indices'
+    for name in [
+        "index", "delete", "search", "count", "mget", "reindex",
+    ]:
+        if hasattr(os_client, name):
+            setattr(os_client, name, wrap(name))
+
+    return os_client
+
 
 def index_name_for(site: str) -> str:
     """

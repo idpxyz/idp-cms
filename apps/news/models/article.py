@@ -10,6 +10,13 @@ from taggit.managers import TaggableManager
 
 class ArticlePageTag(TaggedItemBase):
     content_object = ParentalKey('ArticlePage', related_name='tagged_items', on_delete=models.CASCADE)
+    # 站点维度（用于多站点过滤与聚合）
+    site = models.ForeignKey(Site, on_delete=models.CASCADE, null=True, blank=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['site']),
+        ]
 
 
 class ArticlePage(Page):
@@ -66,18 +73,45 @@ class ArticlePage(Page):
     tags = TaggableManager(through=ArticlePageTag, blank=True, verbose_name="标签")
     
     # === 聚合策略 ===
+    source_type = models.CharField(
+        max_length=20,
+        choices=[
+            ('internal', '内部站点'),
+            ('external', '外部网站'),
+        ],
+        default='internal',
+        verbose_name="来源类型",
+        help_text="文章来源类型：内部站点或外部网站"
+    )
+    
+    # 内部站点来源（当 source_type='internal' 时使用）
     source_site = models.ForeignKey(
         Site,
         null=True, blank=True,
         on_delete=models.SET_NULL,
         related_name='sourced_articles',
         verbose_name="来源站点",
-        help_text="文章的原始来源站点"
+        help_text="内部站点的原始来源"
     )
+    
+    # 外部网站来源（当 source_type='external' 时使用）
+    external_site = models.ForeignKey(
+        'core.ExternalSite',
+        null=True, blank=True,
+        on_delete=models.SET_NULL,
+        related_name='external_articles',
+        verbose_name="外部网站",
+        help_text="外部网站的来源信息"
+    )
+    
     allow_aggregate = models.BooleanField(default=True, verbose_name="允许聚合",
                                          help_text="是否允许在其他站点聚合显示")
     canonical_url = models.URLField(blank=True, verbose_name="规范链接",
                                    help_text="SEO规范链接，通常指向原始发布地址")
+    
+    # 外部文章特有字段
+    external_article_url = models.URLField(blank=True, verbose_name="外部文章链接",
+                                          help_text="外部网站的原始文章链接")
     
     # === 权重排序 ===
     is_featured = models.BooleanField(default=False, verbose_name="置顶推荐",
@@ -89,6 +123,24 @@ class ArticlePage(Page):
     publish_at = models.DateTimeField(null=True, blank=True, verbose_name="发布时间",
                                      help_text="实际发布时间，可不同于创建时间")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="更新时间")
+    
+    @property
+    def effective_publish_time(self):
+        """
+        统一的发布时间接口 - 业务逻辑的单一入口
+        优先使用 Wagtail 原生时间，确保与CMS功能一致
+        """
+        return self.first_published_at or self.publish_at
+    
+    @property  
+    def display_publish_time(self):
+        """前端显示用的发布时间"""
+        return self.effective_publish_time
+        
+    @property
+    def sort_publish_time(self):
+        """排序用的发布时间"""
+        return self.effective_publish_time
     
     # Wagtail管理界面配置
     content_panels = Page.content_panels + [
@@ -112,10 +164,16 @@ class ArticlePage(Page):
         ], heading="新闻属性"),
         
         MultiFieldPanel([
+            FieldPanel('source_type'),
             FieldPanel('source_site'),
+            FieldPanel('external_site'),
             FieldPanel('allow_aggregate'),
             FieldPanel('canonical_url'),
         ], heading="聚合策略"),
+        
+        MultiFieldPanel([
+            FieldPanel('external_article_url'),
+        ], heading="外部来源信息"),
         
         MultiFieldPanel([
             FieldPanel('is_featured'),

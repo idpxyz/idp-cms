@@ -57,30 +57,13 @@ def build_query(name:str, **params)->dict:
     replace_in_dict(obj, "__SITE__", params.get("site", settings.SITE_HOSTNAME))
     replace_in_dict(obj, "__HOURS__", params.get("hours", 72))
     
-    # Handle channel
-    channel = params.get("channel", "recommend")
-    if isinstance(channel, list):
-        channel = channel[0] if channel else "recommend"
-    replace_in_dict(obj, "__CHANNEL__", channel)
-    
-    # Handle channels - convert terms query to multiple term queries in should clause
-    channels = params.get("channels", ["recommend"])
+    # Handle channels
+    channels = params.get("channels", [])
     if isinstance(channels, str):
         channels = [channels]
-    
-    if "query" in obj and "function_score" in obj["query"]:
-        if "bool" in obj["query"]["function_score"]["query"]:
-            if "should" in obj["query"]["function_score"]["query"]["bool"]:
-                should_clause = obj["query"]["function_score"]["query"]["bool"]["should"]
-                # Find and replace the channels terms query
-                for i, item in enumerate(should_clause):
-                    if isinstance(item, dict) and "terms" in item and "channel" in item["terms"]:
-                        # Replace with multiple term queries
-                        new_should = []
-                        for ch in channels:
-                            new_should.append({"term": {"channel": ch}})
-                        should_clause[i:i+1] = new_should
-                        break
+    if not channels:
+        channels = ["hot", "trending"]
+    replace_in_dict(obj, "__CHANNELS__", channels)
     
     # Handle seen_ids - skip must_not condition if empty
     seen_ids = params.get("seen_ids", [])
@@ -100,6 +83,11 @@ def build_query(name:str, **params)->dict:
                     # If must_not is now empty, remove it entirely
                     if not must_not:
                         del obj["query"]["function_score"]["query"]["bool"]["must_not"]
+    
+    # Handle size parameter
+    size = params.get("size")
+    if size:
+        obj["size"] = int(size)
     
     # Debug: log the final object before returning
     logger.info(f"DEBUG: Final object: {json.dumps(obj, ensure_ascii=False)}")

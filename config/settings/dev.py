@@ -63,3 +63,16 @@ OPENSEARCH = {
     "PASSWORD": "OpenSearch2024!@#$%",
     "SECURITY_DISABLED": True,
 }
+
+# ClickHouse配置（开发环境）
+CLICKHOUSE_URL = os.getenv("CLICKHOUSE_URL", "clickhouse://default:thends@clickhouse:9000/default")
+
+# 禁用率限制（开发环境）
+DISABLE_RATE_LIMIT = True
+
+# 禁用DRF节流限制（开发环境）
+REST_FRAMEWORK = {
+    **REST_FRAMEWORK,
+    "DEFAULT_THROTTLE_CLASSES": [],  # 移除所有节流类
+    "DEFAULT_THROTTLE_RATES": {}     # 清空节流速率设置
+}

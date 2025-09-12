@@ -207,9 +207,17 @@ class ConfigLoader:
         
         # SEO配置
         config['seo'] = {
-            'default_title': settings.default_title or settings.site.site_name,
-            'default_description': settings.default_description or settings.brand_description,
-            'default_keywords': settings.default_keywords,
+            # 站点级SEO
+            'site_title': settings.site_title or settings.site.site_name,
+            'site_description': settings.site_description or settings.brand_description,
+            'site_keywords': getattr(settings, 'site_keywords', ''),
+            
+            # 页面级SEO模板
+            'page_title_template': getattr(settings, 'page_title_template', '{title} - {site_name}'),
+            'page_description_template': getattr(settings, 'page_description_template', ''),
+            'auto_seo_enabled': getattr(settings, 'auto_seo_enabled', True),
+            
+            # SEO功能
             'robots_txt_enabled': settings.robots_txt_enabled,
             'sitemap': settings.sitemap,
             'structured_data': settings.structured_data,

@@ -42,7 +42,29 @@ services:
     image: minio/mc:latest
     depends_on: [minio]
     entrypoint: >
-      /bin/sh -c " sleep 5; mc alias set local http://minio:9000 ${MINIO_ACCESS_KEY:-minioadmin} ${MINIO_SECRET_KEY:-minioadmin}; mc mb -p local/${MINIO_BUCKET:-media} || true; exit 0; "
+      /bin/sh -c "
+      sleep 5;
+      mc alias set local http://minio:9000 ${MINIO_ACCESS_KEY:-minioadmin} ${MINIO_SECRET_KEY:-minioadmin};
+
+      # 创建双桶结构
+      mc mb -p local/idp-media-prod-public || true;
+      mc mb -p local/idp-media-prod-private || true;
+
+      # 保持原有桶兼容性
+      mc mb -p local/${MINIO_BUCKET:-media} || true;
+
+      # 设置桶权限
+      mc anonymous set public local/idp-media-prod-public;
+      mc anonymous set none local/idp-media-prod-private;
+      mc anonymous set public local/${MINIO_BUCKET:-media};
+      mc anonymous set public local/${MINIO_BUCKET:-media}/images;
+
+      echo 'MinIO buckets setup completed:';
+      echo '  - idp-media-prod-public (public)';
+      echo '  - idp-media-prod-private (private)';
+      echo '  - ${MINIO_BUCKET:-media} (legacy compatibility)';
+      exit 0;
+      "
 
   opensearch:
     image: opensearchproject/opensearch:3
@@ -51,7 +73,7 @@ services:
       - discovery.type=single-node
       - plugins.security.disabled=${OPENSEARCH_SECURITY_DISABLED:-true}
       - bootstrap.memory_lock=true
-      - OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m
+      - OPENSEARCH_JAVA_OPTS=-Xms2g -Xmx2g
     ulimits: { memlock: { soft: -1, hard: -1 } }
     ports: ["9200:9200", "9600:9600"]
     volumes:
@@ -99,9 +121,15 @@ services:
     env_file: ../../.env
     environment:
       # 开发期常见主机放行（可在外部用 ALLOWED_HOSTS 覆写）
-      DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1,192.168.8.195,portal.local,site-a.local,site-b.local}
+      DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1,192.168.8.195,portal.local}
       DJANGO_SETTINGS_MODULE: config.settings.dev
       DJANGO_DEBUG: "1"
+      # MinIO 配置
+      MINIO_ENDPOINT: ${MINIO_ENDPOINT:-http://minio:9000}
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin}
+      MINIO_BUCKET: ${MINIO_BUCKET:-media}
+      MINIO_PUBLIC_DOMAIN: ${MINIO_PUBLIC_DOMAIN:-localhost:9002}
     user: "${DEV_UID:-1000}:${DEV_GID:-1000}"
     volumes: ["../../:/app"]
     working_dir: /app
@@ -118,6 +146,12 @@ services:
         condition: service_healthy
     ports: ["8000:8000"] # 如使用 Cursor 端口转发，可去掉此行避免端口冲突
     command: sh /app/infra/local/start_authoring.sh
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health/readiness/"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
 
   celery:
     build: { context: ../../, dockerfile: Dockerfile }
@@ -159,7 +193,7 @@ services:
       # 事件上报（如你 .env 已有别名，可自行覆写）
       NEXT_PUBLIC_TRACK_URL: ${NEXT_PUBLIC_TRACK_URL:-http://localhost:8000/api/track}
       # 可选：仅在你的代码读取该变量时有用
-      SITE_HOSTNAME: ${SITE_HOSTNAME:-site-a.local}
+      SITE_HOSTNAME: ${SITE_HOSTNAME:-localhost}
     ports: ["3000:3000"] # 如使用 Cursor 端口转发，可去掉此行避免端口冲突
     volumes:
       - ../../portal/next:/app
@@ -174,6 +208,31 @@ services:
         "-c",
         "npm install && rm -rf /app/.next && mkdir -p /app/.next && touch /app/.next/fallback-build-manifest.json && echo '{}' > /app/.next/fallback-build-manifest.json && npm run dev -- -p 3000",
       ]
+
+  # 新增：多站点前端服务
+  sites:
+    build:
+      context: ../../sites
+      target: development
+    ports:
+      - "3001:3000"
+    volumes:
+      - ../../sites:/app
+      - /app/node_modules
+      - /app/.next
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_API_BASE=/cms/api/v1
+      - CMS_ORIGIN=http://authoring:8000
+      - NEXT_PUBLIC_SITE_URL=http://sites:3000
+    depends_on:
+      - authoring
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
 
 volumes:
   pgdata: {}

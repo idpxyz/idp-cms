@@ -1,32 +1,88 @@
 class ArticleIndexer:
     """文章索引器 - 将 Wagtail 页面转换为 OpenSearch 文档"""
     
+    def __init__(self, target_site=None):
+        """
+        初始化索引器
+        :param target_site: 目标站点标识符，如果指定，将覆盖page.get_site()的结果
+        """
+        self.target_site = target_site
+    
     def to_doc(self, page) -> dict:
         """将页面转换为索引文档"""
-        tags = [t.name for t in getattr(page, "tags", []).all()] if hasattr(page, "tags") else []
+        # 标签
+        try:
+            tags = list(page.tags.values_list("name", flat=True)) if hasattr(page, "tags") else []
+        except Exception:
+            tags = []
         
-        # 标准化站点标识符 - 开发环境统一使用localhost
-        site_hostname = page.get_site().hostname
-        if site_hostname in ['site-a.local', 'site-b.local', 'portal.local']:
-            site_identifier = 'localhost'
+        # 站点标识
+        if self.target_site:
+            site_identifier = self.target_site
         else:
-            site_identifier = site_hostname
+            try:
+                site_identifier = page.get_site().hostname
+            except Exception:
+                site_identifier = "localhost"
+        
+        # 频道信息
+        primary_channel_slug = None
+        try:
+            if getattr(page, "channel", None):
+                primary_channel_slug = getattr(page.channel, "slug", None)
+        except Exception:
+            primary_channel_slug = None
+        
+        # URL 与时间
+        try:
+            url = page.url
+        except Exception:
+            url = None
+        # 统一发布时间逻辑：使用Wagtail原生时间作为主要源
+        publish_at = None
+        try:
+            # 优先使用 Wagtail 的 first_published_at（更可靠）
+            wagtail_time = getattr(page, "first_published_at", None)
+            custom_time = getattr(page, "publish_at", None)
             
+            if wagtail_time:
+                publish_at = wagtail_time.isoformat()
+            elif custom_time:
+                # 回退到自定义时间（兼容现有数据）
+                publish_at = custom_time.isoformat()
+        except Exception:
+            publish_at = None
+        
+        # 语言
+        lang_code = "zh"
+        try:
+            if getattr(page, "language", None):
+                lang_code = getattr(page.language, "code", "zh")
+        except Exception:
+            pass
+        
         return {
             "article_id": str(page.id),
-            "tenant": site_identifier,
+            "slug": getattr(page, "slug", None),
             "site": site_identifier,
-            "channel": getattr(page, "channel_slug","recommend"),
-            "topic": getattr(page, "topic_slug",""),
+            "tenant": site_identifier,
+            "url": url,
+            "title": getattr(page, "title", ""),
+            "summary": getattr(page, "summary", getattr(page, "excerpt", "")),
+            "body": getattr(page, "search_description", None) or getattr(page, "introduction", "") or "",
+            "author": getattr(page, "author_name", ""),
             "tags": tags,
-            "author": getattr(page, "author_name",""),
-            "title": page.title,
-            "body": page.search_description or getattr(page,"introduction","") or "",
+            "primary_channel_slug": primary_channel_slug or "recommend",
+            # Ensure compatibility with query templates expecting 'channel' and 'publish_time'
+            "channel": primary_channel_slug or "recommend",
+            # 预留：path/secondary 可在需要时扩展
             "has_video": bool(getattr(page, "has_video", False)),
-            "region": getattr(page, "region","global"),
-            "publish_time": (page.first_published_at.isoformat() if page.first_published_at else None),
+            "region": getattr(page, "region", "global"),
+            "first_published_at": publish_at,
+            "publish_time": publish_at,
             "pop_1h": 0.0, "pop_24h": 0.0, "ctr_1h": 0.0, "ctr_24h": 0.0,
-            "quality_score": 1.0, "lang": getattr(page.language, "code", "zh") if hasattr(page, 'language') and page.language else "zh",
+            "quality_score": 1.0,
+            "lang": lang_code,
         }
 
 # 向后兼容

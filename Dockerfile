@@ -1,53 +1,95 @@
-# 使用官方Python运行时作为基础镜像
-FROM python:3.11-slim
+# Multi-stage Dockerfile for Django
+# 支持开发、测试和生产环境
+
+# Base image
+FROM python:3.11-slim AS base
 
 # 设置环境变量
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
-
-# 设置工作目录
-WORKDIR /app
-
-# 配置中国镜像源以加速下载
-RUN sed -i 's/deb.debian.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apt/sources.list.d/debian.sources || \
-    sed -i 's/deb.debian.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apt/sources.list || \
-    echo "deb https://mirrors.tuna.tsinghua.edu.cn/debian/ bookworm main" > /etc/apt/sources.list && \
-    echo "deb https://mirrors.tuna.tsinghua.edu.cn/debian/ bookworm-updates main" >> /etc/apt/sources.list && \
-    echo "deb https://mirrors.tuna.tsinghua.edu.cn/debian-security bookworm-security main" >> /etc/apt/sources.list
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV DEBIAN_FRONTEND=noninteractive
 
 # 安装系统依赖
 RUN apt-get update && apt-get install -y \
-    build-essential \
+    gcc \
+    g++ \
     libpq-dev \
+    libjpeg-dev \
+    libfreetype6-dev \
+    zlib1g-dev \
+    libwebp-dev \
+    build-essential \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# 复制依赖文件
-COPY requirements.txt .
+WORKDIR /app
 
-# 配置pip中国镜像源以加速下载
-RUN pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple/ && \
-    pip config set global.trusted-host pypi.tuna.tsinghua.edu.cn
+# Development stage
+FROM base AS development
 
-# 安装Python依赖
+# 复制 requirements（使用单一 requirements.txt）
+COPY requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
 # 复制项目文件
 COPY . .
 
-# 确保模板和应用目录被正确复制
-COPY templates/ /app/templates/
-COPY apps/ /app/apps/
+# 创建媒体和静态文件目录
+RUN mkdir -p media static
 
-# 创建必要的目录并设置权限
-RUN mkdir -p logs staticfiles media/original_images media/documents media/images && \
-    chmod -R 755 logs staticfiles media
+# 创建日志目录并设置权限（生产环境）
+RUN mkdir -p /var/log/django && chown -R django:django /var/log/django
 
-# 收集静态文件（在开发环境中跳过）
-# RUN python manage.py collectstatic --noinput
+# 创建日志目录并设置权限
+RUN mkdir -p /var/log/django && chown -R django:django /var/log/django
 
-# 暴露端口
 EXPOSE 8000
-
-# 运行命令（开发环境使用 runserver）
 CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+
+# Test stage
+FROM base AS test
+
+# 复制 requirements（使用单一 requirements.txt）
+COPY requirements.txt ./requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
+
+# 复制项目文件
+COPY . .
+
+# 创建媒体和静态文件目录
+RUN mkdir -p media static
+
+# 运行测试所需的设置
+ENV DJANGO_SETTINGS_MODULE=config.settings.test
+
+EXPOSE 8000
+CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+
+# Production stage
+FROM base AS production
+
+# 创建非 root 用户
+RUN groupadd -r django && useradd --no-log-init -r -g django django
+
+# 复制 requirements（使用单一 requirements.txt）
+COPY requirements.txt ./requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
+
+# 复制项目文件
+COPY . .
+
+# 创建媒体和静态文件目录
+RUN mkdir -p media static
+
+# 创建日志目录并设置权限（生产阶段）
+RUN mkdir -p /var/log/django && chown -R django:django /var/log/django
+
+# 设置权限
+RUN chown -R django:django /app
+USER django
+
+# 收集静态文件（仅在此步骤使用生产设置并提供必需变量）
+RUN DJANGO_SETTINGS_MODULE=config.settings.prod DJANGO_ALLOWED_HOSTS=localhost python manage.py collectstatic --noinput
+
+EXPOSE 8000
+CMD ["gunicorn", "--bind", "0.0.0.0:8000", "config.wsgi:application"]

@@ -1,0 +1,104 @@
+{
+  "timestamp": "2025-09-01T15:34:50.985Z",
+  "config": {
+    "THRESHOLDS": {
+      "THEME_CHUNK_GZIP": 51200,
+      "TOTAL_JS_GZIP": 3145728,
+      "MAIN_CHUNK_GZIP": 2097152
+    },
+    "PATHS": {
+      "BUILD_DIR": ".next",
+      "STATIC_DIR": ".next/static",
+      "CHUNKS_DIR": ".next/static/chunks",
+      "REPORT_FILE": "./bundle-analysis.json"
+    },
+    "THEME_PATTERNS": [
+      {},
+      {},
+      {}
+    ]
+  },
+  "totalStats": {
+    "totalFiles": 10,
+    "totalRawSize": 8136090,
+    "totalGzippedSize": 1890219,
+    "themeFilesCount": 0,
+    "themeRawSize": 0,
+    "themeGzippedSize": 0
+  },
+  "allFiles": [
+    {
+      "path": ".next/static/chunks/main-app.js",
+      "name": "main-app.js",
+      "rawSize": 7589376,
+      "gzippedSize": 1743711,
+      "compressionRatio": 0.7702431662365918
+    },
+    {
+      "path": ".next/static/chunks/app-pages-internals.js",
+      "name": "app-pages-internals.js",
+      "rawSize": 245525,
+      "gzippedSize": 61418,
+      "compressionRatio": 0.7498503207412687
+    },
+    {
+      "path": ".next/static/chunks/polyfills.js",
+      "name": "polyfills.js",
+      "rawSize": 112594,
+      "gzippedSize": 39520,
+      "compressionRatio": 0.649004387445157
+    },
+    {
+      "path": ".next/static/chunks/webpack.js",
+      "name": "webpack.js",
+      "rawSize": 139627,
+      "gzippedSize": 27640,
+      "compressionRatio": 0.8020440172745958
+    },
+    {
+      "path": ".next/static/chunks/app/shanghai/layout.js",
+      "name": "layout.js",
+      "rawSize": 21334,
+      "gzippedSize": 7768,
+      "compressionRatio": 0.6358863785506703
+    },
+    {
+      "path": ".next/static/chunks/app/layout.js",
+      "name": "layout.js",
+      "rawSize": 20967,
+      "gzippedSize": 7678,
+      "compressionRatio": 0.6338055038870606
+    },
+    {
+      "path": ".next/static/chunks/app/portal/theme-demo/page.js",
+      "name": "page.js",
+      "rawSize": 1674,
+      "gzippedSize": 625,
+      "compressionRatio": 0.6266427718040621
+    },
+    {
+      "path": ".next/static/chunks/app/portal/layout.js",
+      "name": "layout.js",
+      "rawSize": 1665,
+      "gzippedSize": 620,
+      "compressionRatio": 0.6276276276276276
+    },
+    {
+      "path": ".next/static/chunks/app/shanghai/page.js",
+      "name": "page.js",
+      "rawSize": 1665,
+      "gzippedSize": 620,
+      "compressionRatio": 0.6276276276276276
+    },
+    {
+      "path": ".next/static/chunks/app/portal/page.js",
+      "name": "page.js",
+      "rawSize": 1663,
+      "gzippedSize": 619,
+      "compressionRatio": 0.6277811184606134
+    }
+  ],
+  "themeFiles": [],
+  "violations": [],
+  "passed": true
+}

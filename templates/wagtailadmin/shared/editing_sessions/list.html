@@ -1,10 +1,8 @@
 {% if editing_sessions %}
 {% for session in editing_sessions %}
-<div class="editing-session">
+<div class="editing-session" style="display: none;">
     <span class="user">{{ session.user.get_full_name|default:session.user.username }}</span>
     <span class="time">{{ session.last_seen_at|timesince }} ago</span>
 </div>
 {% endfor %}
-{% else %}
-<p>No other users are currently editing this page.</p>
 {% endif %}

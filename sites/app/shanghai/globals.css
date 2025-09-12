@@ -1,0 +1,66 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 使用CSS变量 */
+@layer base {
+  :root {
+    --brand-primary: #3b82f6;
+    --brand-secondary: #6b7280;
+    --brand-radius: 0.5rem;
+    --brand-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    --brand-font: 'Inter', system-ui, sans-serif;
+  }
+}
+
+@layer components {
+  /* 品牌按钮 */
+  .btn-brand {
+    @apply px-4 py-2 rounded-md font-medium transition-colors duration-200;
+    background-color: var(--brand-primary);
+    color: white;
+    border-radius: var(--brand-radius);
+    box-shadow: var(--brand-shadow);
+  }
+  
+  .btn-brand:hover {
+    @apply opacity-90;
+  }
+  
+  /* 品牌卡片 */
+  .card-brand {
+    @apply bg-white rounded-lg border border-gray-200 p-6;
+    border-radius: var(--brand-radius);
+    box-shadow: var(--brand-shadow);
+  }
+  
+  /* 品牌输入框 */
+  .input-brand {
+    @apply w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent;
+    border-radius: var(--brand-radius);
+  }
+}
+
+@layer utilities {
+  /* 主题切换工具类 */
+  .theme-portal {
+    --brand-primary: #1a365d;
+    --brand-secondary: #2d3748;
+    --brand-radius: 0.25rem;
+    --brand-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  }
+  
+  .theme-localsite-default {
+    --brand-primary: #3b82f6;
+    --brand-secondary: #6b7280;
+    --brand-radius: 0.5rem;
+    --brand-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+  
+  .theme-localsite-shanghai {
+    --brand-primary: #dc2626;
+    --brand-secondary: #7f1d1d;
+    --brand-radius: 0.75rem;
+    --brand-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  }
+}

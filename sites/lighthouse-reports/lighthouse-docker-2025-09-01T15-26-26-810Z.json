@@ -1,0 +1,127 @@
+{
+  "timestamp": "2025-09-01T15:26:26.811Z",
+  "environment": "docker",
+  "dockerInfo": {
+    "isDocker": true,
+    "nodeEnv": "development",
+    "testBaseUrl": "http://localhost:3001",
+    "memoryMB": 23880
+  },
+  "analyses": [
+    {
+      "url": "http://localhost:3001",
+      "device": "mobile",
+      "passed": false,
+      "error": "lighthouse is not a function",
+      "metrics": {},
+      "violations": [
+        "Lighthouse audit failed"
+      ],
+      "dockerEnv": true
+    },
+    {
+      "url": "http://localhost:3001",
+      "device": "desktop",
+      "passed": false,
+      "error": "lighthouse is not a function",
+      "metrics": {},
+      "violations": [
+        "Lighthouse audit failed"
+      ],
+      "dockerEnv": true
+    },
+    {
+      "url": "http://localhost:3001/portal",
+      "device": "mobile",
+      "passed": false,
+      "error": "lighthouse is not a function",
+      "metrics": {},
+      "violations": [
+        "Lighthouse audit failed"
+      ],
+      "dockerEnv": true
+    },
+    {
+      "url": "http://localhost:3001/portal",
+      "device": "desktop",
+      "passed": false,
+      "error": "lighthouse is not a function",
+      "metrics": {},
+      "violations": [
+        "Lighthouse audit failed"
+      ],
+      "dockerEnv": true
+    },
+    {
+      "url": "http://localhost:3001/shanghai",
+      "device": "mobile",
+      "passed": false,
+      "error": "lighthouse is not a function",
+      "metrics": {},
+      "violations": [
+        "Lighthouse audit failed"
+      ],
+      "dockerEnv": true
+    },
+    {
+      "url": "http://localhost:3001/shanghai",
+      "device": "desktop",
+      "passed": false,
+      "error": "lighthouse is not a function",
+      "metrics": {},
+      "violations": [
+        "Lighthouse audit failed"
+      ],
+      "dockerEnv": true
+    },
+    {
+      "url": "http://localhost:3001/portal/theme-demo",
+      "device": "mobile",
+      "passed": false,
+      "error": "lighthouse is not a function",
+      "metrics": {},
+      "violations": [
+        "Lighthouse audit failed"
+      ],
+      "dockerEnv": true
+    },
+    {
+      "url": "http://localhost:3001/portal/theme-demo",
+      "device": "desktop",
+      "passed": false,
+      "error": "lighthouse is not a function",
+      "metrics": {},
+      "violations": [
+        "Lighthouse audit failed"
+      ],
+      "dockerEnv": true
+    },
+    {
+      "url": "http://localhost:3001/shanghai/theme-demo",
+      "device": "mobile",
+      "passed": false,
+      "error": "lighthouse is not a function",
+      "metrics": {},
+      "violations": [
+        "Lighthouse audit failed"
+      ],
+      "dockerEnv": true
+    },
+    {
+      "url": "http://localhost:3001/shanghai/theme-demo",
+      "device": "desktop",
+      "passed": false,
+      "error": "lighthouse is not a function",
+      "metrics": {},
+      "violations": [
+        "Lighthouse audit failed"
+      ],
+      "dockerEnv": true
+    }
+  ],
+  "summary": {
+    "totalTests": 10,
+    "passedTests": 0,
+    "failedTests": 10
+  }
+}

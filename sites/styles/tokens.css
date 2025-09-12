@@ -1,0 +1,26 @@
+:root {
+  /* layout */
+  --container-max: 80rem; /* ~1280px */
+  --gutter-x: 1rem;       /* 16px */
+  --section-gap-y: 1rem;  /* default vertical gap */
+
+  /* brand (fallbacks, will be overridden inline in layout) */
+  --brand-primary: #ef4444; /* red-500 */
+  --brand-secondary: #6b7280; /* gray-500 */
+  --brand-radius: 0.5rem;
+  --brand-shadow: 0 1px 3px rgba(0,0,0,.1);
+
+  /* z-index & sticky offsets */
+  --z-header: 50;
+  --z-nav: 30;
+  --header-height: 64px;
+  --sticky-offset: 64px;
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --section-gap-y: 1.5rem;
+  }
+}
+
+
