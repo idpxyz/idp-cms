@@ -10,6 +10,7 @@ import time
 import requests
 from typing import Dict, List, Any
 from .base import BaseCDNProvider
+from apps.api.utils.http import http_client
 
 
 class AliyunCDNProvider(BaseCDNProvider):
@@ -80,11 +81,11 @@ class AliyunCDNProvider(BaseCDNProvider):
         request_params['Signature'] = self._generate_signature(request_params)
         
         try:
-            # 发送请求
-            response = requests.get(self.endpoint, params=request_params, timeout=30)
+            # 发送请求（使用共享HTTP客户端，包含超时与熔断）
+            response = http_client.get(self.endpoint, params=request_params)
             response.raise_for_status()
             return response.json()
-        except requests.exceptions.RequestException as e:
+        except Exception as e:
             raise Exception(f"Aliyun CDN API request failed: {e}")
     
     def purge_cache(self, urls: List[str]) -> bool:

@@ -11,6 +11,7 @@ import React, {
 } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useChannels } from "./ChannelContext";
+import { usePersonalizedChannels } from "@/lib/hooks/usePersonalizedChannels";
 
 interface Channel {
   id: string;
@@ -20,10 +21,12 @@ interface Channel {
 
 interface ChannelNavigationProps {
   channels?: Channel[]; // 现在是可选的，优先使用 Context
+  enablePersonalization?: boolean; // 是否启用个性化
 }
 
 function ChannelNavigation({
   channels: propChannels,
+  enablePersonalization = true,
 }: ChannelNavigationProps) {
   const { 
     channels: contextChannels, 
@@ -37,6 +40,43 @@ function ChannelNavigation({
   const channels = propChannels || contextChannels;
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isClient, setIsClient] = useState(false);
+  
+  // 🎯 个性化频道Hook
+  const {
+    channels: personalizedChannels,
+    strategy,
+    confidence,
+    interests,
+    loading: personalizationLoading,
+    error: personalizationError,
+    refresh: refreshPersonalization,
+  } = usePersonalizedChannels(channels, {
+    enabled: enablePersonalization && isClient,
+    fallbackToStatic: true,
+  });
+  
+  // 选择使用个性化频道还是静态频道
+  const displayChannels = useMemo(() => {
+    // 如果个性化已启用、已加载完成且有数据，使用个性化频道
+    if (enablePersonalization && isClient && !personalizationLoading && personalizedChannels.length > 0 && strategy !== 'static') {
+      const mapped = personalizedChannels
+        .filter(ch => ch.slug && ch.name) // 过滤掉无效频道
+        .map(ch => ({ 
+          id: ch.id || ch.slug, // 使用slug作为备用ID
+          name: ch.name, 
+          slug: ch.slug 
+        }));
+      
+      
+      return mapped;
+    }
+    
+    // 否则使用静态频道（包含推荐频道）
+    
+    return channels || [];
+  }, [enablePersonalization, isClient, personalizationLoading, personalizedChannels, channels, strategy]);
+    
+
   
   // 🎯 新架构：不再需要复杂的状态管理
   // activeChannel 直接从 Context 获取
@@ -67,26 +107,68 @@ function ChannelNavigation({
     setIsClient(true);
   }, []);
 
-  // 🎯 新架构：简化的响应式处理 - 只在客户端执行
+  // 🎯 真正的自适应计算 - 根据容器实际宽度动态计算
   useEffect(() => {
     if (!isClient) return;
     
-    const handleResize = () => {
-      // 简化的响应式逻辑，基于屏幕宽度
-      const width = window.innerWidth;
-      if (width < 640) {
-        setVisibleCount(3);
-      } else if (width < 1024) {
-        setVisibleCount(5);
-      } else {
-        setVisibleCount(7);
+    const calculateVisibleCount = () => {
+      const container = containerRef.current;
+      if (!container || displayChannels.length === 0) return;
+      
+      // 获取容器可用宽度
+      const containerWidth = container.offsetWidth;
+      
+      // 预留空间给"更多"按钮和边距
+      const moreButtonWidth = 80; // "更多"按钮宽度
+      const spacing = 16; // space-x-4 = 16px
+      const padding = 32; // 左右padding
+      const availableWidth = containerWidth - moreButtonWidth - padding;
+      
+      // 估算单个频道按钮的平均宽度
+      // 基于频道名称长度和padding计算
+      const estimateButtonWidth = (name: string) => {
+        // 中文字符约14px，英文字符约8px，加上padding 32px
+        const chineseChars = (name.match(/[\u4e00-\u9fa5]/g) || []).length;
+        const otherChars = name.length - chineseChars;
+        return chineseChars * 14 + otherChars * 8 + 32;
+      };
+      
+      let totalWidth = 0;
+      let count = 0;
+      
+      for (const channel of displayChannels) {
+        const buttonWidth = estimateButtonWidth(channel.name);
+        const widthWithSpacing = totalWidth === 0 ? buttonWidth : totalWidth + spacing + buttonWidth;
+        
+        if (widthWithSpacing <= availableWidth) {
+          totalWidth = widthWithSpacing;
+          count++;
+        } else {
+          break;
+        }
       }
+      
+      // 至少显示1个频道，最多显示所有频道
+      const newVisibleCount = Math.max(1, Math.min(count, displayChannels.length));
+      setVisibleCount(newVisibleCount);
     };
 
-    handleResize(); // 初始化
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, [isClient]);
+    // 使用 ResizeObserver 监听容器大小变化
+    const resizeObserver = new ResizeObserver(() => {
+      calculateVisibleCount();
+    });
+    
+    if (containerRef.current) {
+      resizeObserver.observe(containerRef.current);
+    }
+    
+    // 初始计算
+    setTimeout(calculateVisibleCount, 0);
+    
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [isClient, displayChannels]);
 
   // 点击外部关闭下拉框
   useEffect(() => {
@@ -108,33 +190,84 @@ function ChannelNavigation({
   // 🎯 新架构：不再需要复杂的浏览器事件监听
   // URL 参数变化会自动通过 Context 反映到组件
 
-  // 🎯 新架构：极简的频道点击处理
-  const handleChannelClick = useCallback((channelSlug: string) => {
-    console.log('🔘 Channel clicked:', channelSlug);
+  // 🎯 智能频道点击处理 - 支持动态重排
+  const handleChannelClick = useCallback((channelSlug: string, isFromMoreMenu: boolean = false) => {
+    console.log('🔘 Channel clicked:', channelSlug, isFromMoreMenu ? '(from more menu)' : '(from visible)');
     
     // 如果点击的是当前频道，滚动到顶部
     if (currentChannelSlug === channelSlug) {
       console.log('📜 Same channel clicked, scrolling to top');
       window.scrollTo({ top: 0, behavior: 'smooth' });
+      setIsDropdownOpen(false);
       return;
     }
 
     // 关闭下拉菜单
     setIsDropdownOpen(false);
     
-    // 使用统一的切换函数 - 自动处理所有页面和状态
-    switchChannel(channelSlug);
+    // 如果是从"更多"菜单点击的频道，需要重新排列显示顺序
+    if (isFromMoreMenu) {
+      // 这里我们先切换频道，重排逻辑在 useMemo 中处理
+      switchChannel(channelSlug);
+    } else {
+      // 直接切换频道
+      switchChannel(channelSlug);
+    }
   }, [currentChannelSlug, switchChannel]);
 
-  // 🎯 新架构：简化的频道列表计算 - 修复水合不匹配
-  const { visibleChannels, moreChannels } = useMemo(() => {
-    // 在客户端未加载前，使用固定数量避免水合不匹配
-    const count = isClient ? visibleCount : 6;
-    return {
-      visibleChannels: channels.slice(0, count),
-      moreChannels: channels.slice(count),
+  // 🎯 智能频道列表计算 - 推荐频道优先显示，但所有频道都可见
+  const { visibleChannels, moreChannels, channelWeights } = useMemo(() => {
+    let channelsToUse = displayChannels;
+    let weights: Record<string, number> = {};
+    
+    // 如果有个性化数据，直接使用个性化频道的顺序（API已经排序好了）
+    if (enablePersonalization && isClient && personalizedChannels.length > 0) {
+      weights = personalizedChannels.reduce((acc, ch) => {
+        acc[ch.slug] = ch.weight || 0;
+        return acc;
+      }, {} as Record<string, number>);
+      
+      // 直接使用displayChannels，因为它们已经是正确映射的个性化频道
+      // API已经确保推荐频道在第一位，其他频道按权重排序
+      channelsToUse = displayChannels;
+      
+    }
+    
+    // 响应式显示：根据屏幕大小决定直接显示多少个，其余放入"更多"
+    const count = isClient ? visibleCount : 8;
+    
+    // 智能重排：如果当前选中的频道在"更多"区域，将其移到显示区域的最后
+    let finalChannelsToUse = [...channelsToUse];
+    if (currentChannelSlug && count > 0) {
+      const currentChannelIndex = finalChannelsToUse.findIndex(ch => ch.slug === currentChannelSlug);
+      
+      // 如果当前频道在"更多"区域（索引 >= count）
+      if (currentChannelIndex >= count) {
+        const currentChannel = finalChannelsToUse[currentChannelIndex];
+        const visibleChannels = finalChannelsToUse.slice(0, count);
+        const moreChannels = finalChannelsToUse.slice(count);
+        
+        // 移除当前频道从更多列表
+        const updatedMoreChannels = moreChannels.filter(ch => ch.slug !== currentChannelSlug);
+        
+        // 将显示区域最后一个频道移到更多列表开头
+        const lastVisibleChannel = visibleChannels[visibleChannels.length - 1];
+        const updatedVisibleChannels = [...visibleChannels.slice(0, -1), currentChannel];
+        
+        // 重新组合
+        finalChannelsToUse = [...updatedVisibleChannels, lastVisibleChannel, ...updatedMoreChannels];
+      }
+    }
+    
+    const result = {
+      visibleChannels: finalChannelsToUse.slice(0, count),
+      moreChannels: finalChannelsToUse.slice(count),
+      channelWeights: weights,
     };
-  }, [channels, visibleCount, isClient]);
+
+
+    return result;
+  }, [displayChannels, visibleCount, isClient, enablePersonalization, personalizedChannels, currentChannelSlug]);
 
   // 🎯 修复水合不匹配：在客户端未加载前显示占位符
   if (!isClient) {
@@ -143,8 +276,8 @@ function ChannelNavigation({
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex items-center space-x-4 py-3 md:py-3.5">
             <div className="flex space-x-4">
-              {/* 占位符按钮 - 与服务端渲染保持一致 */}
-              {Array.from({ length: 6 }).map((_, index) => (
+              {/* 占位符按钮 - 显示更多频道 */}
+              {Array.from({ length: 8 }).map((_, index) => (
                 <div
                   key={index}
                   className="flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium bg-gray-100 text-gray-400 animate-pulse"
@@ -174,6 +307,40 @@ function ChannelNavigation({
     );
   }
 
+  // 🎯 个性化状态指示器
+  const getPersonalizationIndicator = () => {
+    if (!enablePersonalization || !isClient) return null;
+    
+    if (personalizationLoading) {
+      return (
+        <div className="text-xs text-gray-400 flex items-center">
+          <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse mr-1"></div>
+          智能排序中...
+        </div>
+      );
+    }
+    
+    if (strategy === 'personalized') {
+      return (
+        <div className="text-xs text-blue-600 flex items-center" title={`个性化置信度: ${Math.round(confidence * 100)}%`}>
+          <div className="w-2 h-2 bg-blue-500 rounded-full mr-1"></div>
+          个性化 {Math.round(confidence * 100)}%
+        </div>
+      );
+    }
+    
+    if (strategy === 'hybrid') {
+      return (
+        <div className="text-xs text-green-600 flex items-center" title={`混合推荐置信度: ${Math.round(confidence * 100)}%`}>
+          <div className="w-2 h-2 bg-green-500 rounded-full mr-1"></div>
+          智能推荐
+        </div>
+      );
+    }
+    
+    return null;
+  };
+
   return (
     <section className="bg-white border-b border-gray-200 sticky z-30" style={{ top: "var(--sticky-offset)" }}>
       <div className="max-w-7xl mx-auto px-4">
@@ -183,19 +350,36 @@ function ChannelNavigation({
         >
           {/* 主要频道 - 根据容器宽度动态显示 */}
           <div className="flex space-x-4 overflow-x-auto scrollbar-hide">
-            {visibleChannels.map((channel) => (
-              <button
-                key={channel.id}
-                onClick={() => handleChannelClick(channel.slug)}
-                className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap ${
-                  currentChannelSlug === channel.slug
-                    ? "bg-red-500 text-white"
-                    : "text-gray-600 hover:text-red-500"
-                }`}
-              >
-                {channel.name}
-              </button>
-            ))}
+            {visibleChannels.map((channel, index) => {
+              const weight = channelWeights[channel.slug] || 0;
+              const isHighWeight = weight > 0.05; // 权重超过5%认为是推荐频道
+              const isTopRecommended = index < 3 && strategy === 'personalized'; // 前3个且个性化
+              
+              return (
+                <button
+                  key={channel.slug}
+                  onClick={() => handleChannelClick(channel.slug)}
+                  className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap relative ${
+                    currentChannelSlug === channel.slug
+                      ? "bg-red-500 text-white shadow-lg"
+                      : isHighWeight
+                      ? "text-red-600 hover:text-red-700 hover:bg-red-50 border border-red-200"
+                      : "text-gray-600 hover:text-red-500 hover:bg-gray-50"
+                  }`}
+                  title={weight > 0 ? `推荐权重: ${(weight * 100).toFixed(1)}%` : undefined}
+                >
+                  {channel.name}
+                  {isTopRecommended && (
+                    <span className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full"></span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* 个性化状态指示器 */}
+          <div className="flex-shrink-0">
+            {getPersonalizationIndicator()}
           </div>
 
           {/* 更多频道下拉框 */}
@@ -228,20 +412,36 @@ function ChannelNavigation({
                 <div className="absolute top-full right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50 max-w-[calc(100vw-2rem)] sm:w-80 overflow-hidden">
                   <div className="p-3">
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-64 overflow-y-auto">
-                      {moreChannels.map((channel) => (
-                        <button
-                          key={channel.id}
-                          onClick={() => handleChannelClick(channel.slug)}
-                          className={`px-3 py-2 text-sm rounded-md transition-colors text-center whitespace-nowrap ${
-                            currentChannelSlug === channel.slug
-                              ? "bg-red-50 text-red-500"
-                              : "text-gray-700 hover:bg-gray-50 hover:text-red-500"
-                          }`}
-                        >
-                          {channel.name}
-                        </button>
-                      ))}
+                      {moreChannels.map((channel) => {
+                        const weight = channelWeights[channel.slug] || 0;
+                        const isRecommended = weight > 0.05;
+                        
+                        return (
+                          <button
+                            key={channel.slug}
+                            onClick={() => handleChannelClick(channel.slug, true)}
+                            className={`px-3 py-2 text-sm rounded-md transition-colors text-center whitespace-nowrap relative ${
+                              currentChannelSlug === channel.slug
+                                ? "bg-red-50 text-red-500"
+                                : isRecommended
+                                ? "text-red-600 hover:bg-red-50 border border-red-200"
+                                : "text-gray-700 hover:bg-gray-50 hover:text-red-500"
+                            }`}
+                            title={weight > 0 ? `推荐权重: ${(weight * 100).toFixed(1)}%` : undefined}
+                          >
+                            {channel.name}
+                            {isRecommended && (
+                              <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-400 rounded-full"></span>
+                            )}
+                          </button>
+                        );
+                      })}
                     </div>
+                    {moreChannels.length === 0 && (
+                      <div className="text-center py-4 text-sm text-gray-500">
+                        所有频道已显示在上方
+                      </div>
+                    )}
                   </div>
                 </div>
               )}

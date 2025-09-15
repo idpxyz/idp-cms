@@ -1,0 +1,55 @@
+{
+  "Rules": [
+    {
+      "ID": "DeleteTmpAfter7Days",
+      "Status": "Enabled",
+      "Filter": {
+        "And": {
+          "Prefix": "aivoya/",
+          "Tags": [
+            {
+              "Key": "category", 
+              "Value": "tmp"
+            }
+          ]
+        }
+      },
+      "Expiration": {
+        "Days": 7
+      },
+      "NoncurrentVersionExpiration": {
+        "NoncurrentDays": 7
+      }
+    },
+    {
+      "ID": "DeleteRenditionsAfter60Days",
+      "Status": "Enabled", 
+      "Filter": {
+        "Prefix": "renditions/"
+      },
+      "Expiration": {
+        "Days": 60
+      }
+    },
+    {
+      "ID": "DeleteTranscodesAfter30Days",
+      "Status": "Enabled",
+      "Filter": {
+        "Prefix": "transcodes/"
+      },
+      "Expiration": {
+        "Days": 30
+      }
+    },
+    {
+      "ID": "VersioningForOriginals",
+      "Status": "Enabled",
+      "Filter": {
+        "Prefix": "originals/"
+      },
+      "NoncurrentVersionExpiration": {
+        "NoncurrentDays": 365
+      }
+    }
+  ]
+}

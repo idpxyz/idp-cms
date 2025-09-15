@@ -24,16 +24,6 @@ def create_user_groups():
     """创建用户组"""
     groups_config = [
         {
-            'name': 'AI科技站点编辑',
-            'description': '可以编辑AI科技站点的内容',
-            'site_hostname': 'site-a.local'
-        },
-        {
-            'name': '综合门户编辑',
-            'description': '可以编辑综合资讯门户的内容',
-            'site_hostname': 'site-b.local'
-        },
-        {
             'name': '统一门户编辑',
             'description': '可以编辑统一门户的内容',
             'site_hostname': 'portal.local'
@@ -66,16 +56,6 @@ def setup_page_permissions(groups):
     
     # 为每个站点设置权限
     site_permissions = [
-        {
-            'site_hostname': 'site-a.local',
-            'group_key': 'site-a.local',
-            'permissions': ['add', 'edit', 'publish', 'lock']
-        },
-        {
-            'site_hostname': 'site-b.local',
-            'group_key': 'site-b.local',
-            'permissions': ['add', 'edit', 'publish', 'lock']
-        },
         {
             'site_hostname': 'portal.local',
             'group_key': 'portal.local',
@@ -176,22 +156,7 @@ def create_demo_users(groups):
     print("\n👥 创建演示用户...")
     
     demo_users = [
-        {
-            'username': 'ai_editor',
-            'first_name': '张',
-            'last_name': '小明',
-            'email': 'ai_editor@example.com',
-            'group_key': 'site-a.local',
-            'description': 'AI科技站点编辑'
-        },
-        {
-            'username': 'general_editor',
-            'first_name': '李',
-            'last_name': '小红',
-            'email': 'general_editor@example.com', 
-            'group_key': 'site-b.local',
-            'description': '综合门户编辑'
-        },
+
         {
             'username': 'portal_editor',
             'first_name': '王',

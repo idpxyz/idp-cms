@@ -41,20 +41,6 @@ def create_news_roles():
         
         # 编辑层
         {
-            'name': 'AI科技版块主编',
-            'description': 'AI科技版块内容规划和审批',
-            'permissions': ['add', 'change', 'publish', 'view'],
-            'scope': 'site-a.local',
-            'priority': 3
-        },
-        {
-            'name': '综合资讯版块主编', 
-            'description': '综合资讯版块内容规划和审批',
-            'permissions': ['add', 'change', 'publish', 'view'],
-            'scope': 'site-b.local',
-            'priority': 3
-        },
-        {
             'name': '门户聚合主编',
             'description': '统一门户内容策划和审批',
             'permissions': ['add', 'change', 'publish', 'view'],
@@ -203,7 +189,7 @@ def setup_role_permissions(roles):
             # 全局权限（根页面）
             root_page = Site.objects.get(hostname='localhost').root_page
             target_pages = [root_page]
-        elif role['scope'] in ['site-a.local', 'site-b.local', 'portal.local']:
+        elif role['scope'] in ['portal.local']:
             # 特定站点权限
             site = Site.objects.get(hostname=role['scope'])
             target_pages = [site.root_page]
@@ -244,8 +230,6 @@ def create_demo_users(groups):
         {'username': 'deputy_editor', 'name': '李副总', 'role': '副总编辑', 'password': 'deputy123'},
         
         # 版块主编
-        {'username': 'ai_chief_editor', 'name': '张主编', 'role': 'AI科技版块主编', 'password': 'ai123'},
-        {'username': 'general_chief_editor', 'name': '陈主编', 'role': '综合资讯版块主编', 'password': 'general123'},
         {'username': 'portal_chief_editor', 'name': '刘主编', 'role': '门户聚合主编', 'password': 'portal123'},
         
         # 编辑记者

@@ -1,6 +1,7 @@
 from clickhouse_driver import Client
 from django.conf import settings
 import logging
+from apps.core.utils.circuit_breaker import get_breaker
 
 logger = logging.getLogger(__name__)
 
@@ -13,7 +14,8 @@ def ch():
             _ch = Client.from_url(settings.CLICKHOUSE_URL)
         
         # 测试连接是否有效
-        _ch.execute("SELECT 1")
+        breaker = get_breaker("clickhouse", failure_threshold=5, recovery_timeout=30, rolling_window=60)
+        breaker.call(_ch.execute, "SELECT 1")
         return _ch
     except Exception as e:
         logger.warning(f"ClickHouse connection issue, recreating client: {e}")
@@ -37,7 +39,8 @@ def fetch_agg_features(ids, site:str)->dict:
             AND article_id IN ({ids_list})
           GROUP BY article_id
         '''
-        rows = ch().execute(q, {"site": site})
+        breaker = get_breaker("clickhouse", failure_threshold=5, recovery_timeout=30, rolling_window=60)
+        rows = breaker.call(ch().execute, q, {"site": site})
         return {aid: {"ctr_1h": float(ctr or 0.0)} for (aid, ctr) in rows}
     except Exception as e:
         logger.error(f"Failed to fetch agg features: {e}")

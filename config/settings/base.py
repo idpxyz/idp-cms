@@ -336,6 +336,13 @@ CELERY_BROKER_URL = os.getenv("REDIS_URL", "redis://redis:6379/1")
 CELERY_RESULT_BACKEND = os.getenv("REDIS_URL", "redis://redis:6379/1")
 
 # 日志配置
+# 统一设置可写的默认日志文件路径并确保目录存在，避免权限错误
+LOG_FILE_PATH = os.getenv("DJANGO_LOG_FILE", "/tmp/django.log")
+try:
+    os.makedirs(os.path.dirname(LOG_FILE_PATH), exist_ok=True)
+except Exception:
+    # 目录不可写时，后续会回退到控制台输出
+    pass
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
@@ -353,7 +360,7 @@ LOGGING = {
         "file": {
             "level": "INFO",
             "class": "logging.FileHandler",
-            "filename": BASE_DIR / "logs" / "django.log",
+            "filename": LOG_FILE_PATH,
             "formatter": "verbose",
             "filters": ["request_context"],
         },

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { endpoints } from "@/lib/config/endpoints";
 import { getMainSite } from "@/lib/config/sites";
@@ -123,7 +123,14 @@ export function ChannelProvider({ children, initialChannels }: ChannelProviderPr
   const [error, setError] = useState<string | null>(null);
 
   // 🎯 新的统一频道管理逻辑
-  const currentChannelSlug = searchParams.get('channel') || 'recommend';
+  const currentChannelSlug = useMemo(() => {
+    // 在搜索页面不显示任何频道被选中
+    if (pathname === '/portal/search') {
+      return '';
+    }
+    // 其他页面使用channel参数，默认为recommend
+    return searchParams.get('channel') || 'recommend';
+  }, [pathname, searchParams]);
   
   // 统一的频道切换函数
   const switchChannel = useCallback((channelSlug: string) => {

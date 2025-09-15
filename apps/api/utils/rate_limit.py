@@ -9,12 +9,29 @@ API限流工具
 """
 
 import time
+import os
 from functools import wraps
 from django.core.cache import cache
 from django.http import JsonResponse
 from django.conf import settings
 from rest_framework.response import Response
 from rest_framework import status
+
+
+def _rate_limit_disabled():
+    """在开发/本地阶段禁用限流：
+    - settings.DEBUG 为 True
+    - settings.DISABLE_RATE_LIMIT 为 True
+    - 环境变量 DISABLE_RATE_LIMIT=1
+    """
+    try:
+        if getattr(settings, 'DEBUG', False):
+            return True
+        if getattr(settings, 'DISABLE_RATE_LIMIT', False):
+            return True
+    except Exception:
+        pass
+    return os.environ.get('DISABLE_RATE_LIMIT', '0') == '1'
 
 
 def get_client_ip(request):
@@ -29,7 +46,7 @@ def get_client_ip(request):
 
 def get_user_identifier(request):
     """获取用户标识符"""
-    if request.user.is_authenticated:
+    if hasattr(request, 'user') and getattr(request.user, 'is_authenticated', False):
         return f"user:{request.user.id}"
     else:
         return f"ip:{get_client_ip(request)}"
@@ -48,6 +65,10 @@ def rate_limit(limit=100, window=3600, key_func=None, error_message=None):
     def decorator(view_func):
         @wraps(view_func)
         def wrapped_view(request, *args, **kwargs):
+            # 开发/本地禁用限流
+            if _rate_limit_disabled():
+                return view_func(request, *args, **kwargs)
+
             # 生成限流键
             if key_func:
                 rate_key = key_func(request)
@@ -101,18 +122,27 @@ def endpoint_rate_limit(endpoint_name, limit=100, window=3600):
     - limit: 限制次数
     - window: 时间窗口（秒）
     """
+    def key_func(request):
+        user_part = get_user_identifier(request)
+        # 合并频道与站点作为限流粒度，避免跨频道串扰
+        site = getattr(request, 'query_params', {}).get('site') if hasattr(request, 'query_params') else None
+        channel = getattr(request, 'query_params', {}).get('channel') if hasattr(request, 'query_params') else None
+        return f"endpoint_rate_limit:{endpoint_name}:{site or 'default'}:{channel or 'all'}:{user_part}"
+
     return rate_limit(
         limit=limit,
         window=window,
-        key_func=lambda request: f"endpoint_rate_limit:{endpoint_name}:{get_user_identifier(request)}",
+        key_func=key_func,
         error_message=f"Endpoint '{endpoint_name}' rate limit exceeded. Maximum {limit} requests per {window} seconds."
     )
 
 
-# 预定义的限流配置
-ARTICLES_RATE_LIMIT = endpoint_rate_limit("articles", limit=1000, window=3600)
-CHANNELS_RATE_LIMIT = endpoint_rate_limit("channels", limit=500, window=3600)
-REGIONS_RATE_LIMIT = endpoint_rate_limit("regions", limit=500, window=3600)
-SITE_SETTINGS_RATE_LIMIT = endpoint_rate_limit("site_settings", limit=200, window=3600)
-PORTAL_ARTICLES_RATE_LIMIT = endpoint_rate_limit("portal_articles", limit=2000, window=3600)
-CDN_CONFIG_RATE_LIMIT = endpoint_rate_limit("cdn_config", limit=100, window=3600)  # CDN配置操作较少
+# 预定义的限流配置 - 针对新闻网站优化
+ARTICLES_RATE_LIMIT = endpoint_rate_limit("articles", limit=10000, window=3600)  # 大幅提高限制
+CHANNELS_RATE_LIMIT = endpoint_rate_limit("channels", limit=5000, window=3600)   # 频道访问更频繁
+REGIONS_RATE_LIMIT = endpoint_rate_limit("regions", limit=5000, window=3600)     # 地区切换频繁
+SITE_SETTINGS_RATE_LIMIT = endpoint_rate_limit("site_settings", limit=2000, window=3600)  # 站点设置访问频繁
+PORTAL_ARTICLES_RATE_LIMIT = endpoint_rate_limit("portal_articles", limit=20000, window=3600)  # 门户文章访问最频繁
+# 放宽Feed限流并按site+channel维度限流，避免全局撞桶
+FEED_RATE_LIMIT = endpoint_rate_limit("feed", limit=60000, window=3600)
+CDN_CONFIG_RATE_LIMIT = endpoint_rate_limit("cdn_config", limit=1000, window=3600)  # CDN配置也需要提高

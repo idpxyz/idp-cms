@@ -15,6 +15,7 @@ from datetime import datetime, timedelta
 from django.core.cache import cache
 from django.conf import settings
 from django.db.models import Q
+from apps.api.utils.search_utils import apply_search
 from wagtail.models import Site
 from apps.core.site_utils import get_wagtail_site_from_request
 import time
@@ -159,13 +160,14 @@ def apply_filtering(queryset, query_params):
         else:
             queryset = queryset.filter(region__slug=region)
     
-    # 搜索关键词
+    # 搜索关键词（中文分词+加权）
     q = query_params.get("q")
     if q:
-        queryset = queryset.filter(
-            Q(title__icontains=q) | 
-            Q(excerpt__icontains=q) |
-            Q(body__icontains=q)
+        # 使用分词搜索并按权重生成 search_rank（修正字段名：excerpt）
+        queryset = apply_search(
+            queryset,
+            q,
+            fields=[("title", 10), ("excerpt", 5), ("body", 1)]
         )
     
     # 是否置顶
@@ -180,10 +182,25 @@ def apply_filtering(queryset, query_params):
     since = query_params.get("since")
     if since:
         try:
+            from django.utils import timezone
+            from datetime import timedelta
+            
             # 支持多种时间格式
             if since.isdigit():
                 # Unix 时间戳
                 since_time = datetime.fromtimestamp(int(since))
+            elif since.endswith('h'):
+                # 相对小时格式: 24h, 1h
+                hours = int(since[:-1])
+                since_time = timezone.now() - timedelta(hours=hours)
+            elif since.endswith('d'):
+                # 相对天数格式: 7d, 30d
+                days = int(since[:-1])
+                since_time = timezone.now() - timedelta(days=days)
+            elif since.endswith('m'):
+                # 相对分钟格式: 30m
+                minutes = int(since[:-1])
+                since_time = timezone.now() - timedelta(minutes=minutes)
             else:
                 # ISO 格式时间
                 since_time = datetime.fromisoformat(since.replace('Z', '+00:00'))
@@ -236,7 +253,8 @@ def apply_ordering(queryset, order_param):
         }
         
         db_field = field_mapping.get(field_name, field_name)
-        if hasattr(queryset.model, db_field):
+        # 允许基于注解的排序字段（如 search_rank）
+        if db_field == "search_rank" or hasattr(queryset.model, db_field):
             order_expressions.append(f"{direction}{db_field}")
     
     if order_expressions:

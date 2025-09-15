@@ -38,20 +38,48 @@ def build_search_query(search_text, fields=None):
     field_queries = []
     whens = []
     
-    for field_name, weight in fields:
-        # 对每个分词结果构建查询
-        word_queries = []
-        for word in words:
-            # 添加字段匹配条件
-            word_queries.append(Q(**{f"{field_name}__icontains": word}))
-            # 添加权重计算条件
+    for field_name, base_weight in fields:
+        field_word_queries = []
+        
+        # 1. 优先匹配完整短语（最高权重）
+        phrase_query = Q(**{f"{field_name}__icontains": search_text})
+        field_word_queries.append(phrase_query)
+        whens.append(
+            When(**{f"{field_name}__icontains": search_text}, then=Value(base_weight * 10))
+        )
+        
+        # 2. 匹配多个词的组合（中等权重）
+        if len(words) > 1:
+            # 构建所有词都包含的查询
+            all_words_conditions = {f"{field_name}__icontains": word for word in words}
+            all_words_query = reduce(operator.and_, [
+                Q(**{f"{field_name}__icontains": word}) for word in words
+            ])
+            field_word_queries.append(all_words_query)
             whens.append(
-                When(**{f"{field_name}__icontains": word}, then=Value(weight))
+                When(all_words_query, then=Value(base_weight * 3))
             )
         
-        # 将同一字段的多个分词结果用OR连接
-        if word_queries:
-            field_queries.append(reduce(operator.or_, word_queries))
+        # 3. 匹配单个词（基础权重，重要词汇加权）
+        for word in words:
+            word_query = Q(**{f"{field_name}__icontains": word})
+            field_word_queries.append(word_query)
+            
+            # 计算词汇权重：长词 + 重要词汇加权
+            word_weight = base_weight * (1 + len(word) * 0.1)
+            
+            # 对重要词汇给予额外权重
+            important_words = ['国家', '政府', '中央', '官方', '法律', '法规', '条例', '通知', '公告']
+            if word in important_words:
+                word_weight *= 3  # 重要词汇权重提升3倍
+            
+            whens.append(
+                When(word_query, then=Value(int(word_weight)))
+            )
+        
+        # 将该字段的所有查询用OR连接
+        if field_word_queries:
+            field_queries.append(reduce(operator.or_, field_word_queries))
     
     # 将不同字段的查询用OR连接
     search_query = reduce(operator.or_, field_queries) if field_queries else None
@@ -85,6 +113,23 @@ def apply_search(queryset, search_text, fields=None):
         return queryset
     
     # 添加搜索条件和排序权重
+    # 创建短语匹配的排序字段
+    from django.db.models import Case, When, Value, IntegerField
+    
+    # 为完整短语匹配创建优先级字段
+    phrase_priority_whens = []
+    for field_name, _ in fields or [('title', 10), ('excerpt', 5), ('body', 1)]:
+        phrase_priority_whens.append(
+            When(**{f"{field_name}__icontains": search_text}, then=Value(1000))
+        )
+    
+    phrase_priority = Case(
+        *phrase_priority_whens,
+        default=Value(0),
+        output_field=IntegerField()
+    )
+    
     return queryset.filter(search_query).annotate(
-        search_rank=rank_annotation
-    ).order_by('-search_rank', '-last_published_at')
+        search_rank=rank_annotation,
+        phrase_priority=phrase_priority
+    ).order_by('-phrase_priority', '-search_rank', '-last_published_at')

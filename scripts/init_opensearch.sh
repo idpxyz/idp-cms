@@ -4,7 +4,7 @@ set -euo pipefail
 OS_URL=${OPENSEARCH_URL:-https://192.168.8.195:9200}
 OS_USER=${OPENSEARCH_USERNAME:-admin}
 OS_PASS=${OPENSEARCH_PASSWORD:-OpenSearch2024!@#$%}
-SITE=${SITE_HOSTNAME:-site-a.local}
+SITE=${SITE_HOSTNAME:-localhost}
 INDEX="news_${SITE//./_}_articles"
 
 echo "Creating index: $INDEX on $OS_URL ..."

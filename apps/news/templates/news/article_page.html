@@ -6,21 +6,28 @@
 <article class="article-page">
     <header class="article-header">
         {% if page.cover %}
-            <div class="article-cover">
-                {% image page.cover max-1200x600 as cover_image %}
-                <img src="{{ cover_image.url }}" alt="{{ page.title }}" class="w-full">
-            </div>
+        <div class="article-cover">
+            {% image page.cover max-1200x600 as cover_image %}
+            <img src="{{ cover_image.url }}" alt="{{ page.title }}" class="w-full">
+        </div>
         {% endif %}
-        
+
         <div class="article-meta">
             <h1 class="article-title">{{ page.title }}</h1>
             {% if page.excerpt %}
-                <p class="article-excerpt">{{ page.excerpt }}</p>
+            <p class="article-excerpt">{{ page.excerpt }}</p>
             {% endif %}
             <div class="article-info">
                 <span class="publish-date">发布时间：{{ page.publish_at|date:"Y-m-d H:i" }}</span>
-                {% if page.source_site %}
-                    <span class="source-site">来源：{{ page.source_site.hostname }}</span>
+                {% if page.source_type == 'external' and page.external_site %}
+                <span class="source-site">来源：<a href="{{ page.external_site.domain }}" target="_blank" rel="noopener">{{
+                        page.external_site.name }}</a></span>
+                {% if page.external_article_url %}
+                <span class="external-link"><a href="{{ page.external_article_url }}" target="_blank"
+                        rel="noopener">查看原文</a></span>
+                {% endif %}
+                {% elif page.source_site %}
+                <span class="source-site">来源：{{ page.source_site.hostname }}</span>
                 {% endif %}
             </div>
         </div>
@@ -33,10 +40,10 @@
     <footer class="article-footer">
         <div class="article-tags">
             {% if page.tags.all %}
-                <span>标签：</span>
-                {% for tag in page.tags.all %}
-                    <span class="tag">{{ tag.name }}</span>
-                {% endfor %}
+            <span>标签：</span>
+            {% for tag in page.tags.all %}
+            <span class="tag">{{ tag.name }}</span>
+            {% endfor %}
             {% endif %}
         </div>
     </footer>

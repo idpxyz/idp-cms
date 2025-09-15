@@ -28,6 +28,14 @@ app.autodiscover_tasks(['apps.searchapp'])
 from celery import current_app
 current_app.conf.update(app.conf)
 
+# 配置 Celery Beat 的调度文件到可写目录，避免权限问题
+_beat_file = os.environ.get("CELERY_BEAT_SCHEDULE_FILE", "/tmp/celerybeat-schedule")
+try:
+    os.makedirs(os.path.dirname(_beat_file), exist_ok=True)
+except Exception:
+    pass
+app.conf.beat_schedule_filename = _beat_file
+
 @app.task(bind=True)
 def debug_task(self):
     print(f"Request: {self.request!r}")

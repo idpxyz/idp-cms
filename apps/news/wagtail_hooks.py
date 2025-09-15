@@ -4,6 +4,8 @@ Wagtail钩子 - 根据父页面关联的站点过滤频道和地区选择器
 
 from wagtail import hooks
 from django.utils.html import format_html
+from django.dispatch import receiver
+from wagtail.signals import page_published, page_unpublished
 
 
 def apply_site_filtering_to_form(form, site):
@@ -157,4 +159,44 @@ def ensure_parent_page_context(request, parent_page, page_class):
             pass
         
         print(f"DEBUG: 设置父页面上下文 - {parent_page.title} ({parent_page.get_site().hostname})")
+
+
+# 发布/撤销/删除钩子：维护 ArticlePageTag.site，并触发后续索引/缓存流程
+@receiver(page_published)
+def on_article_published(sender, **kwargs):
+    try:
+        from apps.news.models.article import ArticlePage, ArticlePageTag
+        from apps.searchapp.tasks import upsert_article_doc
+        page = kwargs.get("page")
+        request = kwargs.get("request")
+        if isinstance(page, ArticlePage):
+            current_site = page.get_site()
+            if current_site:
+                ArticlePageTag.objects.filter(content_object=page).update(site=current_site)
+            # 触发索引更新
+            try:
+                upsert_article_doc.delay(page.id)
+            except Exception:
+                pass
+    except Exception:
+        # 避免管理端出错中断；具体错误可接入日志
+        pass
+
+
+@receiver(page_unpublished)
+def on_article_unpublished(sender, **kwargs):
+    try:
+        from apps.news.models.article import ArticlePage
+        from apps.searchapp.tasks import delete_article_doc
+        page = kwargs.get("page")
+        if isinstance(page, ArticlePage):
+            try:
+                delete_article_doc.delay(page.id)
+            except Exception:
+                pass
+    except Exception:
+        pass
+
+
+# 如需删除钩子，可改用 Django 的 post_delete 连接 ArticlePage 模型
 

@@ -1,0 +1,62 @@
+{
+  "Rules": [
+    {
+      "ID": "DeleteTmpAfter7Days",
+      "Status": "Enabled", 
+      "Filter": {
+        "Prefix": "aivoya/"
+      },
+      "Expiration": {
+        "Days": 7
+      },
+      "Filter": {
+        "And": {
+          "Prefix": "aivoya/",
+          "Tags": [
+            {
+              "Key": "category",
+              "Value": "tmp"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "ID": "DeleteRenditionsAfter90Days",
+      "Status": "Enabled",
+      "Filter": {
+        "Prefix": "renditions/"
+      },
+      "Expiration": {
+        "Days": 90
+      }
+    },
+    {
+      "ID": "DeleteTranscodesAfter90Days", 
+      "Status": "Enabled",
+      "Filter": {
+        "Prefix": "transcodes/"
+      },
+      "Expiration": {
+        "Days": 90
+      }
+    },
+    {
+      "ID": "TransitionOriginalsToIA",
+      "Status": "Enabled",
+      "Filter": {
+        "Prefix": "originals/"
+      },
+      "Transitions": [
+        {
+          "Days": 30,
+          "StorageClass": "STANDARD_IA"
+        },
+        {
+          "Days": 90,
+          "StorageClass": "GLACIER"
+        }
+      ]
+    }
+  ]
+}

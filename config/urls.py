@@ -39,6 +39,9 @@ from apps.api.rest.analytics_stream import analytics_stream, analytics_stream_st
 from apps.api.rest.simple_sse import simple_sse
 from apps.api.rest.basic_sse import basic_sse
 from apps.api.rest.mock_analytics_stream import mock_analytics_stream
+from apps.api.rest.personalized_channels import personalized_channels
+from apps.api.rest.search_suggest import search_suggest
+from apps.api.rest.trending_search import trending_search
 
 # 核心应用视图导入
 from apps.core.views import (
@@ -90,6 +93,11 @@ urlpatterns = [
     path("api/topics/<slug:slug>/", topic_detail, name="api-topic-detail"),
     path("api/track/", track, name="api-track"),
     path("api/analytics/", analytics, name="api-analytics"),
+    
+    # 个性化频道API
+    path("api/channels/personalized/", personalized_channels, name="api-personalized-channels"),
+    path("api/search/suggest/", search_suggest, name="api-search-suggest"),
+    path("api/search/trending/", trending_search, name="api-search-trending"),
     
     # 站点配置API
     path("api/site/info/", site_info, name="api-site-info"),

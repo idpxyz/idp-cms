@@ -42,6 +42,7 @@ def track(request):
             channel = str(event_data.get("channel", "recommend") or "recommend")
             site = str(event_data.get("site", settings.SITE_HOSTNAME) or settings.SITE_HOSTNAME)
             dwell_ms = int(event_data.get("dwell_ms", 0) or 0)
+            search_query = str(event_data.get("search_query", "") or "")
 
             for aid in event_data.get("article_ids", []):
                 all_rows.append((
@@ -54,13 +55,14 @@ def track(request):
                     channel,
                     site,
                     dwell_ms,
+                    search_query,
                 ))
         
         if all_rows:
             breaker.call(
                 ch.execute,
                 """
-                INSERT INTO events (ts,user_id,device_id,session_id,event,article_id,channel,site,dwell_ms)
+                INSERT INTO events (ts,user_id,device_id,session_id,event,article_id,channel,site,dwell_ms,search_query)
                 VALUES
                 """,
                 all_rows

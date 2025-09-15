@@ -1,0 +1,36 @@
+{# Fully customized login using official Wagtail 7.1 blocks #}
+{% extends "wagtailadmin/login.html" %}
+{% load static i18n %}
+
+{# Top-left logo on login #}
+{% block branding_logo %}
+<span style="color: white; font-weight: bold; font-size: 24px; letter-spacing: 1px;">IDP CMS</span>
+{% endblock %}
+
+{# Heading above the form #}
+{% block branding_login %}{% trans "登录CMS管理后台" %}{% endblock %}
+
+{# Optional content above the form #}
+{% block above_login %}
+<div class="cms-login-note">
+    {% trans "欢迎使用CMS内容管理系统。如需开通账号，请联系管理员。" %}
+</div>
+{% endblock %}
+
+{# Add or modify fields while keeping default username/password rendering #}
+{% block fields %}
+{{ block.super }}
+<li class="field checkbox">
+    <label><input type="checkbox" name="remember_me"> {% trans "保持登录" %}</label>
+</li>
+{% endblock %}
+
+{# Add extra buttons next to the default submit #}
+{% block submit_buttons %}
+{{ block.super }}
+<!-- 
+  <a class="button button-secondary" href="/accounts/sso/login/">
+    {% trans "使用 SSO 登录" %}
+  </a>
+  -->
+{% endblock %}

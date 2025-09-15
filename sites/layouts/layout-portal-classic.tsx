@@ -7,6 +7,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { SiteSettings } from "@/lib/types";
+import SmartSearchBox from "@/components/search/SmartSearchBox";
 import "@/styles/tokens.css";
 
 interface PortalClassicLayoutProps {
@@ -120,33 +121,12 @@ export default function PortalClassicLayout({
 
             {/* 搜索框 - 响应式设计 */}
             <div className="flex-1 max-w-2xl mx-4 lg:mx-8">
-              {/* 桌面端：完整搜索框 */}
+              {/* 桌面端：智能搜索框 */}
               <div className="hidden md:block relative">
-                <form onSubmit={handleSearchSubmit}>
-                  <input
-                    type="text"
-                    placeholder="搜索新闻、话题、用户..."
-                    value={searchQuery}
-                    onChange={handleSearchChange}
-                    onKeyDown={handleKeyDown}
-                    className="w-full px-4 py-2 pl-10 bg-gray-100 border border-gray-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                  />
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <svg
-                      className="h-4 w-4 text-gray-400"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                      />
-                    </svg>
-                  </div>
-                </form>
+                <SmartSearchBox
+                  placeholder="搜索新闻、话题、用户..."
+                  className="w-full"
+                />
               </div>
 
               {/* 移动端：搜索图标按钮 */}

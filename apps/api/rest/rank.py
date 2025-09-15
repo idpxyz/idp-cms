@@ -30,5 +30,5 @@ def score_and_diversify(cands, agg_feats, sort_by="final_score"):
         a = c.get("author") or "na"; t = c.get("topic") or "na"
         if seen_author[a] >= limit_author or seen_topic[t] >= limit_topic: continue
         out.append(c); seen_author[a]+=1; seen_topic[t]+=1
-        if len(out) >= 200: break
+        if len(out) >= 9999: break  # 基本不限制结果数量
     return out

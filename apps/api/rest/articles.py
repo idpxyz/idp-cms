@@ -12,7 +12,10 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
 from apps.news.models import ArticlePage
-from apps.core.models import Channel, Region
+from apps.core.models import Channel, Region, SiteSettings
+from apps.core.site_utils import get_site_from_request
+from apps.searchapp.client import get_client
+from apps.searchapp.alias import read_alias
 from .utils import (
     validate_site_parameter,
     apply_field_filtering,
@@ -69,7 +72,7 @@ def articles_list(request):
         size = min(int(request.query_params.get("size", 20)), 100)  # 限制最大100条
         
         # 3. 构建基础查询 - 性能优化版本
-        queryset = ArticlePage.objects.live().filter(sites_rooted_here=site)
+        queryset = ArticlePage.objects.live().filter(path__startswith=site.root_page.path)
         
         # 4. 应用过滤
         queryset = apply_filtering(queryset, request.query_params)
@@ -200,15 +203,28 @@ def article_detail(request, slug):
         fields = request.query_params.get("fields", "").split(",") if request.query_params.get("fields") else []
         includes = request.query_params.get("include", "").split(",") if request.query_params.get("include") else []
         
-        # 3. 查询文章 - 性能优化版本
+        # 3. 查询文章 - 性能优化版本（同时兼容 slug 或 数字ID）
+        queryset = ArticlePage.objects.live().descendant_of(
+            site.root_page
+        ).select_related(
+            'channel', 'region'
+        ).prefetch_related('tags')
+        
+        article = None
         try:
-            # 通过站点的根页面来查找文章
-            article = ArticlePage.objects.live().filter(
-                path__startswith=f"{site.root_page.path}0001"
-            ).select_related(
-                'channel', 'region'
-            ).prefetch_related('tags').get(slug=slug)
+            # 优先按 slug 精确匹配
+            article = queryset.get(slug=slug)
         except ArticlePage.DoesNotExist:
+            # 若 slug 看起来是数字，则按ID回退
+            if str(slug).isdigit():
+                try:
+                    article = queryset.get(id=int(slug))
+                except ArticlePage.DoesNotExist:
+                    article = None
+            else:
+                article = None
+        
+        if not article:
             return Response(
                 {"error": "Article not found"}, 
                 status=status.HTTP_404_NOT_FOUND
@@ -465,96 +481,85 @@ def portal_articles(request):
     - size: 每页大小
     """
     try:
-        # 1. 获取查询参数
+        # 1. 参数
         allow_aggregate = request.query_params.get("allow_aggregate", "true").lower() == "true"
         fields = request.query_params.get("fields", "").split(",") if request.query_params.get("fields") else []
-        page = int(request.query_params.get("page", 1))
+        channel = request.query_params.get("channel")
+        page = max(1, int(request.query_params.get("page", 1)))
         size = min(int(request.query_params.get("size", 20)), 100)
-        
-        # 2. 构建查询 - 门户聚合只显示允许聚合的文章
-        queryset = ArticlePage.objects.live().filter(allow_aggregate=True)
-        
-        # 3. 应用过滤
-        queryset = apply_filtering(queryset, request.query_params)
-        
-        # 4. 应用排序
-        queryset = apply_ordering(queryset, request.query_params.get("order", "-publish_at"))
-        
-        # 5. 分页
-        start = (page - 1) * size
-        end = start + size
-        articles = queryset[start:end]
-        
-        # 6. 序列化数据 - 只返回摘要信息
-        serialized_articles = []
-        for article in articles:
-            # 获取来源站点信息
-            source_site = getattr(article, 'source_site', None)
-            if source_site:
-                source_url = f"https://{source_site.hostname}/news/{article.slug}"
-            else:
-                source_url = f"https://{article.sites_rooted_here.first().hostname}/news/{article.slug}"
-            
-            article_data = {
-                "id": article.id,
-                "title": article.title,
-                "slug": article.slug,
-                "excerpt": getattr(article, 'introduction', ''),
-                "cover_url": "",  # TODO: 实现封面图片URL
-                "publish_at": article.first_published_at.isoformat() if article.first_published_at else None,
-                "channel_slug": getattr(article, 'channel_slug', ''),
-                "region": getattr(article, 'region', ''),
-                "source_site": source_site.hostname if source_site else article.sites_rooted_here.first().hostname,
-                "source_url": source_url,
-                "canonical_url": source_url  # 门户聚合指向来源站
+        start_from = (page - 1) * size
+
+        # 2. 站点与索引
+        site = get_site_from_request(request)
+        client = get_client()
+        index = read_alias(site)
+
+        # 3. OpenSearch 查询构建
+        must = []
+        if channel:
+            must.append({"term": {"primary_channel_slug.keyword": channel}})
+        body = {
+            "query": {"bool": {"must": must or [{"match_all": {}}]}},
+            "sort": [{"first_published_at": {"order": "desc"}}, {"article_id": {"order": "desc"}}],
+            "from": start_from,
+            "size": size,
+            "track_total_hits": True,
+        }
+
+        # 4. 执行查询
+        res = client.search(index=index, body=body)
+        hits = res.get("hits", {})
+        total = hits.get("total", {}).get("value", 0)
+
+        # 5. 序列化
+        items = []
+        for h in hits.get("hits", []):
+            s = h.get("_source", {})
+            item = {
+                "id": s.get("article_id") or h.get("_id"),
+                "title": s.get("title"),
+                "slug": s.get("slug"),
+                "excerpt": s.get("summary") or "",
+                "cover_url": "",  # 可后续扩展
+                "publish_at": s.get("first_published_at") or s.get("publish_time"),
+                "channel_slug": s.get("primary_channel_slug") or s.get("channel"),
+                "region": s.get("region"),
+                "source_site": site,
+                "source_url": s.get("url") or "",
+                "canonical_url": s.get("url") or "",
             }
-            
-            # 应用字段过滤
             if fields:
-                article_data = apply_field_filtering(article_data, fields)
-            
-            serialized_articles.append(article_data)
-        
-        # 7. 构建响应
+                item = apply_field_filtering(item, fields)
+            items.append(item)
+
+        # 6. 响应
         response_data = {
-            "items": serialized_articles,
+            "items": items,
             "pagination": {
                 "page": page,
                 "size": size,
-                "total": queryset.count(),
-                "has_next": end < queryset.count(),
-                "has_prev": page > 1
+                "total": total,
+                "has_next": (page * size) < total,
+                "has_prev": page > 1,
             },
-            "meta": {
-                "type": "portal_aggregation",
-                "allow_aggregate": allow_aggregate
-            }
+            "meta": {"type": "portal_aggregation", "allow_aggregate": allow_aggregate, "site": site},
         }
-        
-        # 8. 生成缓存相关头部
+
         response = Response(response_data)
-        
-        # Cache-Control
         response["Cache-Control"] = "public, s-maxage=120, stale-while-revalidate=60"
-        
-        # ETag
+        from .utils import generate_etag
         etag = generate_etag(response_data)
         response["ETag"] = f'"{etag}"'
-        
-        # Surrogate-Key
-        surrogate_keys = ["portal:aggregation", "articles:all"]
-        response["Surrogate-Key"] = " ".join(surrogate_keys)
-        
+        response["Surrogate-Key"] = "portal:aggregation articles:all"
         return response
-        
+
     except Exception as e:
-        return Response(
-            {"error": f"Internal server error: {str(e)}"}, 
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
+        return Response({"error": f"Internal server error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 @api_view(["GET"])
+@SITE_SETTINGS_RATE_LIMIT
+@monitor_cache_performance("site_settings")
 def site_settings(request):
     """
     获取站点配置
@@ -572,7 +577,29 @@ def site_settings(request):
             )
         
         # 2. 获取站点配置
-        # TODO: 实现从SiteSettings模型获取配置
+        try:
+            settings = SiteSettings.get_for_site(site)
+        except SiteSettings.DoesNotExist:
+            # 如果站点配置不存在，创建默认配置
+            settings = SiteSettings.objects.create(
+                site=site,
+                brand_name=site.site_name,
+                theme_key="localsite-default",
+                layout_key="layout-localsite-grid",
+                brand_tokens={
+                    "primary": "#3B82F6",
+                    "secondary": "#6B7280",
+                    "font": "Inter, sans-serif",
+                    "radius": "0.5rem",
+                    "shadow": "0 1px 3px rgba(0,0,0,0.1)"
+                },
+                modules={
+                    "home": ["hero", "top-news", "channels"],
+                    "sidebar": ["rank", "ad"]
+                }
+            )
+        
+        # 3. 构建前端规划需要的数据结构
         site_settings_data = {
             "site_id": site.id,
             "site_name": site.site_name,
@@ -580,36 +607,80 @@ def site_settings(request):
             "port": site.port,
             "is_default_site": site.is_default_site,
             "root_page_id": site.root_page_id,
+            
+            # 前端布局配置（核心）
+            "theme_key": settings.theme_key,
+            "layout_key": settings.layout_key,
+            "brand_tokens": settings.brand_tokens or {
+                "primary": settings.primary_color,
+                "secondary": settings.secondary_color,
+                "font": settings.font_family,
+                "radius": "0.5rem",
+                "shadow": "0 1px 3px rgba(0,0,0,0.1)"
+            },
+            "modules": settings.modules or {
+                "home": ["hero", "top-news", "channels"],
+                "sidebar": ["rank", "ad"]
+            },
+            
+            # 品牌配置
             "brand": {
-                "name": site.site_name,
-                "logo_url": "",  # TODO: 实现logo URL
-                "description": ""  # TODO: 实现描述
+                "name": settings.brand_name or site.site_name,
+                "logo_url": settings.brand_logo or settings.logo_url or "",
+                "description": settings.brand_description or ""
             },
+            
+            # SEO配置  
             "seo": {
-                "default_title": "",  # TODO: 实现默认标题
-                "default_description": "",  # TODO: 实现默认描述
-                "default_keywords": ""  # TODO: 实现默认关键词
+                # 站点级SEO
+                "site_title": settings.site_title or site.site_name,
+                "site_description": settings.site_description or "",
+                "site_keywords": getattr(settings, 'site_keywords', ''),
+                
+                # 页面级SEO模板
+                "page_title_template": getattr(settings, 'page_title_template', '{title} - {site_name}'),
+                "page_description_template": getattr(settings, 'page_description_template', ''),
+                "auto_seo_enabled": getattr(settings, 'auto_seo_enabled', True)
             },
+            
+            # 分析配置
             "analytics": {
-                "google_analytics_id": "",  # TODO: 实现GA ID
-                "track_user_behavior": True
+                "google_analytics_id": settings.google_analytics_id or "",
+                "track_user_behavior": getattr(settings, 'track_user_behavior', True)
             },
+            
+            # 功能开关
+            "features": {
+                "recommendation": settings.recommendation,
+                "search_enabled": settings.search_enabled,
+                "comments_enabled": settings.comments_enabled,
+                "user_registration": settings.user_registration,
+                "social_login": settings.social_login,
+                "content_moderation": settings.content_moderation,
+                "api_access": settings.api_access,
+                "rss_feed": settings.rss_feed,
+                "sitemap": settings.sitemap
+            },
+            
+            # 页脚配置
             "footer": {
                 "links": [],  # TODO: 实现页脚链接
-                "copyright": f"© 2024 {site.site_name}. All rights reserved."
+                "copyright": f"© 2024 {settings.brand_name or site.site_name}. All rights reserved."
             }
         }
         
-        # 3. 构建响应
+        # 4. 构建响应
         response_data = {
             "settings": site_settings_data,
             "meta": {
                 "site": site.hostname,
-                "site_id": site.id
+                "site_id": site.id,
+                "theme_key": settings.theme_key,
+                "layout_key": settings.layout_key
             }
         }
         
-        # 4. 生成缓存相关头部
+        # 5. 生成缓存相关头部
         response = Response(response_data)
         
         # Cache-Control
@@ -619,8 +690,13 @@ def site_settings(request):
         etag = generate_etag(response_data)
         response["ETag"] = f'"{etag}"'
         
-        # Surrogate-Key
-        surrogate_keys = [f"site:{site.hostname}", "settings:all"]
+        # Surrogate-Key - 包含前端布局相关的标签
+        surrogate_keys = [
+            f"site:{site.hostname}", 
+            "settings:all",
+            f"theme:{settings.theme_key}",
+            f"layout:{settings.layout_key}"
+        ]
         response["Surrogate-Key"] = " ".join(surrogate_keys)
         
         return response
