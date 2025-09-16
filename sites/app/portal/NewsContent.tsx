@@ -11,10 +11,9 @@ import {
   fetchLatestFeed,
   fetchFeedByStrategy,
   shouldUseSmartFeed,
-  getAnonymousStrategy,
-  type FeedItem,
-  type FeedResponse 
+  getAnonymousStrategy
 } from "@/lib/api/feed";
+import type { FeedItem, FeedResponse } from "@/lib/api/feed";
 import { endpoints } from "@/lib/config/endpoints";
 import { getDefaultSite, getMainSite } from "@/lib/config/sites";
 import Image from "next/image";
@@ -79,6 +78,20 @@ interface Channel {
 interface NewsContentProps {
   channels: Channel[];
   initialChannelId: string;
+  // 分类模式相关props
+  categoryMode?: boolean;
+  categorySlug?: string;
+  categoryName?: string;
+  initialArticles?: FeedItem[];
+  pagination?: {
+    page: number;
+    size: number;
+    total: number;
+    has_next: boolean;
+    has_prev: boolean;
+  };
+  // 标签筛选（用于频道页/分类页）
+  tags?: string;
 }
 
 // 新闻条目组件
@@ -428,19 +441,42 @@ const NewsSkeleton = () => (
   </div>
 );
 
-export default function NewsContent({ channels, initialChannelId }: NewsContentProps) {
+export default function NewsContent({
+  channels,
+  initialChannelId,
+  categoryMode = false,
+  categorySlug,
+  categoryName,
+  initialArticles,
+  pagination,
+  tags,
+}: NewsContentProps) {
   // 🎯 新架构：使用统一的频道管理
   const { currentChannelSlug } = useChannels();
   
   // 状态管理
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!categoryMode || !initialArticles); // 分类模式下如果有初始数据则不需要loading
   const [loadingMore, setLoadingMore] = useState(false);
-  const [newsList, setNewsList] = useState<FeedItem[]>([]);
+  const [newsList, setNewsList] = useState<FeedItem[]>(initialArticles || []);
   // 已展示文章ID集合，用于跨模块去重（头条/最新 → 推荐）
   const seenIdsRef = useRef<Set<string>>(new Set());
   const [headlineNews, setHeadlineNews] = useState<FeedItem[]>([]);
   const seenClustersRef = useRef<Set<string>>(new Set());
-  const [feedData, setFeedData] = useState<FeedResponse | null>(null);
+  const [feedData, setFeedData] = useState<FeedResponse | null>(pagination ? {
+    items: initialArticles || [],
+    next_cursor: pagination.has_next ? 'page_2' : '',
+    debug: {
+      hours: 24,
+      template: 'category',
+      sort_by: 'publish_time',
+      site: '',
+      host: '',
+      user_type: 'anonymous',
+      strategy_type: 'fallback',
+      channels: [categorySlug || ''],
+      confidence_score: 0
+    }
+  } : null);
   // 模块配置（来自 /api/frontend/modules 的映射）
   const [topModules, setTopModules] = useState<{ key: string; props?: any }[]>([]);
   const [sidebarModules, setSidebarModules] = useState<{ key: string; props?: any }[]>([]);
@@ -552,17 +588,153 @@ export default function NewsContent({ channels, initialChannelId }: NewsContentP
         setHasMore(true);
       }
       
-      // 判断是否使用智能推荐
-      const useSmartFeed = shouldUseSmartFeed(currentChannelSlug, confidenceScore);
-      console.log(`🔍 NewsContent: Channel ${currentChannelSlug}, useSmartFeed: ${useSmartFeed}, confidence: ${confidenceScore}`);
-      
       let feedResponse: FeedResponse;
       
-      if (useSmartFeed) {
+      // 🎯 分类模式处理
+      if (categoryMode && categorySlug) {
+        console.log(`📁 Fetching articles for category: ${categorySlug}`);
+        
+        // 解析分页信息
+        let currentPage = 1;
+        if (isLoadMore && cursorRef.current) {
+          try {
+            const cursorData = JSON.parse(Buffer.from(cursorRef.current, 'base64').toString());
+            currentPage = cursorData.page || 1;
+          } catch (e) {
+            console.warn('Failed to parse cursor for category API:', e);
+            currentPage = 1;
+          }
+        }
+        
+        // 使用分类API获取文章 - 这里需要导入articleService
+        const { articleService } = await import('@/lib/api');
+        const response = await articleService.getArticlesByCategory(categorySlug, {
+          page: currentPage,
+          size: 20,
+          include: 'categories,topic'
+        });
+        
+        // 适配为FeedResponse格式
+        const adaptedItems: FeedItem[] = response.items.map((item: any) => ({
+          id: item.id.toString(),
+          slug: item.slug,
+          title: item.title,
+          excerpt: item.excerpt || '暂无摘要',
+          author: item.author || '编辑部',
+          source: item.source || categoryName || '本站',
+          image_url: item.cover?.url,
+          publish_time: item.publish_at,
+          publish_at: item.publish_at,
+          updated_at: item.updated_at,
+          is_featured: item.is_featured || false,
+          channel: item.channel || { id: categorySlug, name: categoryName, slug: categorySlug },
+          region: item.region ? { slug: item.region, name: item.region } : { slug: '', name: '' },
+          content: item.content || '',
+          weight: item.weight || 0,
+          has_video: false,
+          language: 'zh-CN',
+          tags: item.tags || [],
+          final_score: 0,
+        }));
+        
+        // 生成下一页cursor
+        const nextCursor = response.pagination.has_next 
+          ? Buffer.from(JSON.stringify({ page: currentPage + 1 })).toString('base64')
+          : '';
+          
+        feedResponse = {
+          items: adaptedItems,
+          next_cursor: nextCursor,
+          debug: {
+            hours: 24,
+            template: 'category',
+            sort_by: 'publish_time',
+            site: response.meta.site || '',
+            host: '',
+            user_type: 'anonymous',
+            strategy_type: 'fallback',
+            channels: [categorySlug || ''],
+            confidence_score: 0
+          }
+        };
+        
+        console.log(`📁 Category API returned ${adaptedItems.length} items for page ${currentPage}`);
+      } else {
+        // 🎯 原有的频道模式处理
+        // 若存在标签筛选，则直接使用文章列表API（channel + tags），绕过推荐逻辑
+        if (tags && currentChannelSlug) {
+          // 解析分页
+          let currentPage = 1;
+          if (isLoadMore && cursorRef.current) {
+            try {
+              const cursorData = JSON.parse(Buffer.from(cursorRef.current, 'base64').toString());
+              currentPage = cursorData.page || 1;
+            } catch (e) {
+              console.warn('Failed to parse cursor for channel+tags API:', e);
+              currentPage = 1;
+            }
+          }
+          const { articleService } = await import('@/lib/api');
+          const response = await articleService.getArticles({
+            site: getMainSite().hostname,
+            include: 'categories,topic',
+            channel: currentChannelSlug,
+            tags,
+            page: currentPage,
+            size: 20,
+          });
+
+          const adaptedItems: FeedItem[] = response.items.map((item: any) => ({
+            id: String(item.id),
+            slug: item.slug,
+            title: item.title,
+            excerpt: item.excerpt || '暂无摘要',
+            author: item.author || '编辑部',
+            source: item.source || currentChannelSlug || '本站',
+            image_url: item.cover?.url,
+            publish_time: item.publish_at,
+            publish_at: item.publish_at,
+            updated_at: item.updated_at,
+            is_featured: item.is_featured || false,
+            channel: item.channel || { id: currentChannelSlug, name: currentChannelSlug, slug: currentChannelSlug },
+            region: item.region ? { slug: item.region, name: item.region } : { slug: '', name: '' },
+            content: item.content || '',
+            weight: item.weight || 0,
+            has_video: false,
+            language: 'zh-CN',
+            tags: item.tags || [],
+            final_score: 0,
+          }));
+
+          const nextCursor = response.pagination.has_next 
+            ? Buffer.from(JSON.stringify({ page: currentPage + 1 })).toString('base64')
+            : '';
+
+          feedResponse = {
+            items: adaptedItems,
+            next_cursor: nextCursor,
+            debug: {
+              hours: 24,
+              template: 'channel_tags',
+              sort_by: 'publish_time',
+              site: response.meta.site || '',
+              host: '',
+              user_type: 'anonymous',
+              strategy_type: 'fallback',
+              channels: [currentChannelSlug],
+              confidence_score: 0,
+            }
+          };
+        } else {
+        // 判断是否使用智能推荐（当没有标签时）
+        const useSmartFeed = shouldUseSmartFeed(currentChannelSlug, confidenceScore);
+        console.log(`🔍 NewsContent: Channel ${currentChannelSlug}, useSmartFeed: ${useSmartFeed}, confidence: ${confidenceScore}`);
+        
+        if (useSmartFeed) {
         // 使用智能推荐系统
         if (currentChannelSlug === "recommend") {
           // 根据置信度选择推荐策略
-          const strategy = getAnonymousStrategy(confidenceScore);
+          const strategy = await getAnonymousStrategy(confidenceScore);
           // 首次请求带seen，后续用后端next_cursor
           const firstCursor = !isLoadMore && seenIdsRef.current.size > 0
             ? Buffer.from(JSON.stringify({ seen: Array.from(seenIdsRef.current) })).toString('base64')
@@ -645,6 +817,8 @@ export default function NewsContent({ channels, initialChannelId }: NewsContentP
             }
           },
         } as FeedResponse;
+        }
+      }
       }
 
       // 预取本批次条目
@@ -760,7 +934,7 @@ export default function NewsContent({ channels, initialChannelId }: NewsContentP
         loadingTimeoutRef.current = null;
       }
     }
-  }, [currentChannelSlug, confidenceScore]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [currentChannelSlug, confidenceScore, categoryMode, categorySlug, categoryName, tags]); 
 
   // 加载更多文章
   const loadMoreArticles = useCallback(async () => {
@@ -955,7 +1129,7 @@ export default function NewsContent({ channels, initialChannelId }: NewsContentP
     // 🔥 清理已看过的文章ID，确保新频道内容不受影响
     seenIdsRef.current.clear();
     loadSmartFeed();
-  }, [currentChannelSlug, loadSmartFeed]);
+  }, [currentChannelSlug, tags, loadSmartFeed]);
 
   // 加载模块配置（映射到本地模块键）
   useEffect(() => {

@@ -60,6 +60,7 @@ export async function GET(request: NextRequest) {
     
     // 降级策略：尝试直接获取静态频道列表
     try {
+      const site = process.env.NEXT_PUBLIC_SITE_NAME || 'localhost:3001';
       const staticChannelsUrl = `${process.env.API_BASE_URL}/api/channels/?site=${site}`;
       const staticResponse = await fetch(staticChannelsUrl);
       

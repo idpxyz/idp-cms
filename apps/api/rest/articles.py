@@ -11,8 +11,8 @@
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
-from apps.news.models import ArticlePage
-from apps.core.models import Channel, Region, SiteSettings
+from apps.news.models import ArticlePage, Topic
+from apps.core.models import Channel, Region, SiteSettings, Category
 from apps.core.site_utils import get_site_from_request
 from apps.searchapp.client import get_client
 from apps.searchapp.alias import read_alias
@@ -26,6 +26,7 @@ from .utils import (
     generate_etag,
     generate_surrogate_keys
 )
+from apps.api.serializers.taxonomy import ArticleWithTaxonomySerializer
 from ..utils.rate_limit import (
     ARTICLES_RATE_LIMIT,
     CHANNELS_RATE_LIMIT,
@@ -49,6 +50,8 @@ def articles_list(request):
     - include: 关联展开
     - channel: 频道过滤
     - region: 地区过滤
+    - categories: 分类过滤（多选，逗号分隔）
+    - topics: 专题过滤（多选，逗号分隔）
     - q: 搜索关键词
     - is_featured: 是否置顶
     - since: 时间过滤
@@ -81,7 +84,7 @@ def articles_list(request):
         queryset = apply_ordering(queryset, request.query_params.get("order", "-publish_at"))
         
         # 6. 性能优化：预取关联数据，避免N+1查询
-        queryset = queryset.select_related('channel', 'region').prefetch_related('tags')
+        queryset = queryset.select_related('channel', 'region', 'topic').prefetch_related('tags', 'categories')
         
         # 7. 分页 - 优化版本，避免重复count查询
         total_count = queryset.count()
@@ -101,6 +104,9 @@ def articles_list(request):
                 "updated_at": article.last_published_at.isoformat() if article.last_published_at else None,
                 "channel_slug": getattr(article.channel, 'slug', '') if article.channel else '',
                 "region": getattr(article.region, 'name', '') if article.region else '',
+                "topic_slug": article.topic_slug if hasattr(article, 'topic_slug') else '',
+                "topic_title": getattr(article.topic, 'title', '') if article.topic else '',
+                "category_names": article.get_category_names() if hasattr(article, 'get_category_names') else [],
                 "is_featured": getattr(article, 'is_featured', False),
                 "weight": getattr(article, 'weight', 0),
                 "allow_aggregate": getattr(article, 'allow_aggregate', True),
@@ -485,6 +491,7 @@ def portal_articles(request):
         allow_aggregate = request.query_params.get("allow_aggregate", "true").lower() == "true"
         fields = request.query_params.get("fields", "").split(",") if request.query_params.get("fields") else []
         channel = request.query_params.get("channel")
+        categories = request.query_params.get("categories")  # 逗号分隔
         page = max(1, int(request.query_params.get("page", 1)))
         size = min(int(request.query_params.get("size", 20)), 100)
         start_from = (page - 1) * size
@@ -498,6 +505,10 @@ def portal_articles(request):
         must = []
         if channel:
             must.append({"term": {"primary_channel_slug.keyword": channel}})
+        if categories:
+            cats = [c.strip() for c in categories.split(',') if c.strip()]
+            if cats:
+                must.append({"terms": {"categories": cats}})
         body = {
             "query": {"bool": {"must": must or [{"match_all": {}}]}},
             "sort": [{"first_published_at": {"order": "desc"}}, {"article_id": {"order": "desc"}}],

@@ -36,9 +36,12 @@ interface SearchResult {
   slug: string;
   excerpt: string;
   image_url: string | null;
-  source: string;
+  source?: string | null;
   publish_at: string;
   url: string;
+  channel?: string | null;
+  author?: string | null;
+  view_count?: number | null;
   highlight?: {
     title?: string;
     excerpt?: string;
@@ -75,11 +78,12 @@ export default function SearchPage() {
     const q = searchParams.get('q') || '';
     const p = parseInt(searchParams.get('page') || '1');
     const since = searchParams.get('since') || undefined;
+    const category = searchParams.get('category') || undefined;
     const orderBy = searchParams.get('orderBy') as FilterType['orderBy'] || undefined;
     
     setQuery(q);
     setPage(p);
-    setFilters({ since, orderBy });
+    setFilters({ since, orderBy, category });
     
     if (q) {
       performSearch(q, p, { since, orderBy });
@@ -121,6 +125,7 @@ export default function SearchPage() {
         };
         params.set('sort', sortMap[searchFilters.orderBy] || 'rel');
       }
+      if (searchFilters.category) params.set('category', searchFilters.category);
 
       const response = await fetch(`/api/search?${params.toString()}`);
       const data: SearchResponse = await response.json();
@@ -372,7 +377,7 @@ export default function SearchPage() {
                               <svg className="w-3 h-3 mr-1 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
                                 <path fillRule="evenodd" d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-1.414 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5zm-5 5a2 2 0 012.828 0 1 1 0 101.414-1.414 4 4 0 00-5.656 0l-3 3a4 4 0 105.656 5.656l1.5-1.5a1 1 0 10-1.414-1.414l-1.5 1.5a2 2 0 11-2.828-2.828l3-3z" clipRule="evenodd" />
                               </svg>
-                              {result.source || result.channel || '本站'}
+                              {result.source || (result.channel?.name || result.channel) || '本站'}
                             </span>
                           )}
                           
@@ -389,7 +394,7 @@ export default function SearchPage() {
                           {/* 频道标签 */}
                           {result.channel && result.source && (
                             <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
-                              {result.channel}
+                              {result.channel?.name || result.channel}
                             </span>
                           )}
                           

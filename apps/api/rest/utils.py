@@ -30,13 +30,19 @@ def validate_site_parameter(request):
     2. 通过 Host 头自动识别
     
     Args:
-        request: Django request 对象
+        request: Django request 对象（DRF Request 或 WSGIRequest）
         
     Returns:
         Site 对象或 None
     """
-    # 1. 优先使用 site 查询参数
-    site_param = request.query_params.get("site")
+    # 1. 优先使用 site 查询参数 - 兼容 DRF Request 和 WSGIRequest
+    if hasattr(request, 'query_params'):
+        # DRF Request object
+        site_param = request.query_params.get("site")
+    else:
+        # Django WSGIRequest object
+        site_param = request.GET.get("site")
+    
     if site_param:
         try:
             # 尝试作为 site_id 解析
@@ -120,6 +126,33 @@ def apply_include_expansion(data, includes, article, site):
                 "is_active": region.is_active,
             }
         
+        elif include == "categories":
+            # 展开分类信息
+            categories = article.categories.filter(is_active=True).order_by('order', 'name')
+            data["categories"] = [{
+                "id": cat.id,
+                "name": cat.name,
+                "slug": cat.slug,
+                "description": cat.description,
+                "parent_id": cat.parent.id if cat.parent else None,
+                "parent_name": cat.parent.name if cat.parent else None,
+                "order": cat.order
+            } for cat in categories]
+        
+        elif include == "topic" and article.topic:
+            # 展开专题信息
+            topic = article.topic
+            data["topic"] = {
+                "id": topic.id,
+                "title": topic.title,
+                "slug": topic.slug,
+                "summary": topic.summary,
+                "is_active": topic.is_active,
+                "is_featured": topic.is_featured,
+                "order": topic.order,
+                "cover_image_url": topic.cover_image.get_rendition('width-400').url if topic.cover_image else None
+            }
+        
         elif include == "cover" and hasattr(article, 'cover'):
             # 展开封面图片信息
             cover = getattr(article, 'cover', None)
@@ -159,6 +192,32 @@ def apply_filtering(queryset, query_params):
             queryset = queryset.filter(region__slug__in=region)
         else:
             queryset = queryset.filter(region__slug=region)
+    
+    # 分类过滤
+    categories = query_params.get("categories")
+    if categories:
+        if isinstance(categories, str):
+            categories = [c.strip() for c in categories.split(',') if c.strip()]
+        if categories:
+            queryset = queryset.filter(categories__slug__in=categories).distinct()
+    
+    # 专题过滤
+    topics = query_params.get("topics")
+    if topics:
+        if isinstance(topics, str):
+            topics = [t.strip() for t in topics.split(',') if t.strip()]
+        if topics:
+            queryset = queryset.filter(topic__slug__in=topics)
+
+    # 标签过滤（逗号分隔，多选）
+    tags = query_params.get("tags")
+    if tags:
+        if isinstance(tags, str):
+            tags = [t.strip() for t in tags.split(',') if t.strip()]
+        if tags:
+            from django.db.models import Q
+            tag_filter = Q(tags__slug__in=tags) | Q(tags__name__in=tags)
+            queryset = queryset.filter(tag_filter).distinct()
     
     # 搜索关键词（中文分词+加权）
     q = query_params.get("q")

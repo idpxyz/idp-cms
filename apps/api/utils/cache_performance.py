@@ -117,6 +117,9 @@ cache_monitor = CachePerformanceMonitor()
 def monitor_cache_performance(endpoint_name):
     """缓存性能监控装饰器"""
     def decorator(view_func):
+        from functools import wraps
+        
+        @wraps(view_func)
         def wrapper(request, *args, **kwargs):
             start_time = time.time()
             

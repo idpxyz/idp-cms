@@ -40,6 +40,7 @@ from .theme import Theme, Font
 from .time_settings import Timezone, DateFormat
 from .cdn import CDNProvider, SiteCDNConfig
 from .external_site import ExternalSite
+from .category import Category, CategoryTaggedItem
 
 __all__ = [
     'Comment',
@@ -47,6 +48,8 @@ __all__ = [
     'SiteSettings',
     'Channel',
     'ChannelTaggedItem',
+    'Category',
+    'CategoryTaggedItem',
     'Region', 
     'RegionTaggedItem',
     'Language',

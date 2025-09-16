@@ -8,6 +8,7 @@ import { trackPageView, trackDwell } from "@/lib/tracking/analytics";
 import { useIntersectionObserver } from "@/lib/hooks/useIntersectionObserver";
 import { formatDateTimeFull, formatDateTime } from "@/lib/utils/date";
 import { useChannels } from "../../ChannelContext";
+import FloatingShareToolbar from "@/components/share/FloatingShareToolbar";
 
 interface Article {
   id: number;
@@ -42,6 +43,12 @@ export default function ArticleContent({
 }: ArticleContentProps) {
   const router = useRouter();
   const { switchChannel } = useChannels();
+
+  const shareLink = typeof window !== "undefined" ? window.location.href : "";
+  const shareTitle = article.title;
+  const sharePic = article.image_url || "";
+  const shareDesc = article.excerpt || "";
+
   // 页面浏览追踪
   useEffect(() => {
     if (article) {
@@ -68,6 +75,7 @@ export default function ArticleContent({
       observe(contentElement);
     }
   }, [observe]);
+
 
   const handleRelatedArticleClick = (relatedSlug: string, event: React.MouseEvent) => {
     event.preventDefault();
@@ -107,10 +115,26 @@ export default function ArticleContent({
       </nav>
 
       <div className="py-2">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {/* 主内容列 */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden lg:col-span-2">
-            {/* 文章头部 */}
+        <div className="relative max-w-7xl mx-auto">
+          <div className="flex gap-4">
+            {/* 左侧分享栏 - 只在超大屏幕显示 */}
+            <aside className="hidden xl:block">
+              <div className="sticky top-32 h-0">
+                <FloatingShareToolbar
+                  shareLink={shareLink}
+                  shareTitle={shareTitle}
+                  sharePic={sharePic}
+                  shareDesc={shareDesc}
+                />
+              </div>
+            </aside>
+            
+            {/* 主内容和右侧栏容器 */}
+            <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-4">
+              {/* 主内容列 */}
+              <div className="lg:col-span-2">
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                {/* 文章头部 */}
             <div className="p-6">
               {/* 频道标签 */}
               <div className="mb-3">
@@ -190,27 +214,6 @@ export default function ArticleContent({
                 </div>
               )}
 
-              {/* 分享按钮 */}
-              <div className="mt-6 pt-4 border-t border-gray-200">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <span className="text-sm text-gray-600">分享到：</span>
-                    <button className="text-blue-600 hover:text-blue-800 text-sm">
-                      微信
-                    </button>
-                    <button className="text-blue-600 hover:text-blue-800 text-sm">
-                      微博
-                    </button>
-                    <button className="text-blue-600 hover:text-blue-800 text-sm">
-                      QQ
-                    </button>
-                  </div>
-                  <button className="text-gray-600 hover:text-gray-800 text-sm">
-                    📤 分享
-                  </button>
-                </div>
-              </div>
-
               {/* 返回按钮 */}
               <div className="mt-6 text-center">
                 <Link
@@ -221,11 +224,12 @@ export default function ArticleContent({
                 </Link>
               </div>
             </div>
-          </div>
-
-          {/* 右侧相关文章 */}
-          {relatedArticles && relatedArticles.length > 0 && (
-            <aside className="lg:col-span-1">
+              </div>
+              </div>
+              
+              {/* 右侧相关文章 */}
+              {relatedArticles && relatedArticles.length > 0 && (
+                <aside className="lg:col-span-1">
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
                 <h3 className="text-base font-bold text-gray-900 mb-3">相关文章</h3>
                 <div className="grid gap-3">
@@ -265,8 +269,10 @@ export default function ArticleContent({
                   ))}
                 </div>
               </div>
-            </aside>
-          )}
+                </aside>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </div>

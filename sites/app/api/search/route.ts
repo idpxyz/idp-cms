@@ -151,6 +151,8 @@ export async function GET(request: NextRequest) {
     
     const { cleanQuery: query, page, limit, sort, channel, since } = validation;
     const region = searchParams.get("region") || undefined;
+    const category = searchParams.get("category") || undefined; // 单选分类（前端）
+    const categoriesParam = searchParams.get("categories") || undefined; // 兼容多选（直接透传）
 
     // 敏感词检查
     const sensitiveWordCheck = await checkSensitiveWords(query);
@@ -190,9 +192,13 @@ export async function GET(request: NextRequest) {
     if (channel) params.channel = channel;
     if (region) params.region = region;
     if (since) params.since = since;
+    // 分类筛选：优先透传 categories，否则使用单选 category
+    if (categoriesParam) params.categories = categoriesParam;
+    else if (category) params.categories = category;
 
+    // 切换到 OS 搜索接口
     const cmsUrl = endpoints.buildUrl(
-      endpoints.getCmsEndpoint('/api/articles/'),
+      endpoints.getCmsEndpoint('/api/search/os/'),
       params
     );
 

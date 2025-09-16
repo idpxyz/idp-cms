@@ -47,6 +47,13 @@ class ArticlePage(Page):
         verbose_name="频道",
         help_text="⚠️ 请只选择当前站点关联的频道（如上海站点请勿选择北京本地等其他站点专属频道）"
     )
+    categories = models.ManyToManyField(
+        'core.Category',
+        blank=True,
+        related_name='articles',
+        verbose_name="分类",
+        help_text="选择文章所属的分类（可多选）"
+    )
     region = models.ForeignKey(
         'core.Region', 
         null=True, blank=True,
@@ -55,8 +62,14 @@ class ArticlePage(Page):
         verbose_name="地区",
         help_text="⚠️ 请只选择当前站点关联的地区"
     )
-    topic_slug = models.SlugField(blank=True, verbose_name="专题标识",
-                                 help_text="用于专题聚合的标识符")
+    topic = models.ForeignKey(
+        'news.Topic',
+        null=True, blank=True,
+        on_delete=models.SET_NULL,
+        related_name='articles',
+        verbose_name="专题",
+        help_text="选择文章所属的专题"
+    )
     
     # === 新闻专业属性 ===
     author_name = models.CharField(max_length=64, blank=True, verbose_name="作者",
@@ -152,8 +165,9 @@ class ArticlePage(Page):
         
         MultiFieldPanel([
             FieldPanel('channel'),
+            FieldPanel('categories', widget=forms.CheckboxSelectMultiple),
             FieldPanel('region'),
-            FieldPanel('topic_slug'),
+            FieldPanel('topic'),
             FieldPanel('tags'),
         ], heading="分类标签"),
         
@@ -260,3 +274,16 @@ class ArticlePage(Page):
         else:
             # 自产文章显示全文
             return self.body
+    
+    @property
+    def topic_slug(self):
+        """向后兼容属性：获取专题的 slug"""
+        return self.topic.slug if self.topic else ''
+    
+    def get_categories_list(self):
+        """获取分类列表"""
+        return list(self.categories.filter(is_active=True).order_by('order', 'name'))
+    
+    def get_category_names(self):
+        """获取分类名称列表"""
+        return [cat.name for cat in self.get_categories_list()]

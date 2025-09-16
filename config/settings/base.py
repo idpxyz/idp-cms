@@ -8,6 +8,7 @@ import os
 import sys
 from pathlib import Path
 from datetime import timedelta
+from corsheaders.defaults import default_headers
 
 # 项目根目录 - 包含manage.py的目录
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -270,8 +271,12 @@ REST_FRAMEWORK = {
 }
 
 # CORS配置
-CORS_ALLOWED_ORIGINS = os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:3000").split(",")
+CORS_ALLOWED_ORIGINS = os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:3001").split(",")
 CORS_ALLOW_CREDENTIALS = True
+# 允许自定义请求头（用于前端跟踪请求ID）
+CORS_ALLOW_HEADERS = list(default_headers) + [
+    "x-request-id",
+]
 
 # Celery配置
 CELERY_TIMEZONE = TIME_ZONE

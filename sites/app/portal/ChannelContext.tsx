@@ -136,15 +136,17 @@ export function ChannelProvider({ children, initialChannels }: ChannelProviderPr
   const switchChannel = useCallback((channelSlug: string) => {
     console.log('🔄 Switching channel to:', channelSlug, 'from:', pathname);
     
-    // 🎯 频道切换总是导航到首页，确保一致的用户体验
-    const newUrl = channelSlug === 'recommend' 
-      ? '/portal' 
-      : `/portal?channel=${channelSlug}`;
+    // 保留现有的 tags 查询参数
+    const params = new URLSearchParams();
+    const currentTags = searchParams.get('tags');
+    if (channelSlug && channelSlug !== 'recommend') params.set('channel', channelSlug);
+    if (currentTags) params.set('tags', currentTags);
+    const qs = params.toString();
+    const newUrl = qs ? `/portal?${qs}` : '/portal';
     
     console.log('🎯 Navigating to:', newUrl);
-    // 使用路由导航，自动更新 URL 参数
     router.push(newUrl);
-  }, [router, pathname]);
+  }, [router, pathname, searchParams]);
   
   // 获取当前频道对象
   const getCurrentChannel = useCallback(() => {

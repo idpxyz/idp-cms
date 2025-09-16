@@ -9,9 +9,10 @@ import React, {
   memo,
   useMemo,
 } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { useChannels } from "./ChannelContext";
 import { usePersonalizedChannels } from "@/lib/hooks/usePersonalizedChannels";
+import { tagService } from "@/lib/api";
 
 interface Channel {
   id: string;
@@ -28,6 +29,7 @@ function ChannelNavigation({
   channels: propChannels,
   enablePersonalization = true,
 }: ChannelNavigationProps) {
+  const searchParams = useSearchParams();
   const { 
     channels: contextChannels, 
     loading, 
@@ -81,6 +83,64 @@ function ChannelNavigation({
   // 🎯 新架构：不再需要复杂的状态管理
   // activeChannel 直接从 Context 获取
 
+  // 🎯 新架构：简化的响应式布局 - 修复水合不匹配
+  const [visibleCount, setVisibleCount] = useState(6);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // 智能频道列表计算将在下面定义
+  const { visibleChannels, moreChannels, channelWeights } = useMemo(() => {
+    let channelsToUse = displayChannels;
+    let weights: Record<string, number> = {};
+    
+    // 如果有个性化数据，直接使用个性化频道的顺序（API已经排序好了）
+    if (enablePersonalization && isClient && personalizedChannels.length > 0) {
+      weights = personalizedChannels.reduce((acc, ch) => {
+        acc[ch.slug] = ch.weight || 0;
+        return acc;
+      }, {} as Record<string, number>);
+      
+      // 直接使用displayChannels，因为它们已经是正确映射的个性化频道
+      // API已经确保推荐频道在第一位，其他频道按权重排序
+      channelsToUse = displayChannels;
+      
+    }
+    
+    // 响应式显示：根据屏幕大小决定直接显示多少个，其余放入"更多"
+    const count = isClient ? visibleCount : 8;
+    
+    // 智能重排：如果当前选中的频道在"更多"区域，将其移到显示区域的最后
+    let finalChannelsToUse = [...channelsToUse];
+    if (currentChannelSlug && count > 0) {
+      const currentChannelIndex = finalChannelsToUse.findIndex(ch => ch.slug === currentChannelSlug);
+      
+      // 如果当前频道在"更多"区域（索引 >= count）
+      if (currentChannelIndex >= count) {
+        const currentChannel = finalChannelsToUse[currentChannelIndex];
+        const visibleChannels = finalChannelsToUse.slice(0, count);
+        const moreChannels = finalChannelsToUse.slice(count);
+        
+        // 移除当前频道从更多列表
+        const updatedMoreChannels = moreChannels.filter(ch => ch.slug !== currentChannelSlug);
+        
+        // 将显示区域最后一个频道移到更多列表开头
+        const lastVisibleChannel = visibleChannels[visibleChannels.length - 1];
+        const updatedVisibleChannels = [...visibleChannels.slice(0, -1), currentChannel];
+        
+        // 重新组合
+        finalChannelsToUse = [...updatedVisibleChannels, lastVisibleChannel, ...updatedMoreChannels];
+      }
+    }
+    
+    const result = {
+      visibleChannels: finalChannelsToUse.slice(0, count),
+      moreChannels: finalChannelsToUse.slice(count),
+      channelWeights: weights,
+    };
+
+    return result;
+  }, [displayChannels, visibleCount, isClient, enablePersonalization, personalizedChannels, currentChannelSlug]);
+
   // 🎯 新架构：简化的调试工具 - 修复水合不匹配
   useEffect(() => {
     if (isClient) {
@@ -97,10 +157,6 @@ function ChannelNavigation({
       };
     }
   }, [isClient, currentChannelSlug, channels, loading, error, getCurrentChannel, switchChannel]);
-  // 🎯 新架构：简化的响应式布局 - 修复水合不匹配
-  const [visibleCount, setVisibleCount] = useState(6);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const dropdownRef = useRef<HTMLDivElement>(null);
 
   // 🎯 修复水合不匹配：先标记客户端已加载
   useEffect(() => {
@@ -214,60 +270,42 @@ function ChannelNavigation({
       switchChannel(channelSlug);
     }
   }, [currentChannelSlug, switchChannel]);
+  
+  // ===== 标签 chips Hooks（需在任何早退 return 之前调用，保持Hook顺序稳定）=====
+  interface NavTag {
+    name: string;
+    slug: string;
+    articles_count?: number;
+  }
 
-  // 🎯 智能频道列表计算 - 推荐频道优先显示，但所有频道都可见
-  const { visibleChannels, moreChannels, channelWeights } = useMemo(() => {
-    let channelsToUse = displayChannels;
-    let weights: Record<string, number> = {};
-    
-    // 如果有个性化数据，直接使用个性化频道的顺序（API已经排序好了）
-    if (enablePersonalization && isClient && personalizedChannels.length > 0) {
-      weights = personalizedChannels.reduce((acc, ch) => {
-        acc[ch.slug] = ch.weight || 0;
-        return acc;
-      }, {} as Record<string, number>);
-      
-      // 直接使用displayChannels，因为它们已经是正确映射的个性化频道
-      // API已经确保推荐频道在第一位，其他频道按权重排序
-      channelsToUse = displayChannels;
-      
-    }
-    
-    // 响应式显示：根据屏幕大小决定直接显示多少个，其余放入"更多"
-    const count = isClient ? visibleCount : 8;
-    
-    // 智能重排：如果当前选中的频道在"更多"区域，将其移到显示区域的最后
-    let finalChannelsToUse = [...channelsToUse];
-    if (currentChannelSlug && count > 0) {
-      const currentChannelIndex = finalChannelsToUse.findIndex(ch => ch.slug === currentChannelSlug);
-      
-      // 如果当前频道在"更多"区域（索引 >= count）
-      if (currentChannelIndex >= count) {
-        const currentChannel = finalChannelsToUse[currentChannelIndex];
-        const visibleChannels = finalChannelsToUse.slice(0, count);
-        const moreChannels = finalChannelsToUse.slice(count);
-        
-        // 移除当前频道从更多列表
-        const updatedMoreChannels = moreChannels.filter(ch => ch.slug !== currentChannelSlug);
-        
-        // 将显示区域最后一个频道移到更多列表开头
-        const lastVisibleChannel = visibleChannels[visibleChannels.length - 1];
-        const updatedVisibleChannels = [...visibleChannels.slice(0, -1), currentChannel];
-        
-        // 重新组合
-        finalChannelsToUse = [...updatedVisibleChannels, lastVisibleChannel, ...updatedMoreChannels];
+  const [popularTags, setPopularTags] = useState<NavTag[]>([]);
+
+  // 当前URL中的 tags
+  const currentTags = useMemo(() => {
+    const tagsStr = searchParams.get('tags') || '';
+    return tagsStr ? tagsStr.split(',').map(t => t.trim()).filter(Boolean) : [];
+  }, [searchParams]);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const tags = await tagService.list(10);
+        if (mounted) setPopularTags(tags as NavTag[]);
+      } catch (e) {
+        if (mounted) setPopularTags([]);
       }
-    }
-    
-    const result = {
-      visibleChannels: finalChannelsToUse.slice(0, count),
-      moreChannels: finalChannelsToUse.slice(count),
-      channelWeights: weights,
-    };
+    })();
+    return () => { mounted = false; };
+  }, []);
 
-
-    return result;
-  }, [displayChannels, visibleCount, isClient, enablePersonalization, personalizedChannels, currentChannelSlug]);
+  const buildChannelUrl = useCallback((channelSlug: string, tagsList: string[] = []) => {
+    const params = new URLSearchParams();
+    if (channelSlug && channelSlug !== 'recommend') params.set('channel', channelSlug);
+    if (tagsList.length > 0) params.set('tags', tagsList.join(','));
+    const qs = params.toString();
+    return qs ? `/portal?${qs}` : '/portal';
+  }, []);
 
   // 🎯 修复水合不匹配：在客户端未加载前显示占位符
   if (!isClient) {
@@ -448,6 +486,47 @@ function ChannelNavigation({
             </div>
           )}
         </div>
+
+        {/* 标签筛选行 */}
+        {popularTags.length > 0 && (
+          <div className="py-2 border-t border-gray-100">
+            <div className="flex items-center flex-wrap gap-2">
+              <span className="text-xs text-gray-500 mr-1">标签筛选</span>
+              {popularTags.map((tag) => {
+                const isActive = currentTags.includes(tag.slug);
+                const newTags = isActive
+                  ? currentTags.filter(t => t !== tag.slug)
+                  : [...currentTags, tag.slug];
+                const href = buildChannelUrl(currentChannelSlug || 'recommend', newTags);
+                return (
+                  <a
+                    key={tag.slug}
+                    href={href}
+                    className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+                      isActive
+                        ? 'bg-blue-600 text-white hover:bg-blue-700'
+                        : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                    }`}
+                  >
+                    {tag.name}
+                    {typeof tag.articles_count === 'number' && (
+                      <span className="ml-1 text-[11px] opacity-75">({tag.articles_count})</span>
+                    )}
+                  </a>
+                );
+              })}
+              {currentTags.length > 0 && (
+                <a
+                  href={buildChannelUrl(currentChannelSlug || 'recommend', [])}
+                  className="ml-2 text-sm text-gray-600 hover:text-red-600 underline"
+                  title="清除所有标签筛选"
+                >
+                  重置
+                </a>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </section>
   );

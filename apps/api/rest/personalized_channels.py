@@ -126,23 +126,37 @@ def _sort_channels_by_strategy(channels, strategy, profile):
     channel_map = {ch["slug"]: ch for ch in channels}
     
     if strategy_type == "cold_start":
-        # 冷启动：使用默认顺序，但添加权重
+        # 冷启动：使用默认顺序，但根据站点热度分配权重
         result = []
-        for channel in channels:
+        total_channels = len(channels) + 1  # +1 for recommend channel
+        
+        # 为不同频道分配不同权重（基于一般用户偏好）
+        for i, channel in enumerate(channels):
+            # 前面的频道权重稍高，但差异不大
+            base_weight = 0.8 / len(channels)  # 为普通频道分配80%的权重
+            position_bonus = max(0.02 - i * 0.005, 0)  # 前面的频道有位置加成
+            channel_weight = base_weight + position_bonus
+            
             result.append({
                 **channel,
-                "weight": channel_weights.get(channel["slug"], 1.0 / (len(channels) + 1)),
-                "reason": "冷启动推荐"
+                "weight": channel_weight,
+                "reason": f"冷启动推荐 (位置: {i+1})"
             })
         
-        # 添加推荐频道到最前面
+        # 添加推荐频道到最前面，分配较高权重
         result.insert(0, {
             "id": "recommend",
             "name": "推荐", 
             "slug": "recommend",
-            "weight": 1.0 / (len(channels) + 1),
+            "weight": 0.2,  # 为推荐频道分配20%权重
             "reason": "系统推荐频道"
         })
+        
+        # 归一化权重
+        total_weight = sum(ch["weight"] for ch in result)
+        if total_weight > 0:
+            for ch in result:
+                ch["weight"] = ch["weight"] / total_weight
         
         return result
         
@@ -158,22 +172,36 @@ def _sort_channels_by_strategy(channels, strategy, profile):
             reverse=True
         )
         
-        for slug in sorted_recommended:
+        # 计算推荐频道的权重总和
+        recommended_weight_sum = sum(channel_weights.get(slug, 0) for slug in sorted_recommended if slug in channel_map)
+        total_channels = len(channels) + 1  # +1 for recommend channel
+        
+        # 为推荐频道分配权重，确保它们有明显的差异
+        for i, slug in enumerate(sorted_recommended):
             if slug in channel_map:
                 channel = channel_map[slug]
+                # 推荐频道权重递减，但保持在较高水平
+                original_weight = channel_weights.get(slug, 0.1)
+                adjusted_weight = max(0.15 - i * 0.03, 0.05)  # 从15%开始，每个递减3%，最低5%
+                
                 result.append({
                     **channel,
-                    "weight": channel_weights.get(slug, 0.1),
-                    "reason": f"基于{strategy_type}推荐"
+                    "weight": adjusted_weight,
+                    "reason": f"基于{strategy_type}推荐 (原权重: {original_weight:.3f})"
                 })
                 added_slugs.add(slug)
         
-        # 2. 再添加其他频道（保持原顺序，但权重较低）
-        for channel in channels:
-            if channel["slug"] not in added_slugs:
+        # 2. 计算剩余权重为其他频道分配
+        used_weight = sum(ch["weight"] for ch in result)
+        remaining_weight = max(0.6 - used_weight, 0.2)  # 为其他频道保留至少20%的权重
+        other_channels = [ch for ch in channels if ch["slug"] not in added_slugs]
+        
+        if other_channels:
+            weight_per_other = remaining_weight / len(other_channels)
+            for channel in other_channels:
                 result.append({
                     **channel,
-                    "weight": 0.05,  # 较低权重
+                    "weight": weight_per_other,
                     "reason": "补充频道"
                 })
         
@@ -184,27 +212,48 @@ def _sort_channels_by_strategy(channels, strategy, profile):
                 "id": "recommend",
                 "name": "推荐", 
                 "slug": "recommend",
-                "weight": 0.2,  # 较高权重，确保排在前面
+                "weight": 0.25,  # 最高权重，确保排在前面
                 "reason": "系统推荐频道"
             })
+        
+        # 4. 重新归一化权重，确保总和为1
+        total_weight = sum(ch["weight"] for ch in result)
+        if total_weight > 0:
+            for ch in result:
+                ch["weight"] = ch["weight"] / total_weight
         
         return result
     
     else:
-        # 降级策略：返回原顺序，并添加推荐频道
-        result = [
-            {**ch, "weight": 1.0 / (len(channels) + 1), "reason": "默认顺序"}
-            for ch in channels
-        ]
+        # 降级策略：返回原顺序，但使用差异化权重
+        result = []
         
-        # 添加推荐频道到最前面
+        # 为普通频道分配权重，前面的稍高
+        for i, channel in enumerate(channels):
+            base_weight = 0.75 / len(channels)  # 为普通频道分配75%权重
+            position_bonus = max(0.03 - i * 0.008, 0)  # 位置加成
+            channel_weight = base_weight + position_bonus
+            
+            result.append({
+                **channel,
+                "weight": channel_weight,
+                "reason": f"降级策略 (位置: {i+1})"
+            })
+        
+        # 添加推荐频道到最前面，分配较高权重
         result.insert(0, {
             "id": "recommend",
             "name": "推荐", 
             "slug": "recommend",
-            "weight": 1.0 / (len(channels) + 1),
+            "weight": 0.25,  # 为推荐频道分配25%权重
             "reason": "系统推荐频道"
         })
+        
+        # 归一化权重
+        total_weight = sum(ch["weight"] for ch in result)
+        if total_weight > 0:
+            for ch in result:
+                ch["weight"] = ch["weight"] / total_weight
         
         return result
 

@@ -225,6 +225,7 @@ services:
       - NEXT_PUBLIC_API_BASE=/cms/api/v1
       - CMS_ORIGIN=http://authoring:8000
       - NEXT_PUBLIC_SITE_URL=http://sites:3000
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
     depends_on:
       - authoring
     healthcheck:

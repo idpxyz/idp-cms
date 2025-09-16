@@ -16,6 +16,14 @@ class ArticleIndexer:
         except Exception:
             tags = []
         
+        # 分类（使用 slug）
+        categories = []
+        try:
+            if hasattr(page, "categories"):
+                categories = list(page.categories.values_list("slug", flat=True))
+        except Exception:
+            categories = []
+        
         # 站点标识
         if self.target_site:
             site_identifier = self.target_site
@@ -72,6 +80,7 @@ class ArticleIndexer:
             "body": getattr(page, "search_description", None) or getattr(page, "introduction", "") or "",
             "author": getattr(page, "author_name", ""),
             "tags": tags,
+            "categories": categories,
             "primary_channel_slug": primary_channel_slug or "recommend",
             # Ensure compatibility with query templates expecting 'channel' and 'publish_time'
             "channel": primary_channel_slug or "recommend",

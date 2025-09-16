@@ -1,7 +1,11 @@
 from .client import get_client
+
 def norm(site:str): return site.replace(".","_")
+
 def read_alias(site:str)->str: return f"news_{norm(site)}_articles"
+
 def write_alias(site:str)->str: return f"news_{norm(site)}_articles_write"
+
 def version_index(site:str, v:int)->str: return f"news_{norm(site)}_articles_v{v}"
 
 MAPPING = {
@@ -15,6 +19,7 @@ MAPPING = {
     "primary_channel_slug": {"type": "text", "fields": {"keyword": {"type": "keyword", "ignore_above": 256}}},
     "topic": {"type": "keyword"},
     "tags": {"type": "keyword"},
+    "categories": {"type": "keyword"},
     "author": {"type": "keyword"},
     "title": {"type": "text"},
     "summary": {"type": "text"},

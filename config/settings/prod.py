@@ -93,6 +93,7 @@ CORS_ALLOWED_HEADERS = [
     "user-agent",
     "x-csrftoken",
     "x-requested-with",
+    "x-request-id",
 ]
 CORS_EXPOSE_HEADERS = ["content-type", "content-disposition"]
 CORS_PREFLIGHT_MAX_AGE = 86400  # 24小时

@@ -1,16 +1,47 @@
+"""
+专题API端点 - 重构版本
+
+整合了两种专题功能：
+1. 基于数据库的 Topic 模型（新功能）
+2. 基于聚类算法的热门话题（保留原有功能）
+
+支持向后兼容和新的专题管理功能
+"""
+
 import re, math, hashlib, json, base64
 from difflib import SequenceMatcher
 from datetime import datetime, timedelta, timezone as dt_timezone
 from rest_framework.decorators import api_view, throttle_classes
 from rest_framework.response import Response
+from rest_framework import status
+from django.db.models import Q, Count, Prefetch
 from django.core.cache import cache
+from django.utils import timezone
+
+# Import models
 from apps.core.site_utils import get_site_from_request
 from apps.searchapp.client import get_client, index_name_for
 from apps.searchapp.queries import build_query
-from apps.news.models.article import ArticlePage
+from apps.news.models import ArticlePage, Topic
 from wagtail.models import Site
-from ..utils.rate_limit import FEED_RATE_LIMIT as TOPIC_RATE_LIMIT
 
+# Import serializers and utilities
+from apps.api.serializers.taxonomy import TopicSerializer, TopicDetailSerializer
+from .utils import (
+    validate_site_parameter,
+    apply_field_filtering,
+    generate_cache_key,
+    generate_etag,
+    generate_surrogate_keys
+)
+from ..utils.rate_limit import FEED_RATE_LIMIT as TOPIC_RATE_LIMIT
+from ..utils.cache_performance import monitor_cache_performance
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+# ==================== 聚类算法函数 (保留原有功能) ====================
 
 def _normalize_text(text: str) -> str:
     if not text:
@@ -184,164 +215,499 @@ def _fetch_candidates(site: str, hours: int, channels: list[str], size: int) -> 
     return items
 
 
-@api_view(["GET"])
-@throttle_classes([])
-@TOPIC_RATE_LIMIT
-def topics(request):
-    site = get_site_from_request(request)
-    size = max(1, min(int(request.query_params.get("size", 20)), 100))
-    hours = int(request.query_params.get("hours", 72))
-    channels = request.query_params.getlist("channel") or []
-    region = request.query_params.get("region")
-    lang = request.query_params.get("lang")
-    cursor_param = request.query_params.get("cursor")
-    start_offset = 0
-    if cursor_param:
-        try:
-            decoded = base64.urlsafe_b64decode(cursor_param.encode("utf-8"))
-            payload = json.loads(decoded.decode("utf-8"))
-            start_offset = max(0, int(payload.get("offset", 0)))
-        except Exception:
-            start_offset = 0
-
-    items = _fetch_candidates(site, hours, channels, size)
-    # 轻量过滤 region/lang（若字段存在）
-    if region:
-        region_lc = str(region).lower()
-        def _match_region(x: dict) -> bool:
-            val = str(x.get("region") or x.get("locale") or "").lower()
-            return (val.startswith(region_lc) or val == region_lc) if val else True
-        items = [x for x in items if _match_region(x)]
-    if lang:
-        lang_lc = str(lang).lower()
-        def _match_lang(x: dict) -> bool:
-            val = str(x.get("lang") or x.get("language") or x.get("locale") or "").lower()
-            return (val.startswith(lang_lc) or val == lang_lc) if val else True
-        items = [x for x in items if _match_lang(x)]
-    # score docs
-    for it in items:
-        it["topic_score"] = _compute_doc_score(it)
-    items.sort(key=lambda x: x.get("topic_score", 0), reverse=True)
-
-    clustered = _cluster_items(items)
-
-    # 聚合到主题热度
-    topics_out = []
-    for rep in clustered:
-        # 改进热度：代表分 + 来源贡献 + 聚类近期热度（轻权重）
-        heat = (
-            float(rep.get("topic_score", 0.0))
-            + 3.0 * float(rep.get("more_sources", 0.0))
-            + 0.8 * float(rep.get("cluster_pop_1h", rep.get("pop_1h", 0.0)))
-            + 0.4 * float(rep.get("cluster_ctr_1h", rep.get("ctr_1h", 0.0)))
-        )
-        # 趋势判断：1h vs 24h 对比 + 新鲜度
-        c1 = float(rep.get("cluster_pop_1h", rep.get("pop_1h", 0.0)))
-        c24 = float(rep.get("cluster_pop_24h", rep.get("pop_24h", 0.0)))
-        rec = float(rep.get("cluster_recency", 0.0))
-        if c24 <= 1e-6 and c1 > 0:
-            trend = "up"
-        else:
-            ratio = c1 / max(1e-6, c24)
-            if ratio >= 1.2 or (rec > 0.5 and c1 > 0.2):
-                trend = "up"
-            elif ratio <= 0.6 and c1 < c24:
-                trend = "down"
-            else:
-                trend = "stable"
-        topics_out.append({
-            "slug": rep.get("topic_slug"),
-            "title": rep.get("title"),
-            "heat": round(min(100.0, max(10.0, heat))),
-            "trend": trend,
-            "articles_count": rep.get("articles_count", 1)
-        })
-
-    # 排序稳定：热度降序 + 标题
-    topics_out.sort(key=lambda x: (-(x.get("heat", 0) or 0), (x.get("title") or "")))
-
-    # 游标分页
-    end = start_offset + size
-    page_items = topics_out[start_offset:end]
-    next_cursor = None
-    if end < len(topics_out):
-        payload = json.dumps({"offset": end}).encode("utf-8")
-        next_cursor = base64.urlsafe_b64encode(payload).decode("utf-8")
-    return Response({"items": page_items, "next_cursor": next_cursor})
-
+# ==================== 新的专题 API (基于 Topic 模型) ====================
 
 @api_view(["GET"])
-@throttle_classes([])
 @TOPIC_RATE_LIMIT
-def topic_detail(request, slug: str):
-    site = get_site_from_request(request)
-    hours = int(request.query_params.get("hours", 72))
-    channels = request.query_params.getlist("channel") or []
-    region = request.query_params.get("region")
-    lang = request.query_params.get("lang")
-
-    items = _fetch_candidates(site, hours, channels, size=50)
-    if region:
-        region_lc = str(region).lower()
-        def _match_region(x: dict) -> bool:
-            val = str(x.get("region") or x.get("locale") or "").lower()
-            return (val.startswith(region_lc) or val == region_lc) if val else True
-        items = [x for x in items if _match_region(x)]
-    if lang:
-        lang_lc = str(lang).lower()
-        def _match_lang(x: dict) -> bool:
-            val = str(x.get("lang") or x.get("language") or x.get("locale") or "").lower()
-            return (val.startswith(lang_lc) or val == lang_lc) if val else True
-        items = [x for x in items if _match_lang(x)]
-    for it in items:
-        it["topic_score"] = _compute_doc_score(it)
-    items.sort(key=lambda x: x.get("topic_score", 0), reverse=True)
-    clustered = _cluster_items(items)
-
-    found = None
-    for rep in clustered:
-        if rep.get("topic_slug") == slug:
-            found = rep
-            break
-
-    if not found and clustered:
-        found = clustered[0]
-
-    if not found:
-        return Response({"items": [], "topic": None})
-
-    # Build article list (top N from this cluster by score/title sim)
-    # For simplicity, reconstruct the cluster by title similarity around rep
-    rep_title_norm = _normalize_text(found.get("title", ""))
-    related = []
-    for it in items:
-        try:
-            sim = SequenceMatcher(None, rep_title_norm, _normalize_text(it.get("title",""))).ratio()
-        except Exception:
-            sim = 0.0
-        if sim >= 0.86:
-            related.append(it)
-    related = sorted(related, key=lambda x: x.get("topic_score", 0), reverse=True)[:50]
-
-    # Attach slugs for links
-    ids = [str(it.get("article_id") or it.get("id")) for it in related]
+@monitor_cache_performance("topics_list")
+def topics_list(request):
+    """
+    获取专题列表（基于数据库 Topic 模型）
+    
+    支持参数：
+    - site: 站点标识（主机名或site_id）
+    - fields: 字段白名单选择
+    - active_only: 仅显示启用的专题（默认true）
+    - featured_only: 仅显示推荐专题（默认false）
+    - order: 排序方式（-is_featured, order, -created_at, title）
+    - limit: 限制数量
+    - search: 搜索关键词（标题和摘要）
+    """
     try:
-        articles_with_slug = ArticlePage.objects.filter(id__in=ids).values("id","slug")
-        slug_map = {str(a["id"]): a["slug"] for a in articles_with_slug}
-        for it in related:
-            k = str(it.get("article_id") or it.get("id"))
-            it["slug"] = slug_map.get(k, "")
-    except Exception:
-        for it in related:
-            it["slug"] = it.get("slug", "")
+        # 1. 验证站点参数
+        site = validate_site_parameter(request)
+        if not site:
+            return Response({
+                "error": "Invalid site parameter"
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # 2. 获取查询参数
+        fields = request.query_params.get('fields', '').split(',') if request.query_params.get('fields') else None
+        active_only = request.query_params.get('active_only', 'true').lower() == 'true'
+        featured_only = request.query_params.get('featured_only', 'false').lower() == 'true'
+        order_by = request.query_params.get('order', '-is_featured')
+        limit = request.query_params.get('limit')
+        search_query = request.query_params.get('search', '').strip()
+        
+        # 3. 生成缓存键
+        cache_params = {
+            'site_id': site.id,
+            'fields': ','.join(fields) if fields else '',
+            'active_only': active_only,
+            'featured_only': featured_only,
+            'order': order_by,
+            'limit': limit or '',
+            'search': search_query
+        }
+        cache_key = generate_cache_key("topics_list", cache_params)
+        
+        # 4. 尝试从缓存获取
+        cached_result = cache.get(cache_key)
+        if cached_result:
+            response = Response(cached_result)
+            response['X-Cache'] = 'HIT'
+            response['ETag'] = generate_etag(cached_result)
+            response['Cache-Control'] = 'public, max-age=600'  # 10分钟缓存
+            response['Surrogate-Key'] = f'topics site-{site.id}'
+            return response
+        
+        # 5. 构建查询
+        queryset = Topic.objects.filter(sites=site)
+        
+        # 激活状态过滤
+        if active_only:
+            queryset = queryset.filter(is_active=True)
+            
+            # 检查时间范围
+            now = timezone.now()
+            queryset = queryset.filter(
+                Q(start_date__isnull=True) | Q(start_date__lte=now)
+            ).filter(
+                Q(end_date__isnull=True) | Q(end_date__gte=now)
+            )
+        
+        # 推荐专题过滤
+        if featured_only:
+            queryset = queryset.filter(is_featured=True)
+        
+        # 搜索功能
+        if search_query:
+            queryset = queryset.filter(
+                Q(title__icontains=search_query) |
+                Q(summary__icontains=search_query)
+            )
+        
+        # 6. 性能优化 - 预加载相关数据
+        queryset = queryset.prefetch_related(
+            'sites',
+            Prefetch('articles', queryset=ArticlePage.objects.filter(live=True))
+        )
+        
+        # 7. 排序
+        if order_by == '-is_featured':
+            queryset = queryset.order_by('-is_featured', 'order', '-created_at')
+        elif order_by == 'order':
+            queryset = queryset.order_by('order', 'title')
+        elif order_by == '-created_at':
+            queryset = queryset.order_by('-created_at')
+        elif order_by == 'title':
+            queryset = queryset.order_by('title')
+        elif order_by == 'articles_count':
+            queryset = queryset.annotate(
+                articles_count=Count('articles', filter=Q(articles__live=True))
+            ).order_by('-articles_count')
+        else:
+            queryset = queryset.order_by('-is_featured', 'order', '-created_at')
+        
+        # 8. 限制数量
+        if limit:
+            try:
+                limit_int = min(int(limit), 500)  # 最大500条
+                queryset = queryset[:limit_int]
+            except (ValueError, TypeError):
+                pass
+        
+        # 9. 序列化
+        serializer = TopicSerializer(
+            queryset, 
+            many=True, 
+            context={'request': request}
+        )
+        result_data = serializer.data
+        
+        # 10. 字段过滤
+        if fields:
+            result_data = [
+                apply_field_filtering(item, fields) for item in result_data
+            ]
+        
+        # 11. 构建响应
+        response_data = {
+            "results": result_data,
+            "count": len(result_data),
+            "site": {
+                "hostname": site.hostname,
+                "site_name": site.site_name
+            }
+        }
+        
+        # 12. 缓存结果
+        cache.set(cache_key, response_data, 600)  # 缓存10分钟
+        
+        # 13. 设置响应头
+        response = Response(response_data)
+        response['X-Cache'] = 'MISS'
+        response['ETag'] = generate_etag(response_data)
+        response['Cache-Control'] = 'public, max-age=600'
+        response['Surrogate-Key'] = f'topics site-{site.id}'
+        
+        return response
+        
+    except Exception as e:
+        logger.error(f"Topics list API error: {str(e)}", exc_info=True)
+        return Response({
+            "error": "Internal server error"
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    detail = {
-        "slug": found.get("topic_slug"),
-        "title": found.get("title"),
-        "heat": round(min(100.0, max(10.0, found.get("topic_score",0) + 3.0*found.get("more_sources",0)))),
-        "articles": related,
-        "count": len(related)
-    }
-    return Response(detail)
+
+@api_view(["GET"])
+@TOPIC_RATE_LIMIT
+@monitor_cache_performance("topic_detail")
+def topic_detail_db(request, slug):
+    """
+    获取专题详情（基于数据库 Topic 模型）
+    
+    支持参数：
+    - site: 站点标识
+    - fields: 字段白名单选择
+    - include_articles: 是否包含文章列表（默认true）
+    - articles_limit: 文章数量限制（默认20）
+    """
+    try:
+        # 1. 验证站点参数
+        site = validate_site_parameter(request)
+        if not site:
+            return Response({
+                "error": "Invalid site parameter"
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # 2. 获取查询参数
+        fields = request.query_params.get('fields', '').split(',') if request.query_params.get('fields') else None
+        include_articles = request.query_params.get('include_articles', 'true').lower() == 'true'
+        articles_limit = request.query_params.get('articles_limit', '20')
+        
+        # 3. 生成缓存键
+        cache_params = {
+            'site_id': site.id,
+            'slug': slug,
+            'fields': ','.join(fields) if fields else '',
+            'include_articles': include_articles,
+            'articles_limit': articles_limit
+        }
+        cache_key = generate_cache_key("topic_detail_db", cache_params)
+        
+        # 4. 尝试从缓存获取
+        cached_result = cache.get(cache_key)
+        if cached_result:
+            response = Response(cached_result)
+            response['X-Cache'] = 'HIT'
+            response['ETag'] = generate_etag(cached_result)
+            response['Cache-Control'] = 'public, max-age=900'  # 15分钟缓存
+            response['Surrogate-Key'] = f'topics site-{site.id} topic-{slug}'
+            return response
+        
+        # 5. 查询专题
+        try:
+            now = timezone.now()
+            topic = Topic.objects.prefetch_related(
+                'sites',
+                'articles'
+            ).get(
+                slug=slug, 
+                sites=site, 
+                is_active=True,
+                # 检查时间范围
+                **{
+                    f'{Q(start_date__isnull=True) | Q(start_date__lte=now)}': True,
+                    f'{Q(end_date__isnull=True) | Q(end_date__gte=now)}': True,
+                }
+            )
+        except Topic.DoesNotExist:
+            return Response({
+                "error": f"Topic '{slug}' not found or not available"
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        # 6. 序列化
+        serializer = TopicDetailSerializer(
+            topic, 
+            context={'request': request}
+        )
+        result_data = serializer.data
+        
+        # 7. 字段过滤
+        if fields:
+            result_data = apply_field_filtering(result_data, fields)
+        
+        # 8. 构建响应
+        response_data = {
+            "topic": result_data,
+            "site": {
+                "hostname": site.hostname,
+                "site_name": site.site_name
+            }
+        }
+        
+        # 9. 缓存结果
+        cache.set(cache_key, response_data, 900)  # 缓存15分钟
+        
+        # 10. 设置响应头
+        response = Response(response_data)
+        response['X-Cache'] = 'MISS'
+        response['ETag'] = generate_etag(response_data)
+        response['Cache-Control'] = 'public, max-age=900'
+        response['Surrogate-Key'] = f'topics site-{site.id} topic-{slug}'
+        
+        return response
+        
+    except Exception as e:
+        logger.error(f"Topic detail API error: {str(e)}", exc_info=True)
+        return Response({
+            "error": "Internal server error"
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+# ==================== 热门话题 API (保留原有聚类功能，向后兼容) ====================
+
+@api_view(["GET"])
+@throttle_classes([])
+@TOPIC_RATE_LIMIT
+@monitor_cache_performance("topics_trending")
+def topics_trending(request):
+    """
+    热门话题聚合（基于聚类算法，保留原有功能）
+    
+    这是原有的 topics 端点功能，用于生成基于内容聚类的热门话题
+    """
+    try:
+        site = get_site_from_request(request)
+        size = max(1, min(int(request.query_params.get("size", 20)), 100))
+        hours = int(request.query_params.get("hours", 72))
+        channels = request.query_params.getlist("channel") or []
+        region = request.query_params.get("region")
+        lang = request.query_params.get("lang")
+        cursor_param = request.query_params.get("cursor")
+        start_offset = 0
+        
+        # 缓存键
+        cache_params = {
+            'site': site, 'size': size, 'hours': hours,
+            'channels': ','.join(channels), 'region': region or '',
+            'lang': lang or '', 'cursor': cursor_param or ''
+        }
+        cache_key = generate_cache_key("topics_trending", cache_params)
+        
+        cached_result = cache.get(cache_key)
+        if cached_result:
+            response = Response(cached_result)
+            response['X-Cache'] = 'HIT'
+            return response
+        
+        if cursor_param:
+            try:
+                decoded = base64.urlsafe_b64decode(cursor_param.encode("utf-8"))
+                payload = json.loads(decoded.decode("utf-8"))
+                start_offset = max(0, int(payload.get("offset", 0)))
+            except Exception:
+                start_offset = 0
+
+        items = _fetch_candidates(site, hours, channels, size)
+        # 轻量过滤 region/lang（若字段存在）
+        if region:
+            region_lc = str(region).lower()
+            def _match_region(x: dict) -> bool:
+                val = str(x.get("region") or x.get("locale") or "").lower()
+                return (val.startswith(region_lc) or val == region_lc) if val else True
+            items = [x for x in items if _match_region(x)]
+        if lang:
+            lang_lc = str(lang).lower()
+            def _match_lang(x: dict) -> bool:
+                val = str(x.get("lang") or x.get("language") or x.get("locale") or "").lower()
+                return (val.startswith(lang_lc) or val == lang_lc) if val else True
+            items = [x for x in items if _match_lang(x)]
+        # score docs
+        for it in items:
+            it["topic_score"] = _compute_doc_score(it)
+        items.sort(key=lambda x: x.get("topic_score", 0), reverse=True)
+
+        clustered = _cluster_items(items)
+
+        # 聚合到主题热度
+        topics_out = []
+        for rep in clustered:
+            # 改进热度：代表分 + 来源贡献 + 聚类近期热度（轻权重）
+            heat = (
+                float(rep.get("topic_score", 0.0))
+                + 3.0 * float(rep.get("more_sources", 0.0))
+                + 0.8 * float(rep.get("cluster_pop_1h", rep.get("pop_1h", 0.0)))
+                + 0.4 * float(rep.get("cluster_ctr_1h", rep.get("ctr_1h", 0.0)))
+            )
+            # 趋势判断：1h vs 24h 对比 + 新鲜度
+            c1 = float(rep.get("cluster_pop_1h", rep.get("pop_1h", 0.0)))
+            c24 = float(rep.get("cluster_pop_24h", rep.get("pop_24h", 0.0)))
+            rec = float(rep.get("cluster_recency", 0.0))
+            if c24 <= 1e-6 and c1 > 0:
+                trend = "up"
+            else:
+                ratio = c1 / max(1e-6, c24)
+                if ratio >= 1.2 or (rec > 0.5 and c1 > 0.2):
+                    trend = "up"
+                elif ratio <= 0.6 and c1 < c24:
+                    trend = "down"
+                else:
+                    trend = "stable"
+            topics_out.append({
+                "slug": rep.get("topic_slug"),
+                "title": rep.get("title"),
+                "heat": round(min(100.0, max(10.0, heat))),
+                "trend": trend,
+                "articles_count": rep.get("articles_count", 1)
+            })
+
+        # 排序稳定：热度降序 + 标题
+        topics_out.sort(key=lambda x: (-(x.get("heat", 0) or 0), (x.get("title") or "")))
+
+        # 游标分页
+        end = start_offset + size
+        page_items = topics_out[start_offset:end]
+        next_cursor = None
+        if end < len(topics_out):
+            payload = json.dumps({"offset": end}).encode("utf-8")
+            next_cursor = base64.urlsafe_b64encode(payload).decode("utf-8")
+        
+        result_data = {"items": page_items, "next_cursor": next_cursor}
+        
+        # 缓存结果
+        cache.set(cache_key, result_data, 300)  # 缓存5分钟
+        
+        response = Response(result_data)
+        response['X-Cache'] = 'MISS'
+        return response
+        
+    except Exception as e:
+        logger.error(f"Topics trending API error: {str(e)}", exc_info=True)
+        return Response({
+            "error": "Internal server error"
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(["GET"])
+@throttle_classes([])
+@TOPIC_RATE_LIMIT  
+@monitor_cache_performance("topic_detail_trending")
+def topic_detail_trending(request, slug: str):
+    """
+    热门话题详情（基于聚类算法，保留原有功能）
+    """
+    try:
+        site = get_site_from_request(request)
+        hours = int(request.query_params.get("hours", 72))
+        channels = request.query_params.getlist("channel") or []
+        region = request.query_params.get("region")
+        lang = request.query_params.get("lang")
+        
+        # 缓存键
+        cache_params = {
+            'site': site, 'slug': slug, 'hours': hours,
+            'channels': ','.join(channels), 'region': region or '',
+            'lang': lang or ''
+        }
+        cache_key = generate_cache_key("topic_detail_trending", cache_params)
+        
+        cached_result = cache.get(cache_key)
+        if cached_result:
+            response = Response(cached_result)
+            response['X-Cache'] = 'HIT'
+            return response
+
+        items = _fetch_candidates(site, hours, channels, size=50)
+        if region:
+            region_lc = str(region).lower()
+            def _match_region(x: dict) -> bool:
+                val = str(x.get("region") or x.get("locale") or "").lower()
+                return (val.startswith(region_lc) or val == region_lc) if val else True
+            items = [x for x in items if _match_region(x)]
+        if lang:
+            lang_lc = str(lang).lower()
+            def _match_lang(x: dict) -> bool:
+                val = str(x.get("lang") or x.get("language") or x.get("locale") or "").lower()
+                return (val.startswith(lang_lc) or val == lang_lc) if val else True
+            items = [x for x in items if _match_lang(x)]
+        for it in items:
+            it["topic_score"] = _compute_doc_score(it)
+        items.sort(key=lambda x: x.get("topic_score", 0), reverse=True)
+        clustered = _cluster_items(items)
+
+        found = None
+        for rep in clustered:
+            if rep.get("topic_slug") == slug:
+                found = rep
+                break
+
+        if not found and clustered:
+            found = clustered[0]
+
+        if not found:
+            return Response({"items": [], "topic": None})
+
+        # Build article list (top N from this cluster by score/title sim)
+        # For simplicity, reconstruct the cluster by title similarity around rep
+        rep_title_norm = _normalize_text(found.get("title", ""))
+        related = []
+        for it in items:
+            try:
+                sim = SequenceMatcher(None, rep_title_norm, _normalize_text(it.get("title",""))).ratio()
+            except Exception:
+                sim = 0.0
+            if sim >= 0.86:
+                related.append(it)
+        related = sorted(related, key=lambda x: x.get("topic_score", 0), reverse=True)[:50]
+
+        # Attach slugs for links
+        ids = [str(it.get("article_id") or it.get("id")) for it in related]
+        try:
+            articles_with_slug = ArticlePage.objects.filter(id__in=ids).values("id","slug")
+            slug_map = {str(a["id"]): a["slug"] for a in articles_with_slug}
+            for it in related:
+                k = str(it.get("article_id") or it.get("id"))
+                it["slug"] = slug_map.get(k, "")
+        except Exception:
+            for it in related:
+                it["slug"] = it.get("slug", "")
+
+        detail = {
+            "slug": found.get("topic_slug"),
+            "title": found.get("title"),
+            "heat": round(min(100.0, max(10.0, found.get("topic_score",0) + 3.0*found.get("more_sources",0)))),
+            "articles": related,
+            "count": len(related)
+        }
+        
+        # 缓存结果
+        cache.set(cache_key, detail, 300)  # 缓存5分钟
+        
+        response = Response(detail)
+        response['X-Cache'] = 'MISS'
+        return response
+        
+    except Exception as e:
+        logger.error(f"Topic detail trending API error: {str(e)}", exc_info=True)
+        return Response({
+            "error": "Internal server error"
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# ==================== 向后兼容的端点别名 ====================
+
+# 保持原有路由的向后兼容
+topics = topics_trending  # 原有的 topics 端点指向 trending
+topic_detail = topic_detail_trending  # 原有的 topic_detail 端点指向 trending
