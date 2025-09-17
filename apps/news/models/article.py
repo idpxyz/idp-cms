@@ -2,10 +2,14 @@ from django.db import models
 from django import forms
 from wagtail.fields import RichTextField
 from wagtail.models import Page, Site
-from wagtail.admin.panels import FieldPanel, MultiFieldPanel
+from wagtail.admin.panels import (
+    FieldPanel, MultiFieldPanel, TabbedInterface, ObjectList, HelpPanel
+)
+from wagtail.admin.widgets import AdminDateTimeInput
 from taggit.models import TaggedItemBase
 from modelcluster.fields import ParentalKey
-from taggit.managers import TaggableManager
+from modelcluster.contrib.taggit import ClusterTaggableManager
+from ..rich_text_features import get_news_editor_features, get_advanced_news_editor_features
 
 
 class ArticlePageTag(TaggedItemBase):
@@ -29,7 +33,12 @@ class ArticlePage(Page):
     # === 基础内容 ===
     excerpt = models.TextField(blank=True, verbose_name="文章摘要", 
                               help_text="文章摘要，用于列表页展示和SEO")
-    body = RichTextField(features=["bold","italic","link","image"], verbose_name="正文内容")
+    # 使用专业新闻编辑器配置 - 高级功能版本
+    body = RichTextField(
+        features=get_advanced_news_editor_features(),  # 使用高级配置
+        verbose_name="正文内容",
+        help_text="✍️ 专业新闻编辑器 - 支持丰富的格式、媒体内容和表格功能"
+    )
     cover = models.ForeignKey(
         'wagtailimages.Image',
         null=True, blank=True,
@@ -62,13 +71,12 @@ class ArticlePage(Page):
         verbose_name="地区",
         help_text="⚠️ 请只选择当前站点关联的地区"
     )
-    topic = models.ForeignKey(
+    topics = models.ManyToManyField(
         'news.Topic',
-        null=True, blank=True,
-        on_delete=models.SET_NULL,
+        blank=True,
         related_name='articles',
         verbose_name="专题",
-        help_text="选择文章所属的专题"
+        help_text="选择文章所属的专题（可多选）"
     )
     
     # === 新闻专业属性 ===
@@ -83,7 +91,7 @@ class ArticlePage(Page):
     )
     has_video = models.BooleanField(default=False, verbose_name="包含视频",
                                    help_text="标记是否包含视频内容")
-    tags = TaggableManager(through=ArticlePageTag, blank=True, verbose_name="标签")
+    tags = ClusterTaggableManager(through=ArticlePageTag, blank=True, verbose_name="标签")
     
     # === 聚合策略 ===
     source_type = models.CharField(
@@ -155,46 +163,157 @@ class ArticlePage(Page):
         """排序用的发布时间"""
         return self.effective_publish_time
     
-    # Wagtail管理界面配置
+    # Wagtail管理界面配置 - 专业新闻编辑优化版
     content_panels = Page.content_panels + [
+        # 核心内容 - 最重要，始终展开
         MultiFieldPanel([
-            FieldPanel('excerpt'),
-            FieldPanel('cover'),
-            FieldPanel('body'),
-        ], heading="内容信息"),
+            HelpPanel(
+                content="""
+                <div style="background: #e7f3ff; padding: 12px; border-radius: 6px; margin-bottom: 10px;">
+                    <strong>📝 第一步：撰写内容</strong><br/>
+                    专注于文章的核心内容创作，其他设置可稍后完成
+                </div>
+                """
+            ),
+            FieldPanel('excerpt', help_text="📋 文章摘要，50-100字，用于列表展示和SEO"),
+            FieldPanel('cover', help_text="🖼️ 文章配图，建议16:9比例"),
+            FieldPanel('body', help_text="✍️ 文章正文内容"),
+        ], 
+        heading="📰 文章内容", 
+        classname="full"),
         
+        # 新闻属性 - 编辑关心的核心属性
         MultiFieldPanel([
-            FieldPanel('channel'),
-            FieldPanel('categories', widget=forms.CheckboxSelectMultiple),
-            FieldPanel('region'),
-            FieldPanel('topic'),
-            FieldPanel('tags'),
-        ], heading="分类标签"),
+            HelpPanel(
+                content="""
+                <div style="background: #fff3e0; padding: 12px; border-radius: 6px; margin-bottom: 10px;">
+                    <strong>⚡ 第二步：设置文章属性</strong><br/>
+                    设置文章的基本属性，便于管理和展示
+                </div>
+                """
+            ),
+            FieldPanel('author_name', help_text="👤 记者或作者姓名"),
+            FieldPanel('language', help_text="🌐 文章语言"),
+            FieldPanel('has_video', help_text="📹 标记是否包含视频内容"),
+            FieldPanel('publish_at', 
+                      widget=AdminDateTimeInput,
+                      help_text="⏰ 留空立即发布，设置时间可定时发布"),
+        ], 
+        heading="⚡ 文章属性", 
+        classname="collapsed"),
         
+        # 分类与标签 - 重要但可以后设置
         MultiFieldPanel([
-            FieldPanel('author_name'),
-            FieldPanel('language'),
-            FieldPanel('has_video'),
-        ], heading="新闻属性"),
+            HelpPanel(
+                content="""
+                <div style="background: #f1f8e9; padding: 12px; border-radius: 6px; margin-bottom: 10px;">
+                    <strong>🏷️ 第三步：分类归档</strong><br/>
+                    为文章添加分类和标签，便于读者发现和检索<br/>
+                    💡 <em>提示：使用"建议标签"功能可以自动生成相关标签</em>
+                </div>
+                """
+            ),
+            FieldPanel('channel', help_text="📂 选择文章所属频道"),
+            FieldPanel('categories', 
+                      widget=forms.CheckboxSelectMultiple,
+                      help_text="📝 选择相关栏目（可多选）"),
+            FieldPanel('region', help_text="🌍 文章相关地区"),
+            FieldPanel('topics', 
+                      widget=forms.CheckboxSelectMultiple,
+                      help_text="🎯 选择相关专题（可多选）"),
+            FieldPanel('tags', help_text="🏷️ 添加相关标签，用逗号分隔"),
+        ], 
+        heading="🏷️ 分类标签", 
+        classname="collapsed"),
         
+        # 发布设置
         MultiFieldPanel([
-            FieldPanel('source_type'),
-            FieldPanel('source_site'),
-            FieldPanel('external_site'),
-            FieldPanel('allow_aggregate'),
-            FieldPanel('canonical_url'),
-        ], heading="聚合策略"),
-        
-        MultiFieldPanel([
-            FieldPanel('external_article_url'),
-        ], heading="外部来源信息"),
-        
-        MultiFieldPanel([
-            FieldPanel('is_featured'),
-            FieldPanel('weight'),
-            FieldPanel('publish_at'),
-        ], heading="权重排序"),
+            FieldPanel('is_featured', help_text="⭐ 是否在首页或频道页置顶显示"),
+            FieldPanel('weight', help_text="📊 权重数值，越大越靠前（0为不置顶）"),
+        ], 
+        heading="📢 发布设置", 
+        classname="collapsed"),
     ]
+    
+    # 高级设置面板 - 技术配置
+    advanced_panels = [
+        HelpPanel(
+            content="""
+            <div style="background: #f5f5f5; padding: 12px; border-radius: 6px; margin-bottom: 10px;">
+                <strong>⚙️ 高级设置</strong><br/>
+                技术配置选项，一般编辑无需修改
+            </div>
+            """
+        ),
+        
+        MultiFieldPanel([
+            FieldPanel('source_type', help_text="📍 文章来源类型"),
+            FieldPanel('source_site', help_text="🔗 内部来源站点"),
+            FieldPanel('external_site', help_text="🌐 外部来源网站"),
+            FieldPanel('external_article_url', help_text="🔗 外部文章链接"),
+            FieldPanel('allow_aggregate', help_text="🔄 是否允许在其他站点聚合"),
+            FieldPanel('canonical_url', help_text="🎯 SEO规范链接"),
+        ], heading="🔗 来源与聚合"),
+    ]
+    
+    # 编辑工作流标签页
+    editorial_panels = [
+        HelpPanel(
+            content="""
+            <div style="background: #e8f5e8; padding: 12px; border-radius: 6px; margin-bottom: 10px;">
+                <strong>👥 编辑工作流</strong><br/>
+                编辑部内部协作和流程管理工具
+            </div>
+            """
+        ),
+        
+        MultiFieldPanel([
+            # 注意：这些字段目前在模型中不存在，仅作为示例展示如何扩展
+            # FieldPanel('editor_name', help_text="✏️ 责任编辑姓名"),
+            # FieldPanel('editor_notes', help_text="💬 编辑备注（内部交流使用）"),
+            # FieldPanel('fact_checked', help_text="☑️ 内容已核实"),
+            # FieldPanel('legal_reviewed', help_text="⚖️ 法务已审核"),
+            HelpPanel("📝 编辑工作流功能正在开发中...")
+        ], heading="👥 协作信息"),
+    ]
+    
+    # SEO优化标签页
+    seo_panels = [
+        HelpPanel(
+            content="""
+            <div style="background: #fff8e1; padding: 12px; border-radius: 6px; margin-bottom: 10px;">
+                <strong>🎯 SEO优化</strong><br/>
+                搜索引擎优化和社交媒体分享设置
+            </div>
+            """
+        ),
+        
+        MultiFieldPanel([
+            FieldPanel('excerpt', help_text="📝 SEO描述，用于搜索结果显示"),
+            FieldPanel('tags', help_text="🏷️ SEO关键词标签"),
+            # 注意：这些字段需要在模型中添加
+            # FieldPanel('meta_keywords', help_text="🔍 SEO关键词"),
+            # FieldPanel('social_image', help_text="📱 社交媒体分享图片"),
+            HelpPanel("🚧 更多SEO功能即将上线...")
+        ], heading="🎯 SEO设置"),
+    ]
+
+    # 使用模块化的多标签页界面系统
+    # 导入在文件顶部完成，这里只是配置选择
+    
+    # 你可以从以下几种预设配置中选择：
+    
+    # 方案1: 基础编辑界面 (推荐给一般编辑使用) ✅ 当前启用  
+    # edit_handler 将在类定义完成后设置，避免循环导入
+    
+    # 方案2: 专业编辑界面 (包含编辑工作流)
+    # edit_handler = None  # 将使用 get_professional_interface()
+    
+    # 方案3: 企业级完整界面 (包含所有功能)
+    # edit_handler = None  # 将使用 get_enterprise_interface()
+    
+    # 方案4: 根据用户角色动态配置
+    # edit_handler = None  # 将使用 get_custom_tab_interface()
     
     def clean(self):
         """
@@ -287,3 +406,11 @@ class ArticlePage(Page):
     def get_category_names(self):
         """获取分类名称列表"""
         return [cat.name for cat in self.get_categories_list()]
+
+
+
+# 使用优化的管理界面配置
+from ..admin_panels import get_tabbed_interface
+
+# 设置多标签页界面 - 使用专业新闻编辑界面
+ArticlePage.edit_handler = get_tabbed_interface()

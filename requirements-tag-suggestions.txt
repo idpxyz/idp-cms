@@ -1,0 +1,19 @@
+# 标签建议功能所需的Python包
+
+# 中文自然语言处理
+jieba>=0.42.1              # 中文分词和关键词抽取
+pkuseg>=0.0.25             # 北大中文分词工具（可选）
+
+# 机器学习和文本处理
+scikit-learn>=1.0.0        # TF-IDF和其他ML算法
+numpy>=1.21.0              # 数学计算
+pandas>=1.3.0              # 数据处理（可选）
+
+# 可选：更高级的NLP功能
+# transformers>=4.20.0     # Hugging Face transformers（用于BERT等模型）
+# torch>=1.12.0            # PyTorch（如果使用transformers）
+
+# API相关
+requests>=2.25.0           # HTTP请求
+django>=3.2.0              # Django框架（项目已有）
+djangorestframework>=3.12.0  # REST API框架（项目已有）
