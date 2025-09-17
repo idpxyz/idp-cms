@@ -47,6 +47,12 @@ WAGTAIL_APPS = [
     "wagtail.search",
 ]
 
+# Wagtail 功能配置
+WAGTAIL_ENABLE_WHATS_NEW_BANNER = False  # 禁用新功能横幅
+WAGTAIL_USER_EDIT_FORM = None           # 禁用用户编辑表单扩展
+WAGTAIL_ENABLE_UPDATE_CHECK = False     # 禁用更新检查
+WAGTAILADMIN_COMMENTS_ENABLED = False   # 全局禁用管理端评论系统
+
 # 第三方应用
 THIRD_PARTY_APPS = [
     "rest_framework",

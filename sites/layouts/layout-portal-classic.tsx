@@ -8,6 +8,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { SiteSettings } from "@/lib/types";
 import SmartSearchBox from "@/components/search/SmartSearchBox";
+import BreakingTicker from "@/app/portal/components/BreakingTicker";
+import { getBreakingNews } from "@/app/portal/components/BreakingTicker.utils";
 import "@/styles/tokens.css";
 
 interface PortalClassicLayoutProps {
@@ -23,6 +25,23 @@ export default function PortalClassicLayout({
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const searchRef = useRef<HTMLDivElement>(null);
+  
+  // 快讯数据状态
+  const [breakingNews, setBreakingNews] = useState<any[]>([]);
+
+  // 获取快讯数据
+  useEffect(() => {
+    async function fetchBreakingNews() {
+      try {
+        const news = await getBreakingNews(8);
+        setBreakingNews(news);
+      } catch (error) {
+        console.error('Failed to fetch breaking news:', error);
+        setBreakingNews([]);
+      }
+    }
+    fetchBreakingNews();
+  }, []);
 
   // 点击外部关闭搜索框
   useEffect(() => {
@@ -102,6 +121,16 @@ export default function PortalClassicLayout({
         } as React.CSSProperties
       }
     >
+      {/* Breaking Ticker 快讯滚动条 - 网站最顶部 */}
+      <BreakingTicker 
+        items={breakingNews}
+        autoPlay={true}
+        scrollSpeed={60}
+        pauseOnHover={true}
+        showTimestamp={true}
+        className=""
+      />
+      
       {/* 今日头条风格的顶部导航栏 */}
       <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4">

@@ -3,6 +3,7 @@
 
 包含系统核心功能所需的模型：
 - Channel: 频道模型
+- Category: 分类模型
 - Region: 地区模型
 - SiteSettings: 站点配置模型
 - Comment: 评论模型

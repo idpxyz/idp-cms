@@ -25,7 +25,8 @@ from rest_framework.response import Response
 from rest_framework import status
 from wagtail.models import Site, Page
 from apps.news.models.article import ArticlePage
-from apps.core.models import Channel, Region, Language, ExternalSite
+from apps.core.models import Channel, Region, Language, ExternalSite, Category
+from apps.news.models import Topic
 from apps.core.site_utils import get_site_from_request
 import json
 import hashlib
@@ -112,6 +113,26 @@ def validate_article_data(data):
         except ValueError:
             errors.append("Invalid publish_at format, expected ISO format")
     
+    # 分类格式验证（可选）
+    if 'categories' in data and data['categories'] is not None:
+        if not isinstance(data['categories'], list):
+            errors.append("'categories' must be a list of strings or objects")
+        else:
+            for c in data['categories']:
+                if not isinstance(c, (str, dict)):
+                    errors.append("Each category must be a string or an object with slug/name")
+                    break
+
+    # 主题格式验证（可选）
+    if 'topic' in data and data['topic'] is not None:
+        if not isinstance(data['topic'], (str, dict)):
+            errors.append("'topic' must be a string (slug) or an object")
+
+    # 兼容：若提供了topic_slug也允许，但建议使用topic
+    if 'topic_slug' in data and data['topic_slug'] and 'topic' not in data:
+        if not isinstance(data['topic_slug'], str):
+            errors.append("'topic_slug' must be a string")
+
     return errors
 
 
@@ -199,6 +220,82 @@ def get_or_create_external_site(external_site_data):
     return external_site
 
 
+def get_or_create_category(category_data, site):
+    """
+    获取或创建分类（Category）
+    支持字符串（作为名称）或对象（含 name/slug）
+    """
+    if isinstance(category_data, str):
+        # 以名称为主，生成slug
+        from django.utils.text import slugify
+        slug = slugify(category_data)
+        category, _ = Category.objects.get_or_create(
+            slug=slug,
+            defaults={
+                'name': category_data,
+                'description': '',
+                'is_active': True,
+            }
+        )
+    elif isinstance(category_data, dict):
+        name = category_data.get('name')
+        slug = category_data.get('slug')
+        if not slug and name:
+            from django.utils.text import slugify
+            slug = slugify(name)
+        if not slug:
+            return None
+        category, _ = Category.objects.get_or_create(
+            slug=slug,
+            defaults={
+                'name': name or slug,
+                'description': category_data.get('description', ''),
+                'is_active': category_data.get('is_active', True),
+            }
+        )
+    else:
+        return None
+
+    # 站点关联
+    try:
+        if site not in category.sites.all():
+            category.sites.add(site)
+    except Exception:
+        # Category 可能未配置sites字段时忽略
+        pass
+
+    return category
+
+
+def get_or_create_topic(topic_data):
+    """
+    获取或创建主题（Topic）
+    支持字符串（slug）或对象（含 slug/name/title 等）
+    """
+    if isinstance(topic_data, str):
+        slug = topic_data
+        topic, _ = Topic.objects.get_or_create(
+            slug=slug,
+            defaults={'title': slug.replace('-', ' ')}
+        )
+        return topic
+    elif isinstance(topic_data, dict):
+        slug = topic_data.get('slug')
+        title = topic_data.get('title') or topic_data.get('name')
+        if not slug and title:
+            from django.utils.text import slugify
+            slug = slugify(title)
+        if not slug:
+            return None
+        topic, _ = Topic.objects.get_or_create(
+            slug=slug,
+            defaults={'title': title or slug.replace('-', ' ')}
+        )
+        return topic
+    else:
+        return None
+
+
 def create_or_update_article(article_data, site, update_existing=True):
     """
     创建或更新文章
@@ -254,6 +351,26 @@ def create_or_update_article(article_data, site, update_existing=True):
     external_site = None
     if 'external_site' in article_data and article_data['external_site']:
         external_site = get_or_create_external_site(article_data['external_site'])
+
+    # 处理主题（Topic）
+    topic_obj = None
+    if 'topic' in article_data and article_data['topic']:
+        topic_obj = get_or_create_topic(article_data['topic'])
+    elif 'topic_slug' in article_data and article_data['topic_slug']:
+        topic_obj = get_or_create_topic(article_data['topic_slug'])
+
+    # 处理分类（Category）
+    categories_objs = None
+    if 'categories' in article_data and article_data['categories'] is not None:
+        categories_objs = []
+        for c in article_data['categories']:
+            cat = get_or_create_category(c, site)
+            if cat is not None:
+                categories_objs.append(cat)
+    elif 'category' in article_data and article_data['category']:
+        # 兼容单个分类
+        single_cat = get_or_create_category(article_data['category'], site)
+        categories_objs = [single_cat] if single_cat is not None else []
     
     # 准备文章字段
     article_fields = {
@@ -261,7 +378,7 @@ def create_or_update_article(article_data, site, update_existing=True):
         'body': article_data.get('body', ''),
         'excerpt': article_data.get('excerpt', ''),
         'author_name': article_data.get('author_name', ''),
-        'topic_slug': article_data.get('topic_slug', ''),
+        'topic': topic_obj,
         'has_video': article_data.get('has_video', False),
         'source_type': 'external' if 'external_article_url' in article_data else 'internal',
         'external_article_url': article_data.get('external_article_url', ''),
@@ -295,6 +412,15 @@ def create_or_update_article(article_data, site, update_existing=True):
             setattr(existing_article, field, value)
         
         existing_article.save()
+        # 更新分类（如提供）
+        if categories_objs is not None:
+            existing_article.categories.set(categories_objs)
+        # 更新标签
+        if 'tags' in article_data and article_data['tags']:
+            existing_article.tags.clear()
+            for tag_name in article_data['tags']:
+                if tag_name.strip():
+                    existing_article.tags.add(tag_name.strip())
         logger.info(f"Updated existing article: {existing_article.title}")
         return existing_article, False  # False表示是更新操作
     else:
@@ -307,15 +433,26 @@ def create_or_update_article(article_data, site, update_existing=True):
             counter += 1
         
         article_fields['slug'] = slug
-        
+
         # 创建文章页面
         new_article = ArticlePage(**article_fields)
         parent_page.add_child(instance=new_article)
-        
+
+        # 设置分类（如提供）
+        if categories_objs is not None:
+            new_article.categories.set(categories_objs)
+
+        # 处理标签
+        if 'tags' in article_data and article_data['tags']:
+            new_article.tags.clear()
+            for tag_name in article_data['tags']:
+                if tag_name.strip():
+                    new_article.tags.add(tag_name.strip())
+
         # 发布文章
         if article_data.get('live', True):
             new_article.save_revision().publish()
-        
+
         logger.info(f"Created new article: {new_article.title}")
         return new_article, True  # True表示是创建操作
 
@@ -347,7 +484,8 @@ def bulk_create_articles(request):
                 "channel": "科技" | {"name": "科技", "slug": "tech"},
                 "region": "北京" | {"name": "北京", "slug": "beijing"}, 
                 "language": "zh-CN",
-                "topic_slug": "ai-topic",
+                "categories": ["tech", {"name": "科技", "slug": "tech"}],
+                "topic": "ai-topic" | {"slug": "ai-topic", "title": "AI"},
                 "external_article_url": "https://source.com/article/123",
                 "external_site": "source.com" | {"domain": "source.com", "name": "来源站"},
                 "canonical_url": "https://canonical.com/article/123",
@@ -627,10 +765,12 @@ def get_site_info(request):
                 status=status.HTTP_404_NOT_FOUND
             )
         
-        # 获取站点的频道和地区
+        # 获取站点的频道、地区、分类、语言、主题
         channels = list(Channel.objects.filter(sites=site).values('id', 'name', 'slug'))
         regions = list(Region.objects.filter(sites=site).values('id', 'name', 'slug'))
+        categories = list(Category.objects.filter(sites=site, is_active=True).values('id', 'name', 'slug'))
         languages = list(Language.objects.all().values('id', 'name', 'code'))
+        topics = list(Topic.objects.all().values('id', 'title', 'slug'))
         
         return Response({
             "site": {
@@ -641,12 +781,14 @@ def get_site_info(request):
             },
             "channels": channels,
             "regions": regions,
+            "categories": categories,
             "languages": languages,
+            "topics": topics,
             "article_fields": {
                 "required": ["title", "body", "site"],
                 "optional": [
                     "excerpt", "author_name", "channel", "region", "language",
-                    "topic_slug", "external_article_url", "external_site",
+                    "categories", "category", "topic", "topic_slug", "external_article_url", "external_site",
                     "canonical_url", "publish_at", "has_video", "allow_aggregate",
                     "is_featured", "weight", "tags", "live"
                 ]

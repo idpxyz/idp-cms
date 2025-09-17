@@ -56,7 +56,7 @@ const nextConfig = {
 
   // 允许外部图片域名
   images: {
-    domains: ["localhost", "local-authoring-1", "picsum.photos"],
+    domains: ["localhost", "local-authoring-1", "picsum.photos", "images.unsplash.com", "lf9-static.bytednsdoc.com"],
   },
 
   async rewrites() {

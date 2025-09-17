@@ -24,6 +24,10 @@ class Channel(ClusterableModel):
     description = models.TextField(blank=True, verbose_name="描述")
     order = models.IntegerField(default=0, verbose_name="排序")
     is_active = models.BooleanField(default=True, verbose_name="是否启用")
+    has_own_template = models.BooleanField(default=True, verbose_name="是否独立模板", 
+                                          help_text="频道是否有独立的展示模板和运营位")
+    locale = models.CharField(max_length=16, default="zh-CN", verbose_name="语言区域",
+                             help_text="频道的主要语言区域")
     sites = models.ManyToManyField('wagtailcore.Site', blank=True, verbose_name="关联站点")
     tags = TaggableManager(through=ChannelTaggedItem, blank=True, verbose_name="标签",
                           help_text="为频道添加标签，便于分类和搜索")
@@ -40,6 +44,8 @@ class Channel(ClusterableModel):
         MultiFieldPanel([
             FieldPanel('order'),
             FieldPanel('is_active'),
+            FieldPanel('has_own_template'),
+            FieldPanel('locale'),
         ], heading="显示设置"),
         
         MultiFieldPanel([

@@ -6,7 +6,6 @@ import PortalClassicLayout from "@/layouts/layout-portal-classic";
 import { ChannelProvider } from "./ChannelContext";
 import { CategoryProvider } from "./CategoryContext";
 import ChannelNavigation from "./ChannelNavigation";
-import CategoryNavigation from "./CategoryNavigation";
 import { endpoints } from "@/lib/config/endpoints";
 
 export const metadata: Metadata = {
@@ -84,8 +83,6 @@ export default async function PortalLayout({ children }: PortalLayoutProps) {
         <PortalClassicLayout siteSettings={siteSettings}>
           {/* 频道导航栏 - 在Layout级别，所有页面共享 */}
           <ChannelNavigation />
-          {/* 分类导航栏 - 在频道导航下方 */}
-          <CategoryNavigation />
           {children}
         </PortalClassicLayout>
       </CategoryProvider>

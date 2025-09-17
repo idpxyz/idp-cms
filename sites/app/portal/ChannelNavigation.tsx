@@ -12,7 +12,8 @@ import React, {
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { useChannels } from "./ChannelContext";
 import { usePersonalizedChannels } from "@/lib/hooks/usePersonalizedChannels";
-import { tagService } from "@/lib/api";
+import MegaMenu from "./components/MegaMenu";
+import MobileChannelMenu from "./components/MobileChannelMenu";
 
 interface Channel {
   id: string;
@@ -42,6 +43,24 @@ function ChannelNavigation({
   const channels = propChannels || contextChannels;
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isClient, setIsClient] = useState(false);
+  
+  // MegaMenu 状态管理
+  const [megaMenuState, setMegaMenuState] = useState<{
+    isOpen: boolean;
+    channelSlug: string;
+    channelName: string;
+    channelId: string;
+  }>({
+    isOpen: false,
+    channelSlug: '',
+    channelName: '',
+    channelId: '',
+  });
+  const [megaMenuTimer, setMegaMenuTimer] = useState<NodeJS.Timeout | null>(null);
+  const activeChannelRef = useRef<HTMLButtonElement | null>(null);
+  
+  // 移动端菜单状态
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
   // 🎯 个性化频道Hook
   const {
@@ -246,9 +265,90 @@ function ChannelNavigation({
   // 🎯 新架构：不再需要复杂的浏览器事件监听
   // URL 参数变化会自动通过 Context 反映到组件
 
+  // MegaMenu 控制函数
+  const openMegaMenu = useCallback((channel: Channel, buttonRef: HTMLButtonElement) => {
+    // 清除之前的定时器
+    if (megaMenuTimer) {
+      clearTimeout(megaMenuTimer);
+      setMegaMenuTimer(null);
+    }
+
+    setMegaMenuState({
+      isOpen: true,
+      channelSlug: channel.slug,
+      channelName: channel.name,
+      channelId: channel.id,
+    });
+    activeChannelRef.current = buttonRef;
+  }, [megaMenuTimer]);
+
+  const closeMegaMenu = useCallback(() => {
+    // 清除定时器
+    if (megaMenuTimer) {
+      clearTimeout(megaMenuTimer);
+      setMegaMenuTimer(null);
+    }
+
+    setMegaMenuState({
+      isOpen: false,
+      channelSlug: '',
+      channelName: '',
+      channelId: '',
+    });
+    activeChannelRef.current = null;
+  }, [megaMenuTimer]);
+
+  const scheduleCloseMegaMenu = useCallback(() => {
+    // 清除之前的定时器
+    if (megaMenuTimer) {
+      clearTimeout(megaMenuTimer);
+    }
+
+    // 设置延迟关闭
+    const timer = setTimeout(() => {
+      closeMegaMenu();
+    }, 300); // 300ms延迟，给用户移动到菜单的时间
+
+    setMegaMenuTimer(timer);
+  }, [megaMenuTimer, closeMegaMenu]);
+
+  // 处理频道悬停
+  const handleChannelMouseEnter = useCallback((channel: Channel, event: React.MouseEvent<HTMLButtonElement>) => {
+    if (!isClient) return;
+    
+    const buttonElement = event.currentTarget;
+    
+    // 延迟显示 MegaMenu，避免误触
+    const timer = setTimeout(() => {
+      openMegaMenu(channel, buttonElement);
+    }, 200);
+
+    setMegaMenuTimer(timer);
+  }, [isClient, openMegaMenu]);
+
+  const handleChannelMouseLeave = useCallback(() => {
+    scheduleCloseMegaMenu();
+  }, [scheduleCloseMegaMenu]);
+
+  // 处理 MegaMenu 区域悬停
+  const handleMegaMenuMouseEnter = useCallback(() => {
+    // 清除关闭定时器
+    if (megaMenuTimer) {
+      clearTimeout(megaMenuTimer);
+      setMegaMenuTimer(null);
+    }
+  }, [megaMenuTimer]);
+
+  const handleMegaMenuMouseLeave = useCallback(() => {
+    scheduleCloseMegaMenu();
+  }, [scheduleCloseMegaMenu]);
+
   // 🎯 智能频道点击处理 - 支持动态重排
   const handleChannelClick = useCallback((channelSlug: string, isFromMoreMenu: boolean = false) => {
     console.log('🔘 Channel clicked:', channelSlug, isFromMoreMenu ? '(from more menu)' : '(from visible)');
+    
+    // 关闭 MegaMenu
+    closeMegaMenu();
     
     // 如果点击的是当前频道，滚动到顶部
     if (currentChannelSlug === channelSlug) {
@@ -271,41 +371,6 @@ function ChannelNavigation({
     }
   }, [currentChannelSlug, switchChannel]);
   
-  // ===== 标签 chips Hooks（需在任何早退 return 之前调用，保持Hook顺序稳定）=====
-  interface NavTag {
-    name: string;
-    slug: string;
-    articles_count?: number;
-  }
-
-  const [popularTags, setPopularTags] = useState<NavTag[]>([]);
-
-  // 当前URL中的 tags
-  const currentTags = useMemo(() => {
-    const tagsStr = searchParams.get('tags') || '';
-    return tagsStr ? tagsStr.split(',').map(t => t.trim()).filter(Boolean) : [];
-  }, [searchParams]);
-
-  useEffect(() => {
-    let mounted = true;
-    (async () => {
-      try {
-        const tags = await tagService.list(10);
-        if (mounted) setPopularTags(tags as NavTag[]);
-      } catch (e) {
-        if (mounted) setPopularTags([]);
-      }
-    })();
-    return () => { mounted = false; };
-  }, []);
-
-  const buildChannelUrl = useCallback((channelSlug: string, tagsList: string[] = []) => {
-    const params = new URLSearchParams();
-    if (channelSlug && channelSlug !== 'recommend') params.set('channel', channelSlug);
-    if (tagsList.length > 0) params.set('tags', tagsList.join(','));
-    const qs = params.toString();
-    return qs ? `/portal?${qs}` : '/portal';
-  }, []);
 
   // 🎯 修复水合不匹配：在客户端未加载前显示占位符
   if (!isClient) {
@@ -394,23 +459,26 @@ function ChannelNavigation({
               const isTopRecommended = index < 3 && strategy === 'personalized'; // 前3个且个性化
               
               return (
-                <button
-                  key={channel.slug}
-                  onClick={() => handleChannelClick(channel.slug)}
-                  className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap relative ${
-                    currentChannelSlug === channel.slug
-                      ? "bg-red-500 text-white shadow-lg"
-                      : isHighWeight
-                      ? "text-red-600 hover:text-red-700 hover:bg-red-50 border border-red-200"
-                      : "text-gray-600 hover:text-red-500 hover:bg-gray-50"
-                  }`}
-                  title={weight > 0 ? `推荐权重: ${(weight * 100).toFixed(1)}%` : undefined}
-                >
-                  {channel.name}
-                  {isTopRecommended && (
-                    <span className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full"></span>
-                  )}
-                </button>
+                <div key={channel.slug} className="relative">
+                  <button
+                    onClick={() => handleChannelClick(channel.slug)}
+                    onMouseEnter={(e) => handleChannelMouseEnter(channel, e)}
+                    onMouseLeave={handleChannelMouseLeave}
+                    className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap relative ${
+                      currentChannelSlug === channel.slug
+                        ? "bg-red-500 text-white shadow-lg"
+                        : isHighWeight
+                        ? "text-red-600 hover:text-red-700 hover:bg-red-50 border border-red-200"
+                        : "text-gray-600 hover:text-red-500 hover:bg-gray-50"
+                    }`}
+                    title={weight > 0 ? `推荐权重: ${(weight * 100).toFixed(1)}%` : undefined}
+                  >
+                    {channel.name}
+                    {isTopRecommended && (
+                      <span className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full"></span>
+                    )}
+                  </button>
+                </div>
               );
             })}
           </div>
@@ -420,9 +488,22 @@ function ChannelNavigation({
             {getPersonalizationIndicator()}
           </div>
 
-          {/* 更多频道下拉框 */}
+          {/* 移动端菜单按钮 */}
+          <div className="flex-shrink-0 md:hidden">
+            <button
+              onClick={() => setIsMobileMenuOpen(true)}
+              className="flex items-center justify-center w-10 h-10 rounded-full text-gray-600 hover:text-red-500 hover:bg-gray-50 transition-all"
+              aria-label="打开频道菜单"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+          </div>
+
+          {/* 更多频道下拉框 - 桌面端显示 */}
           {moreChannels.length > 0 && (
-            <div className="relative" ref={dropdownRef}>
+            <div className="relative hidden md:block" ref={dropdownRef}>
               <button
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                 className="flex items-center space-x-1 px-4 py-2 rounded-full text-sm font-medium text-gray-600 hover:text-red-500 hover:bg-gray-50 transition-all"
@@ -487,47 +568,33 @@ function ChannelNavigation({
           )}
         </div>
 
-        {/* 标签筛选行 */}
-        {popularTags.length > 0 && (
-          <div className="py-2 border-t border-gray-100">
-            <div className="flex items-center flex-wrap gap-2">
-              <span className="text-xs text-gray-500 mr-1">标签筛选</span>
-              {popularTags.map((tag) => {
-                const isActive = currentTags.includes(tag.slug);
-                const newTags = isActive
-                  ? currentTags.filter(t => t !== tag.slug)
-                  : [...currentTags, tag.slug];
-                const href = buildChannelUrl(currentChannelSlug || 'recommend', newTags);
-                return (
-                  <a
-                    key={tag.slug}
-                    href={href}
-                    className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium transition-colors ${
-                      isActive
-                        ? 'bg-blue-600 text-white hover:bg-blue-700'
-                        : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
-                    }`}
-                  >
-                    {tag.name}
-                    {typeof tag.articles_count === 'number' && (
-                      <span className="ml-1 text-[11px] opacity-75">({tag.articles_count})</span>
-                    )}
-                  </a>
-                );
-              })}
-              {currentTags.length > 0 && (
-                <a
-                  href={buildChannelUrl(currentChannelSlug || 'recommend', [])}
-                  className="ml-2 text-sm text-gray-600 hover:text-red-600 underline"
-                  title="清除所有标签筛选"
-                >
-                  重置
-                </a>
-              )}
-            </div>
-          </div>
-        )}
       </div>
+
+      {/* MegaMenu */}
+      {megaMenuState.isOpen && (
+        <div
+          onMouseEnter={handleMegaMenuMouseEnter}
+          onMouseLeave={handleMegaMenuMouseLeave}
+        >
+          <MegaMenu
+            channelId={megaMenuState.channelId}
+            channelName={megaMenuState.channelName}
+            channelSlug={megaMenuState.channelSlug}
+            isOpen={megaMenuState.isOpen}
+            onClose={closeMegaMenu}
+            triggerRef={activeChannelRef}
+            className="animate-in fade-in duration-200"
+          />
+        </div>
+      )}
+
+      {/* 移动端频道菜单 */}
+      <MobileChannelMenu
+        channels={channels}
+        currentChannelSlug={currentChannelSlug}
+        isOpen={isMobileMenuOpen}
+        onClose={() => setIsMobileMenuOpen(false)}
+      />
     </section>
   );
 }

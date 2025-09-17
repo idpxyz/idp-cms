@@ -2,9 +2,14 @@ import React from "react";
 import { endpoints } from "@/lib/config/endpoints";
 import { getMainSite } from "@/lib/config/sites";
 import NewsContent from "./NewsContent";
-import { tagService } from "@/lib/api";
 import PageContainer from "@/components/layout/PageContainer";
 import Section from "@/components/layout/Section";
+// Hero 轮播组件
+import HeroCarousel from "./components/HeroCarousel";
+import { getHeroItems } from "./components/HeroCarousel.utils";
+import TopStoriesGrid from "./components/TopStoriesGrid";
+import { getTopStories } from "./components/TopStoriesGrid.utils";
+import ChannelStrip from "./components/ChannelStrip";
 
 // 获取频道列表
 async function getChannels() {
@@ -63,59 +68,61 @@ export default async function PortalPage({ searchParams }: { searchParams?: Prom
   const urlChannel = sp?.channel;
   const tags = sp?.tags;
   const initialChannelId = (urlChannel && (channels.find((c:any) => c.slug === urlChannel)?.id || urlChannel)) || channels[0]?.id || "";
-  // 拉取标签列表（用于筛选 chips）
-  const tagsList = await tagService.list(30);
+  
+  // 并行获取数据
+  const [heroItems, topStories] = await Promise.all([
+    getHeroItems(5), // 获取 Hero 轮播数据
+    getTopStories(9), // 获取头条数据 (增加到9条以支持8条右侧显示)
+  ]);
 
-  // 已选择标签
-  const selectedTags = (tags || '').split(',').filter(Boolean);
-
-  // 构建带标签与频道的链接
-  const buildTagHref = (tagSlug: string) => {
-    const set = new Set(selectedTags);
-    if (set.has(tagSlug)) set.delete(tagSlug); else set.add(tagSlug);
-    const nextTags = Array.from(set).join(',');
-    const qs = new URLSearchParams();
-    if (urlChannel) qs.set('channel', urlChannel);
-    if (nextTags) qs.set('tags', nextTags);
-    qs.set('page', '1');
-    return `/portal${qs.toString() ? `?${qs.toString()}` : ''}`;
-  };
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-white">
       {/* 频道导航栏现在在 Layout 中 */}
+      
+      {/* Hero Carousel 主要轮播区域 */}
       <PageContainer padding="md">
-        {/* 标签筛选（全站） */}
-        {tagsList && tagsList.length > 0 && (
-          <Section space="sm">
-            <div className="mb-4">
-              <h2 className="text-lg font-semibold text-gray-900 mb-3">标签筛选</h2>
-              <div className="flex flex-wrap gap-2">
-                {tagsList.map((tag:any) => {
-                  const active = selectedTags.includes(tag.slug);
-                  return (
-                    <a
-                      key={tag.slug}
-                      href={buildTagHref(tag.slug)}
-                      className={
-                        `inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border transition-colors ` +
-                        (active
-                          ? 'bg-green-100 text-green-800 border-green-300 hover:bg-green-200'
-                          : 'bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200')
-                      }
-                      title={tag.name}
-                    >
-                      {tag.name}
-                      {typeof tag.articles_count === 'number' && (
-                        <span className="ml-1 text-xs opacity-70">({tag.articles_count})</span>
-                      )}
-                    </a>
-                  );
-                })}
-              </div>
-            </div>
+        <HeroCarousel 
+          items={heroItems}
+          autoPlay={true}
+          autoPlayInterval={6000}
+          showDots={true}
+          showArrows={true}
+          heightMode="compact"
+          hasRightRail={false}
+          maxHeightVh={25}
+          className="mb-6"
+        />
+      </PageContainer>
+
+      <PageContainer padding="md">
+        
+        {/* Top Stories 头条网格 */}
+        <Section space="md">
+          <TopStoriesGrid 
+            items={topStories}
+            title="头条新闻"
+            showViewMore={true}
+            viewMoreLink="/portal/news"
+          />
+        </Section>
+
+        {/* 频道条带区域 */}
+        {channels.slice(1, 4).map((channel: any, index: number) => (
+          <Section key={channel.id} space="lg">
+            <ChannelStrip
+              channelId={channel.id}
+              channelName={channel.name}
+              channelSlug={channel.slug}
+              showCategories={true}
+              showViewMore={true}
+              viewMoreLink={`/portal/channel/${channel.slug}`}
+              articleLimit={6}
+              className="border-b border-gray-100 pb-8"
+            />
           </Section>
-        )}
+        ))}
+
         <Section space="md">
           {/* 主要新闻内容区域 - 全宽度 */}
           <NewsContent

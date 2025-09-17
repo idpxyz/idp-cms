@@ -1,5 +1,5 @@
-{% if editing_sessions %}
-{% for session in editing_sessions %}
+{% if sessions %}
+{% for session in sessions %}
 <div class="editing-session" style="display: none;">
     <span class="user">{{ session.user.get_full_name|default:session.user.username }}</span>
     <span class="time">{{ session.last_seen_at|timesince }} ago</span>

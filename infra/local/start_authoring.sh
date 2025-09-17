@@ -18,9 +18,9 @@ for i in {1..30}; do
 done
 
 # 运行数据库迁移
-echo "🔄 运行数据库迁移..."
-python manage.py makemigrations
-python manage.py migrate
+# echo "🔄 运行数据库迁移..."
+# python manage.py makemigrations
+# python manage.py migrate
 
 # 创建超级用户（如果不存在）
 echo "👤 检查超级用户..."

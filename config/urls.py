@@ -52,6 +52,7 @@ from apps.api.rest.personalized_channels import personalized_channels
 from apps.api.rest.search_suggest import search_suggest
 from apps.api.rest.trending_search import trending_search
 from apps.api.rest.search_os import search_os
+from apps.api.rest.tag_suggestions import suggest_tags, batch_suggest_tags, tag_suggestion_status
 
 # 核心应用视图导入
 from apps.core.views import (
@@ -67,6 +68,11 @@ urlpatterns = [
     path("api/categories/tree/", categories_tree, name="api-categories-tree"),
     path("api/categories/<slug:slug>/", category_detail, name="api-category-detail"),
     path("api/search/os/", search_os, name="api-search-os"),
+    
+    # 标签建议API
+    path("api/suggest-tags/", suggest_tags, name="api-suggest-tags"),
+    path("api/batch-suggest-tags/", batch_suggest_tags, name="api-batch-suggest-tags"),
+    path("api/tag-suggestion-status/", tag_suggestion_status, name="api-tag-suggestion-status"),
     
     # 健康检查和系统信息
     path("health/", health_check, name="health-check"),

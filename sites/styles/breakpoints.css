@@ -1,0 +1,452 @@
+/**
+ * 统一响应式断点系统
+ * 为整个应用程序提供一致的断点配置
+ */
+
+/* =============================================================================
+   断点定义
+   ============================================================================= */
+
+:root {
+  /* 断点值 */
+  --breakpoint-xs: 480px;    /* 超小屏手机 */
+  --breakpoint-sm: 640px;    /* 小屏手机 */
+  --breakpoint-md: 768px;    /* 平板 */
+  --breakpoint-lg: 1024px;   /* 小桌面 */
+  --breakpoint-xl: 1280px;   /* 大桌面 */
+  --breakpoint-2xl: 1536px;  /* 超大桌面 */
+  
+  /* 容器最大宽度 */
+  --container-sm: 640px;
+  --container-md: 768px;
+  --container-lg: 1024px;
+  --container-xl: 1280px;
+  --container-2xl: 1536px;
+  
+  /* 响应式间距 */
+  --spacing-xs: 0.5rem;    /* 8px */
+  --spacing-sm: 0.75rem;   /* 12px */
+  --spacing-md: 1rem;      /* 16px */
+  --spacing-lg: 1.5rem;    /* 24px */
+  --spacing-xl: 2rem;      /* 32px */
+  --spacing-2xl: 2.5rem;   /* 40px */
+  --spacing-3xl: 3rem;     /* 48px */
+  
+  /* 响应式字体大小 */
+  --text-xs: 0.75rem;      /* 12px */
+  --text-sm: 0.875rem;     /* 14px */
+  --text-base: 1rem;       /* 16px */
+  --text-lg: 1.125rem;     /* 18px */
+  --text-xl: 1.25rem;      /* 20px */
+  --text-2xl: 1.5rem;      /* 24px */
+  --text-3xl: 1.875rem;    /* 30px */
+  --text-4xl: 2.25rem;     /* 36px */
+}
+
+/* =============================================================================
+   响应式布局类
+   ============================================================================= */
+
+/* 容器响应式 */
+.container-responsive {
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: var(--spacing-md);
+  padding-right: var(--spacing-md);
+}
+
+@media (min-width: 640px) {
+  .container-responsive {
+    max-width: var(--container-sm);
+    padding-left: var(--spacing-lg);
+    padding-right: var(--spacing-lg);
+  }
+}
+
+@media (min-width: 768px) {
+  .container-responsive {
+    max-width: var(--container-md);
+  }
+}
+
+@media (min-width: 1024px) {
+  .container-responsive {
+    max-width: var(--container-lg);
+  }
+}
+
+@media (min-width: 1280px) {
+  .container-responsive {
+    max-width: var(--container-xl);
+    padding-left: var(--spacing-xl);
+    padding-right: var(--spacing-xl);
+  }
+}
+
+@media (min-width: 1536px) {
+  .container-responsive {
+    max-width: var(--container-2xl);
+  }
+}
+
+/* =============================================================================
+   网格系统
+   ============================================================================= */
+
+/* 响应式网格 */
+.grid-responsive {
+  display: grid;
+  gap: var(--spacing-md);
+}
+
+/* 手机：1列 */
+.grid-responsive {
+  grid-template-columns: 1fr;
+}
+
+/* 平板：2列 */
+@media (min-width: 768px) {
+  .grid-responsive-2 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* 桌面：3列 */
+@media (min-width: 1024px) {
+  .grid-responsive-3 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* 大桌面：4列 */
+@media (min-width: 1280px) {
+  .grid-responsive-4 {
+    grid-template-columns: repeat(4, 1fr);
+  }
+  
+  .grid-responsive {
+    gap: var(--spacing-lg);
+  }
+}
+
+/* =============================================================================
+   Hero 轮播响应式
+   ============================================================================= */
+
+/* Hero 高度响应式 */
+.hero-responsive {
+  /* 移动端：45-55vh */
+  height: 50vh;
+  min-height: 300px;
+  max-height: 400px;
+}
+
+@media (min-width: 768px) {
+  .hero-responsive {
+    /* 平板：50-60vh */
+    height: 55vh;
+    min-height: 350px;
+    max-height: 500px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .hero-responsive {
+    /* 桌面：60-75vh */
+    height: 65vh;
+    min-height: 400px;
+    max-height: 600px;
+  }
+}
+
+/* Compact 模式 */
+.hero-compact {
+  height: 25vh;
+  min-height: 200px;
+  max-height: 300px;
+}
+
+@media (min-width: 768px) {
+  .hero-compact {
+    height: 30vh;
+    min-height: 250px;
+    max-height: 350px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .hero-compact {
+    height: 25vh;
+    min-height: 250px;
+    max-height: 350px;
+  }
+}
+
+/* =============================================================================
+   导航响应式
+   ============================================================================= */
+
+/* 频道导航响应式 */
+.channel-nav-responsive {
+  display: flex;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  gap: var(--spacing-sm);
+}
+
+.channel-nav-responsive::-webkit-scrollbar {
+  display: none;
+}
+
+/* 移动端频道按钮 */
+.channel-button-mobile {
+  flex-shrink: 0;
+  padding: 0.5rem 0.75rem;
+  font-size: var(--text-sm);
+  white-space: nowrap;
+}
+
+/* 桌面端频道按钮 */
+@media (min-width: 768px) {
+  .channel-nav-responsive {
+    gap: var(--spacing-md);
+  }
+  
+  .channel-button-desktop {
+    padding: 0.75rem 1rem;
+    font-size: var(--text-base);
+  }
+}
+
+/* =============================================================================
+   卡片响应式
+   ============================================================================= */
+
+/* 文章卡片响应式 */
+.article-card-responsive {
+  display: flex;
+  flex-direction: column;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  background: white;
+  transition: all 0.2s ease;
+}
+
+/* 移动端卡片布局 */
+.article-card-mobile {
+  flex-direction: row;
+  gap: var(--spacing-sm);
+}
+
+.article-card-mobile .article-image {
+  width: 80px;
+  height: 60px;
+  flex-shrink: 0;
+}
+
+.article-card-mobile .article-content {
+  flex: 1;
+  min-width: 0;
+}
+
+/* 桌面端卡片布局 */
+@media (min-width: 768px) {
+  .article-card-desktop {
+    flex-direction: column;
+  }
+  
+  .article-card-desktop .article-image {
+    width: 100%;
+    aspect-ratio: 16/9;
+  }
+}
+
+/* =============================================================================
+   MegaMenu 响应式
+   ============================================================================= */
+
+/* MegaMenu 在移动端隐藏 */
+.megamenu-responsive {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .megamenu-responsive {
+    display: block;
+    /* 内容宽度通过内部 max-w-7xl mx-auto px-4 控制，与 PageContainer 保持一致 */
+  }
+}
+
+/* =============================================================================
+   移动端菜单最高层级
+   ============================================================================= */
+
+/* 确保移动端菜单在所有元素之上，包括 sticky header */
+.mobile-menu-overlay {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  z-index: 999999 !important;
+}
+
+/* =============================================================================
+   间距响应式
+   ============================================================================= */
+
+/* 响应式间距工具类 */
+.spacing-responsive-sm {
+  margin: var(--spacing-sm);
+}
+
+.spacing-responsive-md {
+  margin: var(--spacing-md);
+}
+
+.spacing-responsive-lg {
+  margin: var(--spacing-lg);
+}
+
+@media (min-width: 768px) {
+  .spacing-responsive-sm {
+    margin: var(--spacing-md);
+  }
+  
+  .spacing-responsive-md {
+    margin: var(--spacing-lg);
+  }
+  
+  .spacing-responsive-lg {
+    margin: var(--spacing-xl);
+  }
+}
+
+@media (min-width: 1280px) {
+  .spacing-responsive-lg {
+    margin: var(--spacing-2xl);
+  }
+}
+
+/* =============================================================================
+   文字响应式
+   ============================================================================= */
+
+/* 标题响应式 */
+.title-responsive-sm {
+  font-size: var(--text-base);
+  line-height: 1.4;
+}
+
+.title-responsive-md {
+  font-size: var(--text-lg);
+  line-height: 1.4;
+}
+
+.title-responsive-lg {
+  font-size: var(--text-xl);
+  line-height: 1.3;
+}
+
+@media (min-width: 768px) {
+  .title-responsive-sm {
+    font-size: var(--text-lg);
+  }
+  
+  .title-responsive-md {
+    font-size: var(--text-xl);
+  }
+  
+  .title-responsive-lg {
+    font-size: var(--text-2xl);
+  }
+}
+
+@media (min-width: 1280px) {
+  .title-responsive-lg {
+    font-size: var(--text-3xl);
+  }
+}
+
+/* =============================================================================
+   滚动条样式
+   ============================================================================= */
+
+/* 隐藏滚动条但保持功能 */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* 自定义滚动条（桌面端） */
+@media (min-width: 1024px) {
+  .scrollbar-custom {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+  }
+  
+  .scrollbar-custom::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  
+  .scrollbar-custom::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  .scrollbar-custom::-webkit-scrollbar-thumb {
+    background-color: rgba(156, 163, 175, 0.5);
+    border-radius: 3px;
+  }
+  
+  .scrollbar-custom::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(156, 163, 175, 0.7);
+  }
+}
+
+/* =============================================================================
+   性能优化
+   ============================================================================= */
+
+/* 减少重绘和回流 */
+.performance-optimized {
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+/* 图片优化 */
+.image-responsive {
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+  transition: transform 0.2s ease;
+}
+
+.image-responsive:hover {
+  transform: scale(1.05);
+}
+
+/* =============================================================================
+   媒体查询断点总结
+   ============================================================================= */
+
+/*
+断点说明：
+- xs (0-479px):     超小屏手机（iPhone SE等）
+- sm (480-639px):   小屏手机（iPhone 12 mini等）  
+- md (640-767px):   大屏手机（iPhone 12 Pro等）
+- lg (768-1023px):  平板（iPad等）
+- xl (1024-1279px): 小桌面/笔记本
+- 2xl (1280px+):    大桌面
+
+布局策略：
+- xs-sm: 单列布局，紧凑间距
+- md-lg: 双列布局，适中间距  
+- xl-2xl: 三/四列布局，宽松间距
+*/

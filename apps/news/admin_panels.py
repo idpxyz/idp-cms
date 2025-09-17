@@ -244,6 +244,7 @@ def _get_tag_suggestions_panel():
                }
            });
     
+    
     function loadTagSuggestions() {
         var container = document.getElementById("tag-suggestions-container");
         var generateBtn = document.getElementById("generate-tags-btn");
