@@ -47,7 +47,8 @@ class PublicMediaStorage(S3Boto3Storage):
         from django.conf import settings
         
         # 获取Django服务的基础URL
-        base_url = getattr(settings, 'WAGTAILADMIN_BASE_URL', 'http://localhost:8000')
+        # 优先使用容器内可访问的地址用于Next.js图片优化
+        base_url = getattr(settings, 'WAGTAILADMIN_BASE_URL', 'http://authoring:8000')
         base_url = base_url.rstrip('/')
         
         # 使用媒体代理URL

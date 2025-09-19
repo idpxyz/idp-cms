@@ -618,8 +618,11 @@ def toggle_article_favorite(request, article_id):
                     article_channel = article.channel.name if article.channel else '未分类'
                     article_excerpt = article.excerpt or ''
                     article_image_url = ''
-                    if article.cover:
-                        article_image_url = f"/media/{article.cover.file}"
+                    if article.cover and getattr(article.cover, 'file', None):
+                        try:
+                            article_image_url = article.cover.file.url
+                        except Exception:
+                            article_image_url = ''
                     article_publish_time = article.first_published_at
                 except ArticlePage.DoesNotExist:
                     # 文章不存在，使用默认值

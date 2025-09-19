@@ -124,6 +124,8 @@ services:
       DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1,192.168.8.195,portal.local}
       DJANGO_SETTINGS_MODULE: config.settings.dev
       DJANGO_DEBUG: "1"
+      # 让存储生成容器内可访问的绝对URL，便于 Next 图片优化拉取
+      WAGTAIL_BASE_URL: "http://authoring:8000"
       # MinIO 配置
       MINIO_ENDPOINT: ${MINIO_ENDPOINT:-http://minio:9000}
       MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}

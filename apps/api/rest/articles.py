@@ -546,6 +546,10 @@ def portal_articles(request):
                 'author_name', 'is_featured', 'weight'
             )
             
+            # 使用存储后端统一生成媒体URL，避免硬编码 /media 前缀
+            from apps.core.storages import PublicMediaStorage
+            storage = PublicMediaStorage()
+
             for article in articles_query:
                 article_id = str(article['id'])
                 data = {
@@ -563,7 +567,7 @@ def portal_articles(request):
                 
                 # 处理封面图片
                 if article['cover__file']:
-                    data['cover_url'] = f"/media/{article['cover__file']}"
+                    data['cover_url'] = storage.url(article['cover__file'])
                     data['cover_title'] = article['cover__title'] or ''
                 
                 article_data[article_id] = data
@@ -654,84 +658,70 @@ def hero_articles(request):
         from django.utils import timezone
         import datetime
         
-        # 1. 高权重精选文章（权重>=70，约top 30%）
-        # 优化：只选择必要字段，减少数据传输
+        # 1. Hero标记的文章（必须有封面）
         high_weight_articles = ArticlePage.objects.filter(
             live=True,
-            is_featured=True,
-            weight__gte=70  # 基于数据分析调整阈值
-        ).select_related('cover', 'channel').values(
-            'id', 'title', 'slug', 'excerpt', 'weight', 'first_published_at',
-            'view_count', 'comment_count', 'like_count', 'favorite_count', 'reading_time',
-            'author_name', 'cover__file', 'cover__title',
-            'channel__id', 'channel__name', 'channel__slug'
-        ).order_by(
+            is_hero=True,
+            cover__isnull=False,
+            weight__gte=0
+        ).select_related('cover', 'channel').order_by(
             '-weight', '-first_published_at'
         )[:limit]
         
         # 简化逻辑：如果高权重文章不足，直接补充其他精选文章
         hero_articles = list(high_weight_articles)
-        if len(hero_articles) < limit:
-            # 获取已选择的文章ID
-            selected_ids = [article['id'] for article in hero_articles]
-            
-            # 补充其他精选文章
-            additional_articles = ArticlePage.objects.filter(
-                live=True,
-                is_featured=True
-            ).exclude(
-                id__in=selected_ids
-            ).values(
-                'id', 'title', 'slug', 'excerpt', 'weight', 'first_published_at',
-                'view_count', 'comment_count', 'like_count', 'favorite_count', 'reading_time',
-                'author_name', 'cover__file', 'cover__title',
-                'channel__id', 'channel__name', 'channel__slug'
-            ).order_by(
-                '-weight', '-first_published_at'
-            )[:(limit - len(hero_articles))]
-            
-            hero_articles.extend(additional_articles)
+        # 不再回退到无封面或默认静态图，保持严格质量
         
         # 构建响应数据
         items = []
+        from apps.core.signals_media import NEWS_IMAGE_RENDITIONS
         for article in hero_articles:
-            # 处理图片 - 使用实际的图片策略
-            if article['cover__file']:
-                image_url = f"/media/{article['cover__file']}"
-            else:
-                # 使用本地默认图片，基于频道分类
-                channel_slug = article['channel__slug'] or "default"
-                image_url = f"/static/images/defaults/hero-{channel_slug}.jpg"
+            # 严格要求封面存在
+            if not article.cover:
+                continue
+            # 使用Hero规格渲染图，优先桌面端
+            try:
+                hero_spec = NEWS_IMAGE_RENDITIONS.get('hero_desktop', 'fill-1200x600|jpegquality-85')
+                rendition = article.cover.get_rendition(hero_spec)
+                image_url = rendition.url
+            except Exception:
+                try:
+                    mobile_spec = NEWS_IMAGE_RENDITIONS.get('hero_mobile', 'fill-800x400|jpegquality-85')
+                    rendition = article.cover.get_rendition(mobile_spec)
+                    image_url = rendition.url
+                except Exception:
+                    # 无法生成渲染图则跳过该文章
+                    continue
                 
             item = {
-                "id": str(article['id']),
-                "title": article['title'],
-                "slug": article['slug'],
-                "excerpt": article['excerpt'] or "",
+                "id": str(article.id),
+                "title": article.title,
+                "slug": article.slug,
+                "excerpt": getattr(article, 'excerpt', '') or "",
                 "image_url": image_url,
                 "cover_url": image_url,
-                "publish_at": article['first_published_at'].isoformat() if article['first_published_at'] else None,
-                "publish_time": article['first_published_at'].isoformat() if article['first_published_at'] else None,
-                "author": article['author_name'] or "",
+                "publish_at": article.first_published_at.isoformat() if article.first_published_at else None,
+                "publish_time": article.first_published_at.isoformat() if article.first_published_at else None,
+                "author": getattr(article, 'author_name', '') or "",
                 "source": site_identifier or "官方",
                 "channel": {
-                    "id": article['channel__slug'] or "news",
-                    "name": article['channel__name'] or "新闻",
-                    "slug": article['channel__slug'] or "news"
-                } if article['channel__id'] else None,
+                    "id": getattr(article.channel, 'slug', '') or "news",
+                    "name": getattr(article.channel, 'name', '') or "新闻",
+                    "slug": getattr(article.channel, 'slug', '') or "news"
+                } if article.channel else None,
                 "tags": [],  # 可以后续扩展
                 "is_featured": True,  # 所有都是精选文章
-                "is_breaking": (article['weight'] or 0) >= 90,  # 权重>=90视为突发新闻（约top 10%）
+                "is_breaking": (getattr(article, 'weight', 0) or 0) >= 90,  # 权重>=90视为突发新闻（约top 10%）
                 "is_live": False,  # 可以后续扩展
-                "is_event_mode": (article['weight'] or 0) >= 95,  # 权重>=95视为重大事件（约top 5%）
+                "is_event_mode": (getattr(article, 'weight', 0) or 0) >= 95,  # 权重>=95视为重大事件（约top 5%）
                 "media_type": "image",
-                "weight": article['weight'] or 0,
+                "weight": getattr(article, 'weight', 0) or 0,
                 # 统计数据
-                "view_count": article['view_count'] or 0,
-                "comment_count": article['comment_count'] or 0,
-                "like_count": article['like_count'] or 0,
-                "favorite_count": article['favorite_count'] or 0,
-                "reading_time": article['reading_time'] or 1,  # 简化：不调用calculate方法
+                "view_count": getattr(article, 'view_count', 0) or 0,
+                "comment_count": getattr(article, 'comment_count', 0) or 0,
+                "like_count": getattr(article, 'like_count', 0) or 0,
+                "favorite_count": getattr(article, 'favorite_count', 0) or 0,
+                "reading_time": getattr(article, 'reading_time', 1) or 1,  # 简化：不调用calculate方法
             }
             items.append(item)
         
