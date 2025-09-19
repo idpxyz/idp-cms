@@ -167,25 +167,41 @@ class TagSuggestionWidget {
         // 更精确地查找Wagtail标签组件的输入框
         let tagInput = null;
         
-        // 方法1: 通过data-controller="w-tag"查找
+        // 方法1: 通过data-controller="w-tag"查找（最准确）
         tagInput = document.querySelector('[data-controller="w-tag"] input[type="text"]');
         
-        // 方法2: 通过字段名查找
+        // 方法2: 查找专门的标签字段输入框
         if (!tagInput) {
-            tagInput = document.querySelector('input[name*="tags"]');
-        }
-        
-        // 方法3: 通过标签字段的容器查找
-        if (!tagInput) {
-            const tagFieldContainer = this.tagField?.closest('.field');
-            if (tagFieldContainer) {
-                tagInput = tagFieldContainer.querySelector('input[type="text"]');
+            // 查找包含标签字段的容器
+            const tagLabels = document.querySelectorAll('label');
+            for (const label of tagLabels) {
+                if (label.textContent && label.textContent.toLowerCase().includes('标签')) {
+                    const fieldContainer = label.closest('.field');
+                    if (fieldContainer) {
+                        tagInput = fieldContainer.querySelector('input[type="text"]:not([name*="title"]):not([id*="title"])');
+                        if (tagInput) break;
+                    }
+                }
             }
         }
         
-        // 方法4: 通过placeholder查找
+        // 方法3: 通过字段名查找（排除title）
         if (!tagInput) {
-            tagInput = document.querySelector('input[placeholder*="tag" i]');
+            tagInput = document.querySelector('input[name*="tags"]:not([name*="title"])');
+        }
+        
+        // 方法4: 通过placeholder查找（排除非标签字段）
+        if (!tagInput) {
+            const inputs = document.querySelectorAll('input[placeholder*="tag" i]');
+            for (const input of inputs) {
+                if (!input.name.includes('title') && !input.id.includes('title') &&
+                    !input.name.includes('publish_at') && !input.name.includes('time') &&
+                    !input.name.includes('date') && !input.name.includes('author') &&
+                    !input.name.includes('excerpt') && !input.name.includes('slug')) {
+                    tagInput = input;
+                    break;
+                }
+            }
         }
         
         if (!tagInput) {
@@ -200,9 +216,25 @@ class TagSuggestionWidget {
         console.log(`找到标签输入框: name="${tagInput.name}", id="${tagInput.id}", placeholder="${tagInput.placeholder}"`);
         
         // 验证是否为正确的标签输入框（不是title等其他字段）
-        if (tagInput.name && tagInput.name.includes('title')) {
-            console.log('警告: 检测到可能选错了title字段，尝试其他方法');
-            return false;
+        const excludedFields = ['title', 'publish_at', 'time', 'date', 'author', 'excerpt', 'slug', 'weight', 'language'];
+        const isExcludedField = excludedFields.some(field => 
+            (tagInput.name && tagInput.name.includes(field)) || 
+            (tagInput.id && tagInput.id.includes(field))
+        );
+        
+        if (isExcludedField) {
+            console.log(`警告: 检测到选择了非标签字段 (${tagInput.name || tagInput.id})，这是错误的`);
+            console.log('正在寻找正确的标签输入框...');
+            
+            // 尝试更精确的查找
+            const correctTagInput = document.querySelector('[data-controller="w-tag"] input[type="text"]:not([name*="title"]):not([name*="publish"]):not([name*="time"]):not([name*="date"])');
+            if (correctTagInput) {
+                tagInput = correctTagInput;
+                console.log(`找到正确的标签输入框: name="${tagInput.name}", id="${tagInput.id}"`);
+            } else {
+                console.log('无法找到正确的标签输入框，取消操作');
+                return false;
+            }
         }
 
         try {

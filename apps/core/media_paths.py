@@ -2,7 +2,7 @@
 动态媒体路径生成器
 根据站点、集合、时间等信息生成标准化的存储路径
 """
-from datetime import datetime
+from datetime import datetime, timezone
 from hashlib import sha256
 from pathlib import Path
 from django.utils.text import slugify
@@ -10,37 +10,27 @@ from django.conf import settings
 from wagtail.models import Site
 
 
-def _infer_site_from_collection(collection):
-    """
-    从集合智能推断站点 slug
-    
-    Args:
-        collection: Wagtail Collection 对象
-        
-    Returns:
-        str: 站点 slug
+# 简化：不依赖扩展模型，直接使用集合名称
+def get_site_from_collection(collection):
+    """返回站点标识（当前未绑定站点，统一为 'portal'）。"""
+    return 'portal'
+
+def build_collection_segment(collection):
+    """使用稳定ID生成集合段：c{ID}-{slug}，slug仅用于可读性。
+
+    例：c12-politics
     """
     if not collection:
-        return 'portal'
-    
-    collection_name = collection.name.lower()
-    
-    # 获取所有站点信息，避免硬编码
+        return 'c0-default'
     try:
-        sites = Site.get_all_sites_info()
-        
-        # 尝试匹配集合名称中的站点信息
-        for site_info in sites:
-            site_slug = site_info.get('slug', '')
-            if site_slug and site_slug != 'portal' and site_slug in collection_name:
-                return site_slug
-        
-        # 如果没有匹配到，返回默认值
-        return 'portal'
-        
+        collection_id = getattr(collection, 'id', 0) or 0
+        name = getattr(collection, 'name', '') or 'collection'
+        slug = slugify(name) or 'collection'
+        if len(slug) > 50:
+            slug = slug[:50]
+        return f"c{collection_id}-{slug}"
     except Exception:
-        # 如果数据库查询失败，返回默认值
-        return 'portal'
+        return 'c0-default'
 
 
 def build_media_path(instance, filename):
@@ -75,20 +65,28 @@ def build_media_path(instance, filename):
             # 如果导入失败，使用默认值
             pass
     elif hasattr(instance, 'collection') and instance.collection:
-        # 尝试从集合名称智能推断站点
-        site_slug = _infer_site_from_collection(instance.collection)
+        # 使用配置文件映射获取站点（支持中文集合名称）
+        site_slug = get_site_from_collection(instance.collection)
     
-    # 3. 获取集合信息
-    collection = "default"
-    if hasattr(instance, 'collection') and instance.collection:
-        collection = slugify(instance.collection.name.lower())
+    # 3. 集合段：使用稳定集合ID+slug（单段，不再多级）
+    collection_path = "c0-uncategorized"
+    # 优先从rendition的image取collection
+    if hasattr(instance, 'image') and getattr(instance, 'image', None) is not None:
+        try:
+            img_coll = getattr(instance.image, 'collection', None)
+            if img_coll:
+                collection_path = build_collection_segment(img_coll)
+        except Exception:
+            pass
+    elif hasattr(instance, 'collection') and instance.collection:
+        collection_path = build_collection_segment(instance.collection)
     
     # 4. 生成时间路径
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     year = now.strftime("%Y")
     month = now.strftime("%m")
     
-    # 5. 确定文件分类 - 使用新的 file_category 字段
+    # 5. 确定文件分类 - 使用 file_category 字段
     category = "originals"  # 默认为原始文件
     
     # 优先使用实例的 file_category 字段
@@ -122,11 +120,11 @@ def build_media_path(instance, filename):
     ext = Path(filename).suffix.lower() or ".bin"
     file_hash = sha256(f"{filename}{now.isoformat()}".encode("utf-8")).hexdigest()[:16]
     
-    # 7. 构建完整路径
+    # 7. 构建完整路径 - 使用增强的集合路径
     if tenant:
-        path = f"{tenant}/{site_slug}/{collection}/{year}/{month}/{category}/{file_hash}{ext}"
+        path = f"{tenant}/{site_slug}/{collection_path}/{year}/{month}/{category}/{file_hash}{ext}"
     else:
-        path = f"{site_slug}/{collection}/{year}/{month}/{category}/{file_hash}{ext}"
+        path = f"{site_slug}/{collection_path}/{year}/{month}/{category}/{file_hash}{ext}"
     
     return path
 
@@ -156,7 +154,7 @@ def build_temp_media_path(instance, filename):
             pass
     
     # 生成时间路径
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     year = now.strftime("%Y")
     month = now.strftime("%m")
     day = now.strftime("%d")

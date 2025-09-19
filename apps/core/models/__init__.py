@@ -6,7 +6,6 @@
 - Category: 分类模型
 - Region: 地区模型
 - SiteSettings: 站点配置模型
-- Comment: 评论模型
 - CustomConfigItem: 自定义配置项模型
 - Theme: 主题模型
 - Font: 字体模型
@@ -30,7 +29,6 @@ from taggit.models import TaggedItemBase
 from modelcluster.fields import ParentalKey
 from taggit.managers import TaggableManager
 
-from .comment import Comment
 from .site import Site  # 导入扩展后的 Site 模型
 from .site_settings import SiteSettings
 from .channel import Channel, ChannelTaggedItem
@@ -44,7 +42,6 @@ from .external_site import ExternalSite
 from .category import Category, CategoryTaggedItem
 
 __all__ = [
-    'Comment',
     'Site',
     'SiteSettings',
     'Channel',

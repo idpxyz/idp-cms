@@ -8,13 +8,16 @@
 """
 
 import re
-import jieba
-import jieba.analyse
 from typing import List, Dict, Tuple
 from django.conf import settings
 from taggit.models import Tag
 from difflib import SequenceMatcher
 import logging
+
+# 使用统一的jieba配置
+from apps.core.jieba_config import get_jieba_instance
+jieba = get_jieba_instance()
+import jieba.analyse
 
 logger = logging.getLogger(__name__)
 
@@ -23,8 +26,8 @@ class TagSuggestionService:
     """标签建议服务"""
     
     def __init__(self):
-        # 初始化jieba
-        jieba.initialize()
+        # jieba已在导入时配置和初始化
+        pass
         
         # 实体识别关键词列表
         self.entity_patterns = {

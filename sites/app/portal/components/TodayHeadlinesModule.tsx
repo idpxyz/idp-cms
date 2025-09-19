@@ -41,7 +41,7 @@ export default function TodayHeadlinesModule({ count = 8, countSm, countMd, coun
     };
     const apply = () => setEffectiveCount(Math.max(1, Math.min(decide(), 12)));
     apply();
-    window.addEventListener('resize', apply);
+    window.addEventListener('resize', apply, { passive: true });
     return () => window.removeEventListener('resize', apply);
   }, [count, countSm, countMd, countLg, fitHeight]);
 

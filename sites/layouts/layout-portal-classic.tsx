@@ -10,6 +10,8 @@ import { SiteSettings } from "@/lib/types";
 import SmartSearchBox from "@/components/search/SmartSearchBox";
 import BreakingTicker from "@/app/portal/components/BreakingTicker";
 import { getBreakingNews } from "@/app/portal/components/BreakingTicker.utils";
+import UserMenu from "@/components/auth/UserMenu";
+import AuthModal from "@/components/auth/AuthModal";
 import "@/styles/tokens.css";
 
 interface PortalClassicLayoutProps {
@@ -28,6 +30,10 @@ export default function PortalClassicLayout({
   
   // 快讯数据状态
   const [breakingNews, setBreakingNews] = useState<any[]>([]);
+  
+  // 认证模态框状态
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authModalMode, setAuthModalMode] = useState<'login' | 'register'>('login');
 
   // 获取快讯数据
   useEffect(() => {
@@ -89,6 +95,17 @@ export default function PortalClassicLayout({
       setIsSearchOpen(false);
       setSearchQuery("");
     }
+  };
+
+  // 打开认证模态框
+  const openAuthModal = (mode: 'login' | 'register' = 'login') => {
+    setAuthModalMode(mode);
+    setIsAuthModalOpen(true);
+  };
+
+  // 关闭认证模态框
+  const closeAuthModal = () => {
+    setIsAuthModalOpen(false);
   };
 
   // 安全地解构属性，提供默认值
@@ -284,11 +301,10 @@ export default function PortalClassicLayout({
                   </svg>
                 </button>
               </div>
+              
+              {/* 用户菜单 - 最右侧 */}
+              <UserMenu onOpenAuth={() => openAuthModal('login')} />
 
-              {/* 登录按钮 */}
-              <button className="bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 lg:px-4 lg:py-2 rounded-full text-xs lg:text-sm font-medium transition-colors">
-                登录
-              </button>
             </div>
           </div>
         </div>
@@ -486,6 +502,13 @@ export default function PortalClassicLayout({
           </div>
         </div>
       </footer>
+      
+      {/* 认证模态框 */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={closeAuthModal}
+        defaultMode={authModalMode}
+      />
     </div>
   );
 }

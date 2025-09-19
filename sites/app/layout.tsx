@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import "../styles/breakpoints.css";
+import { AuthProvider } from "@/lib/context/AuthContext";
+import { InteractionProvider } from "@/lib/context/InteractionContext";
+import PassiveEventOptimizer from "@/components/PassiveEventOptimizer";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -18,9 +21,17 @@ export default function RootLayout({
   return (
     <html lang="zh-CN">
       <body className={`${inter.className} bg-white`}>
+        {/* 性能优化：被动事件监听器 */}
+        <PassiveEventOptimizer />
         {/* 主题令牌注入器 */}
         <ThemeTokenInjector />
-        {children}
+        {/* 认证提供者 */}
+        <AuthProvider>
+          {/* 互动功能提供者 */}
+          <InteractionProvider>
+            {children}
+          </InteractionProvider>
+        </AuthProvider>
       </body>
     </html>
   );

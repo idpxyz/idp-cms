@@ -2,13 +2,97 @@
 
 {% load wagtailcore_tags wagtailimages_tags %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="/static/styles/article.css">
+<link rel="stylesheet" href="/static/styles/article-cover.css">
+<link rel="stylesheet" href="/static/styles/richtext-images.css">
+{% endblock %}
+
+{% block extra_head %}
+{# SEO和社交媒体元数据 #}
+{% if page.cover %}
+    {% image page.cover fill-1200x630 jpegquality-90 as og_image %}
+    <meta property="og:image" content="{{ request.build_absolute_uri }}{{ og_image.url }}">
+    <meta property="og:image:width" content="{{ og_image.width }}">
+    <meta property="og:image:height" content="{{ og_image.height }}">
+    <meta name="twitter:image" content="{{ request.build_absolute_uri }}{{ og_image.url }}">
+    <meta name="twitter:card" content="summary_large_image">
+{% endif %}
+
+{# 结构化数据 - 新闻文章 #}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "NewsArticle",
+  "headline": "{{ page.title|escapejs }}",
+  "description": "{% if page.excerpt %}{{ page.excerpt|escapejs }}{% else %}{{ page.title|escapejs }}{% endif %}",
+  {% if page.cover %}
+  "image": {
+    "@type": "ImageObject",
+    "url": "{{ request.build_absolute_uri }}{{ og_image.url }}",
+    "width": {{ og_image.width }},
+    "height": {{ og_image.height }},
+    "caption": "{% if page.cover.description %}{{ page.cover.description|escapejs }}{% else %}{{ page.title|escapejs }}{% endif %}"
+  },
+  {% endif %}
+  "datePublished": "{{ page.publish_at|date:'c' }}",
+  "dateModified": "{{ page.last_published_at|date:'c' }}",
+  "author": {
+    "@type": "Organization",
+    "name": "{{ page.get_site.site_name }}"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "{{ page.get_site.site_name }}"
+  },
+  "url": "{{ request.build_absolute_uri }}{{ page.url }}"
+}
+</script>
+{% endblock %}
+
 {% block content %}
 <article class="article-page">
     <header class="article-header">
         {% if page.cover %}
-        <div class="article-cover">
-            {% image page.cover max-1200x600 as cover_image %}
-            <img src="{{ cover_image.url }}" alt="{{ page.title }}" class="w-full">
+        <div class="article-cover-container">
+            <figure class="article-cover-figure">
+                {# 响应式图片集合 - 移动端到桌面端 #}
+                {% image page.cover fill-480x270 jpegquality-85 as cover_mobile %}
+                {% image page.cover fill-768x432 jpegquality-85 as cover_tablet %}
+                {% image page.cover fill-1200x675 jpegquality-85 as cover_desktop %}
+                {% image page.cover fill-1920x1080 jpegquality-90 as cover_large %}
+                
+                <picture class="article-cover-picture">
+                    {# 大屏幕 #}
+                    <source media="(min-width: 1200px)" 
+                            srcset="{{ cover_large.url }} 1920w, {{ cover_desktop.url }} 1200w"
+                            sizes="100vw">
+                    {# 平板 #}
+                    <source media="(min-width: 768px)" 
+                            srcset="{{ cover_desktop.url }} 1200w, {{ cover_tablet.url }} 768w"
+                            sizes="100vw">
+                    {# 移动端 #}
+                    <source media="(max-width: 767px)" 
+                            srcset="{{ cover_tablet.url }} 768w, {{ cover_mobile.url }} 480w"
+                            sizes="100vw">
+                    
+                    {# 默认图片 #}
+                    <img src="{{ cover_desktop.url }}" 
+                         alt="{% if page.cover.description %}{{ page.cover.description }}{% else %}{{ page.title }}{% endif %}"
+                         class="article-cover-image"
+                         loading="eager"
+                         decoding="async"
+                         width="{{ cover_desktop.width }}"
+                         height="{{ cover_desktop.height }}">
+                </picture>
+                
+                {# 图片说明文字 - 如果有描述的话 #}
+                {% if page.cover.description and page.cover.description != page.title %}
+                <figcaption class="article-cover-caption">
+                    {{ page.cover.description }}
+                </figcaption>
+                {% endif %}
+            </figure>
         </div>
         {% endif %}
 

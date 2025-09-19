@@ -41,6 +41,7 @@ WAGTAIL_APPS = [
     "wagtail.users",
     "wagtail.documents",
     "wagtail.images",
+    "wagtail.embeds",
     "wagtail.snippets",
     "wagtail.sites",
     "wagtail.contrib.settings",
@@ -69,6 +70,7 @@ LOCAL_APPS = [
     "apps.searchapp",
     "apps.api",
     "apps.media",  # 媒体管理应用
+    "apps.web_users",  # 网站前端用户系统
 ]
 
 # 品牌化应用必须在wagtail.admin之前，按照官方文档要求
@@ -170,6 +172,10 @@ USE_TZ = True
 # 静态文件配置
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+
+# 抑制Django默认404页面的URLResolver模板错误
+# 这是Django 5.2.6在DEBUG模式下的已知问题
+# 在LOGGING配置中处理
 STATICFILES_DIRS = [
     BASE_DIR / "static",
 ]
@@ -181,14 +187,14 @@ MEDIA_ROOT = BASE_DIR / "media"
 # 文件存储配置（支持S3/MinIO）
 if os.getenv("MINIO_ENDPOINT"):
     # MinIO 内部访问配置（用于上传）
-    DEFAULT_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
+    # 注意: 不再使用 DEFAULT_FILE_STORAGE，而是使用 STORAGES 配置
     AWS_ACCESS_KEY_ID = os.getenv("MINIO_ACCESS_KEY")
     AWS_SECRET_ACCESS_KEY = os.getenv("MINIO_SECRET_KEY")
-    AWS_STORAGE_BUCKET_NAME = os.getenv("MINIO_BUCKET", "media")
+    AWS_STORAGE_BUCKET_NAME = os.getenv("MINIO_BUCKET", "media")  # 保留用于兼容性
     AWS_S3_ENDPOINT_URL = os.getenv("MINIO_ENDPOINT")
     AWS_S3_REGION_NAME = "us-east-1"
     
-    # 外部访问域名配置
+    # 外部访问域名配置（用于传统桶的兼容性）
     AWS_S3_CUSTOM_DOMAIN = f"{os.getenv('MINIO_PUBLIC_DOMAIN', 'localhost:9002')}/{AWS_STORAGE_BUCKET_NAME}"
     
     # 强制使用自定义域名生成URL
@@ -241,8 +247,15 @@ if os.getenv("MINIO_ENDPOINT"):
     AWS_S3_PUBLIC_URL_PROTOCOL = 'http:'
     
     # Wagtail 媒体文件配置
-    WAGTAILIMAGES_UPLOAD_PATH = "images/"
+    # 指定调用函数构建上传路径（稳定ID+月分桶）
+    WAGTAILIMAGES_UPLOAD_PATH = "apps.core.media_paths.build_media_path"
+    # 使用自定义 Image/Rendition 模型，使 upload_to 在上传时拿到 collection
+    WAGTAILIMAGES_IMAGE_MODEL = 'media.CustomImage'
+    WAGTAILIMAGES_RENDITION_MODEL = 'media.CustomRendition'
     WAGTAILDOCS_UPLOAD_PATH = "documents/"
+    
+    # 指定Wagtail图片使用我们的自定义存储
+    WAGTAILIMAGES_STORAGE = "apps.core.storages.PublicMediaStorage"
 else:
     # 本地存储配置（开发环境备用）
     STORAGES = {
@@ -340,20 +353,51 @@ CELERY_BEAT_SCHEDULE = {
         'schedule': 60.0,  # 每分钟刷新一次短缓存
         'options': {'queue': 'default'},
     },
+    
+    # 数据同步和行为分析任务
+    'batch-update-article-weights': {
+        'task': 'apps.core.tasks.data_sync.batch_sync_article_weights',
+        'schedule': 3600.0,  # 每小时更新一次文章权重
+        'kwargs': {'limit': 500},  # 每次处理500篇文章
+    },
+    'update-trending-cache': {
+        'task': 'apps.core.tasks.data_sync.update_trending_articles_cache',
+        'schedule': 300.0,  # 每5分钟更新热门文章缓存
+    },
+    'comprehensive-consistency-check': {
+        'task': 'apps.core.tasks.data_sync.comprehensive_data_consistency_check',
+        'schedule': 1800.0,  # 每30分钟做一次全面检查
+    },
+    'cleanup-behavior-data': {
+        'task': 'apps.core.tasks.data_sync.cleanup_old_behavior_data',
+        'schedule': 86400.0,  # 每天清理一次过期数据
+        'kwargs': {'days_to_keep': 90},
+    },
+    'generate-behavior-insights': {
+        'task': 'apps.core.tasks.data_sync.generate_user_behavior_insights',
+        'schedule': 21600.0,  # 每6小时生成一次行为洞察
+    },
 }
+
+# 日志配置变量
+LOG_FILE_PATH = os.getenv("DJANGO_LOG_FILE", "/app/logs/django.log")
+USE_FILE_LOGGING = True
+
+try:
+    os.makedirs(os.path.dirname(LOG_FILE_PATH), exist_ok=True)
+    # 测试文件写入权限
+    test_file = LOG_FILE_PATH + '.test'
+    with open(test_file, 'w') as f:
+        f.write('test')
+    os.remove(test_file)
+except Exception:
+    # 目录不可写时，回退到控制台输出
+    USE_FILE_LOGGING = False
 
 # 默认broker配置（生产环境）
 CELERY_BROKER_URL = os.getenv("REDIS_URL", "redis://redis:6379/1")
 CELERY_RESULT_BACKEND = os.getenv("REDIS_URL", "redis://redis:6379/1")
 
-# 日志配置
-# 统一设置可写的默认日志文件路径并确保目录存在，避免权限错误
-LOG_FILE_PATH = os.getenv("DJANGO_LOG_FILE", "/tmp/django.log")
-try:
-    os.makedirs(os.path.dirname(LOG_FILE_PATH), exist_ok=True)
-except Exception:
-    # 目录不可写时，后续会回退到控制台输出
-    pass
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
@@ -368,13 +412,6 @@ LOGGING = {
         },
     },
     "handlers": {
-        "file": {
-            "level": "INFO",
-            "class": "logging.FileHandler",
-            "filename": LOG_FILE_PATH,
-            "formatter": "verbose",
-            "filters": ["request_context"],
-        },
         "console": {
             "level": "DEBUG",
             "class": "logging.StreamHandler",
@@ -398,12 +435,29 @@ LOGGING = {
             "propagate": False,
         },
         "apps": {
-            "handlers": ["console", "file"],
+            "handlers": ["console"],
             "level": "DEBUG",
+            "propagate": False,
+        },
+        "django.template": {
+            "handlers": ["console"],
+            "level": "ERROR",  # 抑制VariableDoesNotExist警告
             "propagate": False,
         },
     },
 }
+
+# 如果文件日志可用，动态添加文件处理器
+if USE_FILE_LOGGING:
+    LOGGING["handlers"]["file"] = {
+        "level": "INFO",
+        "class": "logging.FileHandler", 
+        "filename": LOG_FILE_PATH,
+        "formatter": "verbose",
+        "filters": ["request_context"],
+    }
+    # 为apps logger添加文件处理器
+    LOGGING["loggers"]["apps"]["handlers"].append("file")
 
 # 自定义配置
 WEBHOOK_SECRET_KEY = os.getenv("WEBHOOK_SECRET_KEY", "webhook-secret-key")

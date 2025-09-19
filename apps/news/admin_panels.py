@@ -89,6 +89,7 @@ def get_optimized_content_panels():
         # 发布设置
         MultiFieldPanel([
             FieldPanel('is_featured', help_text="⭐ 是否在首页或频道页置顶显示"),
+            FieldPanel('is_hero', help_text="🎬 是否在首页Hero轮播显示（建议选择有吸引力封面图的文章）"),
             FieldPanel('weight', help_text="📊 权重数值，越大越靠前（0为不置顶）"),
         ], 
         heading="📢 发布设置", 
@@ -362,26 +363,62 @@ def _get_tag_suggestions_panel():
             }
         }
         
-        // 回退1：找到可见的文本输入（通常 role="combobox" 或显示的 text 输入）并模拟用户输入+Enter
-        var candidatesRoot = controllerEl && controllerEl.parentElement ? controllerEl.parentElement : document;
-        var visibleInputs = Array.prototype.slice.call(candidatesRoot.querySelectorAll('input[role="combobox"], input[type="text"]'))
-            .filter(function(inp){
-                if (inp === tagInput) return false; // 排除隐藏主输入
-                var cs = window.getComputedStyle(inp);
-                return cs.display !== 'none' && cs.visibility !== 'hidden' && !inp.disabled;
-            });
-        if (visibleInputs.length > 0) {
-            var v = visibleInputs[0];
-            v.focus();
-            v.value = tagText;
-            v.dispatchEvent(new Event('input', {bubbles:true}));
-            // 模拟 Enter 接受标签
-            var ev = new KeyboardEvent('keydown', {key:'Enter', code:'Enter', keyCode:13, which:13, bubbles:true});
-            v.dispatchEvent(ev);
-            setTimeout(function(){
-                if (buttonElement) { buttonElement.disabled = true; buttonElement.style.opacity = '0.6'; }
-            }, 50);
-            return;
+        // 回退1：通过标签字段的DOM结构精确查找
+        var tagFieldInput = null;
+        
+        // 方法1：通过标签字段的隐藏输入找到对应的可见输入框
+        if (controllerEl && controllerEl.parentElement) {
+            var tagFieldContainer = controllerEl.parentElement;
+            tagFieldInput = tagFieldContainer.querySelector('input[role="combobox"]');
+            if (!tagFieldInput) {
+                tagFieldInput = tagFieldContainer.querySelector('input[type="text"]:not([name*="title"]):not([name*="publish"]):not([name*="author"]):not([name*="excerpt"])');
+            }
+        }
+        
+        // 方法2：通过标签标签文本查找
+        if (!tagFieldInput) {
+            var labels = document.querySelectorAll('label');
+            for (var i = 0; i < labels.length; i++) {
+                var label = labels[i];
+                if (label.textContent && label.textContent.toLowerCase().includes('标签')) {
+                    var fieldDiv = label.closest('.field');
+                    if (fieldDiv) {
+                        tagFieldInput = fieldDiv.querySelector('input[role="combobox"]') || 
+                                      fieldDiv.querySelector('input[type="text"]:not([name*="title"]):not([name*="publish"])');
+                        if (tagFieldInput) break;
+                    }
+                }
+            }
+        }
+        
+        // 方法3：通过data-controller="w-tag"查找
+        if (!tagFieldInput) {
+            var wtag = document.querySelector('[data-controller*="w-tag"]');
+            if (wtag) {
+                tagFieldInput = wtag.querySelector('input[role="combobox"]') || 
+                               wtag.querySelector('input[type="text"]');
+            }
+        }
+        
+        console.log('精确查找的标签输入框:', tagFieldInput ? 
+            ('name=' + tagFieldInput.name + ', id=' + tagFieldInput.id + ', role=' + tagFieldInput.getAttribute('role')) : 
+            '未找到');
+        
+        if (tagFieldInput) {
+            var cs = window.getComputedStyle(tagFieldInput);
+            if (cs.display !== 'none' && cs.visibility !== 'hidden' && !tagFieldInput.disabled) {
+                console.log('使用精确找到的标签输入框');
+                tagFieldInput.focus();
+                tagFieldInput.value = tagText;
+                tagFieldInput.dispatchEvent(new Event('input', {bubbles:true}));
+                // 模拟 Enter 接受标签
+                var ev = new KeyboardEvent('keydown', {key:'Enter', code:'Enter', keyCode:13, which:13, bubbles:true});
+                tagFieldInput.dispatchEvent(ev);
+                setTimeout(function(){
+                    if (buttonElement) { buttonElement.disabled = true; buttonElement.style.opacity = '0.6'; }
+                }, 50);
+                return;
+            }
         }
         
         // 回退2：直接更新隐藏输入框值（最末手段，确保表单能提交）

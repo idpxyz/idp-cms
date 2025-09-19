@@ -4,12 +4,86 @@ import { fetchTrendingFeed } from '@/lib/api/feed';
 
 /**
  * 获取 Hero 轮播数据
- * 优先使用智能推荐，回退到传统 API
+ * 优先使用专门的Hero标记，回退到推荐内容
  */
 export async function getHeroItems(limit: number = 5): Promise<HeroItem[]> {
-  // 暂时直接使用 mock data 确保稳定显示
-  console.log('HeroCarousel: 使用 mock data');
+  try {
+    // 🎬 首先尝试获取专门标记为Hero的内容
+    console.log('🎬 HeroCarousel: 尝试获取Hero专用内容...');
+    const heroResponse = await getNews('hero', 1, limit);
+    
+    if (heroResponse.data && heroResponse.data.length > 0) {
+      console.log(`🎬 获取到 ${heroResponse.data.length} 条Hero专用内容`);
+      const heroItems = heroResponse.data
+        .filter(item => item.cover?.url || item.image_url) // 确保有封面图
+        .map(item => transformToHeroItem(item));
+      
+      console.log(`🎬 过滤后Hero内容: ${heroItems.length} 条`);
+      if (heroItems.length > 0) {
+        return heroItems;
+      }
+    }
+  } catch (error) {
+    console.warn('🚫 Failed to fetch hero-specific content:', error);
+  }
+  
+  try {
+    // 📈 如果Hero专用内容不足，使用featured作为补充
+    console.log('📈 HeroCarousel: 回退到featured内容...');
+    const featuredResponse = await getNews('recommend', 1, limit);
+    
+    if (featuredResponse.data && featuredResponse.data.length > 0) {
+      const featuredItems = featuredResponse.data
+        .filter(item => (item.is_featured && (item.cover?.url || item.image_url))) // featured + 有图
+        .slice(0, limit)
+        .map(item => transformToHeroItem(item));
+      
+      if (featuredItems.length > 0) {
+        console.log(`📈 获取到 ${featuredItems.length} 条featured补充内容`);
+        return featuredItems;
+      }
+    }
+  } catch (error) {
+    console.warn('🚫 Failed to fetch featured content for hero:', error);
+  }
+  
+  // 🎭 最后回退到模拟数据
+  console.log('🎭 HeroCarousel: 回退到模拟数据');
   return generateMockHeroItems().slice(0, limit);
+}
+
+/**
+ * 转换后端数据为Hero项目格式
+ */
+function transformToHeroItem(item: any): HeroItem {
+  // 为Hero文章提供默认占位图
+  const defaultHeroImage = `https://picsum.photos/1200/600?random=${item.id}`;
+  
+  return {
+    id: item.id.toString(),
+    title: item.title,
+    excerpt: item.excerpt || item.summary || '',
+    image_url: item.cover?.url || item.image_url || defaultHeroImage,
+    publish_time: item.publish_at || item.first_published_at || item.created_at,
+    author: item.author_name || item.author || '',
+    source: item.source_site?.name || item.external_site?.name || '本站',
+    channel: item.channel ? {
+      id: item.channel.slug || item.channel.id.toString(),
+      name: item.channel.name,
+      slug: item.channel.slug || item.channel.id.toString()
+    } : undefined,
+    topic: item.topic ? {
+      id: item.topic.slug || item.topic.id.toString(),
+      name: item.topic.title || item.topic.name,
+      slug: item.topic.slug || item.topic.id.toString()
+    } : undefined,
+    slug: item.slug || `article-${item.id}`,
+    is_breaking: item.is_featured || false,
+    is_live: item.is_live || false,
+    is_event_mode: item.is_event_mode || false,
+    media_type: item.has_video ? 'video' : 'image',
+    tags: item.tags || [],
+  };
 
   // 以下 API 调用暂时注释，需要时可以重新启用
   /*

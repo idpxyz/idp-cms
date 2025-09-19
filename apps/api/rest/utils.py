@@ -153,14 +153,28 @@ def apply_include_expansion(data, includes, article, site):
                 "cover_image_url": topic.cover_image.get_rendition('width-400').url if topic.cover_image else None
             }
         
-        elif include == "cover" and hasattr(article, 'cover'):
+        elif include == "cover" and hasattr(article, 'cover') and article.cover:
             # 展开封面图片信息
-            cover = getattr(article, 'cover', None)
-            if cover:
+            cover = article.cover
+            try:
+                # 尝试获取完整的图片URL
+                cover_url = cover.file.url if hasattr(cover, 'file') and cover.file else ""
+                
                 data["cover"] = {
-                    "url": cover.url if hasattr(cover, 'url') else str(cover),
-                    "alt": cover.alt if hasattr(cover, 'alt') else "",
-                    "title": cover.title if hasattr(cover, 'title') else ""
+                    "url": cover_url,
+                    "alt": getattr(cover, 'alt', ''),
+                    "title": getattr(cover, 'title', ''),
+                    "width": getattr(cover, 'width', None),
+                    "height": getattr(cover, 'height', None)
+                }
+            except Exception:
+                # 如果获取URL失败，提供空的cover结构
+                data["cover"] = {
+                    "url": "",
+                    "alt": "",
+                    "title": getattr(cover, 'title', ''),
+                    "width": None,
+                    "height": None
                 }
     
     return data
@@ -237,6 +251,14 @@ def apply_filtering(queryset, query_params):
         elif is_featured.lower() in ("false", "0", "no"):
             queryset = queryset.filter(is_featured=False)
     
+    # 是否Hero轮播
+    is_hero = query_params.get("is_hero")
+    if is_hero is not None:
+        if is_hero.lower() in ("true", "1", "yes"):
+            queryset = queryset.filter(is_hero=True)
+        elif is_hero.lower() in ("false", "0", "no"):
+            queryset = queryset.filter(is_hero=False)
+    
     # 时间过滤
     since = query_params.get("since")
     if since:
@@ -308,7 +330,8 @@ def apply_ordering(queryset, order_param):
             "updated_at": "last_published_at",
             "title": "title",
             "weight": "weight",
-            "is_featured": "is_featured"
+            "is_featured": "is_featured",
+            "is_hero": "is_hero"
         }
         
         db_field = field_mapping.get(field_name, field_name)

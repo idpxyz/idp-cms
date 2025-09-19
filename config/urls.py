@@ -34,7 +34,7 @@ from apps.api.rest.cache_management import cache_stats, clear_cache, invalidate_
 from apps.api.utils.cache_performance import cache_performance_stats, reset_cache_stats
 from apps.api.rest.articles import (
     articles_list, article_detail, channels_list, regions_list, 
-    portal_articles, site_settings
+    portal_articles, hero_articles, site_settings
 )
 from apps.api.rest.revalidate import revalidate, revalidate_status
 from apps.api.rest import cdn_config
@@ -44,7 +44,8 @@ from apps.api.rest.crawler_api import (
 from apps.api.rest.tags import top_tags as api_top_tags, tag_articles as api_tag_articles
 from apps.api.rest.tags_light import tags_list as api_tags_list, tag_detail as api_tag_detail
 from apps.api.rest.monitoring import monitoring_dashboard, monitoring_health
-from apps.api.rest.analytics_stream import analytics_stream, analytics_stream_stats
+from apps.api.rest.analytics_stream import analytics_stream
+from apps.api.rest.media_proxy import media_proxy
 from apps.api.rest.simple_sse import simple_sse
 from apps.api.rest.basic_sse import basic_sse
 from apps.api.rest.mock_analytics_stream import mock_analytics_stream
@@ -53,6 +54,10 @@ from apps.api.rest.search_suggest import search_suggest
 from apps.api.rest.trending_search import trending_search
 from apps.api.rest.search_os import search_os
 from apps.api.rest.tag_suggestions import suggest_tags, batch_suggest_tags, tag_suggestion_status
+from apps.api.rest.article_comments import (
+    get_article_comments, add_article_comment, 
+    toggle_comment_like, get_comment_stats
+)
 
 # 核心应用视图导入
 from apps.core.views import (
@@ -92,7 +97,6 @@ urlpatterns = [
     path("api/monitoring/dashboard/", monitoring_dashboard, name="monitoring-dashboard"),
     path("api/monitoring/health/", monitoring_health, name="monitoring-health"),
     path("api/analytics/stream/", analytics_stream, name="analytics-stream"),
-    path("api/analytics/stream/stats/", analytics_stream_stats, name="analytics-stream-stats"),
     path("api/test/sse/", simple_sse, name="simple-sse"),
     path("api/basic/sse/", basic_sse, name="basic-sse"),
     path("api/mock/analytics/stream/", mock_analytics_stream, name="mock-analytics-stream"),
@@ -143,6 +147,9 @@ urlpatterns = [
     path("api/cache/invalidate/", invalidate_pattern, name="api-cache-invalidate"),
     path("api/cache/health/", cache_health, name="api-cache-health"),
     
+    # Media Proxy API
+    path("api/media/proxy/<path:file_path>", media_proxy, name="api-media-proxy"),
+    
     # 缓存性能测试API
     path("api/cache/performance/", cache_performance_stats, name="api-cache-performance"),
     path("api/cache/reset-stats/", reset_cache_stats, name="api-cache-reset-stats"),
@@ -153,6 +160,7 @@ urlpatterns = [
     path("api/channels/", channels_list, name="api-channels-list"),
     path("api/regions/", regions_list, name="api-regions-list"),
     path("api/portal/articles/", portal_articles, name="api-portal-articles"),
+    path("api/hero/articles/", hero_articles, name="api-hero-articles"),
     path("api/site-settings/", site_settings, name="api-site-settings"),
     # 标签API
     path("api/tags/top/", api_top_tags, name="api-top-tags"),
@@ -177,6 +185,15 @@ urlpatterns = [
     
     # 媒体文件API
     path("api/media/", include("apps.media.urls")),
+    
+    # 网站用户系统API
+    path("api/web-users/", include("apps.web_users.urls")),
+    
+    # 文章评论API
+    path("api/articles/<str:article_id>/comments/", get_article_comments, name="api-article-comments"),
+    path("api/articles/<str:article_id>/comments/add/", add_article_comment, name="api-add-article-comment"),
+    path("api/articles/<str:article_id>/comments/stats/", get_comment_stats, name="api-comment-stats"),
+    path("api/comments/<int:comment_id>/like/", toggle_comment_like, name="api-toggle-comment-like"),
     
     # 爬虫数据写入API
     path("api/crawler/articles/bulk/", bulk_create_articles, name="api-crawler-bulk-articles"),

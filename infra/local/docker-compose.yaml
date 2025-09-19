@@ -130,6 +130,9 @@ services:
       MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin}
       MINIO_BUCKET: ${MINIO_BUCKET:-media}
       MINIO_PUBLIC_DOMAIN: ${MINIO_PUBLIC_DOMAIN:-localhost:9002}
+      # 禁用媒体清理任务，防止误删图片
+      ENABLE_MEDIA_CLEANUP: "0"
+      ENABLE_RENDITION_CLEANUP: "0"
     user: "${DEV_UID:-1000}:${DEV_GID:-1000}"
     volumes: ["../../:/app"]
     working_dir: /app
@@ -158,6 +161,8 @@ services:
     env_file: ../../.env
     environment:
       DJANGO_SETTINGS_MODULE: config.settings.dev
+      ENABLE_MEDIA_CLEANUP: "0"
+      ENABLE_RENDITION_CLEANUP: "0"
     volumes: ["../../:/app"]
     working_dir: /app
     depends_on:
@@ -172,6 +177,8 @@ services:
     env_file: ../../.env
     environment:
       DJANGO_SETTINGS_MODULE: config.settings.dev
+      ENABLE_MEDIA_CLEANUP: "0"
+      ENABLE_RENDITION_CLEANUP: "0"
     volumes: ["../../:/app"]
     working_dir: /app
     depends_on:

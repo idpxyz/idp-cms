@@ -5,11 +5,31 @@ from wagtail.models import Page, Site
 from wagtail.admin.panels import (
     FieldPanel, MultiFieldPanel, TabbedInterface, ObjectList, HelpPanel
 )
+from wagtail.images.widgets import AdminImageChooser
 from wagtail.admin.widgets import AdminDateTimeInput
 from taggit.models import TaggedItemBase
 from modelcluster.fields import ParentalKey
 from modelcluster.contrib.taggit import ClusterTaggableManager
 from ..rich_text_features import get_news_editor_features, get_advanced_news_editor_features
+from wagtail.images import get_image_model
+from wagtail.admin.forms import WagtailAdminPageForm
+
+
+# 使用 Wagtail 的管理表单基类
+class ArticlePageForm(WagtailAdminPageForm):
+    """
+    自定义表单类，用于改进图片选择器的用户体验
+    """
+    
+    class Meta:
+        # 这个 Meta 会在 ArticlePage 定义后被正确设置
+        pass
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # 在初始化时替换 cover 字段的小组件
+        if 'cover' in self.fields:
+            self.fields['cover'].widget = AdminImageChooser()
 
 
 class ArticlePageTag(TaggedItemBase):
@@ -30,6 +50,9 @@ class ArticlePage(Page):
     符合专业新闻网站标准，支持多站点聚合策略
     """
     
+    # 使用自定义表单类来改进图片选择器体验
+    base_form_class = ArticlePageForm
+    
     # === 基础内容 ===
     excerpt = models.TextField(blank=True, verbose_name="文章摘要", 
                               help_text="文章摘要，用于列表页展示和SEO")
@@ -40,7 +63,7 @@ class ArticlePage(Page):
         help_text="✍️ 专业新闻编辑器 - 支持丰富的格式、媒体内容和表格功能"
     )
     cover = models.ForeignKey(
-        'wagtailimages.Image',
+        'media.CustomImage',
         null=True, blank=True,
         on_delete=models.SET_NULL,
         related_name='+',
@@ -137,8 +160,22 @@ class ArticlePage(Page):
     # === 权重排序 ===
     is_featured = models.BooleanField(default=False, verbose_name="置顶推荐",
                                      help_text="是否在首页或频道页置顶显示")
+    is_hero = models.BooleanField(default=False, verbose_name="首页轮播",
+                                 help_text="是否在首页Hero轮播区域显示，需要配图")
     weight = models.IntegerField(default=0, verbose_name="权重",
                                 help_text="数值越大权重越高，影响排序")
+    
+    # === 统计字段 ===
+    view_count = models.PositiveIntegerField(default=0, verbose_name="阅读量",
+                                           help_text="文章阅读次数")
+    comment_count = models.PositiveIntegerField(default=0, verbose_name="评论数",
+                                              help_text="文章评论总数")
+    like_count = models.PositiveIntegerField(default=0, verbose_name="点赞数",
+                                           help_text="文章点赞总数")
+    favorite_count = models.PositiveIntegerField(default=0, verbose_name="收藏数",
+                                               help_text="文章收藏总数")
+    reading_time = models.PositiveIntegerField(null=True, blank=True, verbose_name="预计阅读时长",
+                                             help_text="预计阅读时长（分钟）")
     
     # === 时间字段 ===
     publish_at = models.DateTimeField(null=True, blank=True, verbose_name="发布时间",
@@ -176,7 +213,7 @@ class ArticlePage(Page):
                 """
             ),
             FieldPanel('excerpt', help_text="📋 文章摘要，50-100字，用于列表展示和SEO"),
-            FieldPanel('cover', help_text="🖼️ 文章配图，建议16:9比例"),
+            FieldPanel('cover'),
             FieldPanel('body', help_text="✍️ 文章正文内容"),
         ], 
         heading="📰 文章内容", 
@@ -229,6 +266,7 @@ class ArticlePage(Page):
         # 发布设置
         MultiFieldPanel([
             FieldPanel('is_featured', help_text="⭐ 是否在首页或频道页置顶显示"),
+            FieldPanel('is_hero', help_text="🎬 是否在首页Hero轮播显示（建议选择有吸引力封面图的文章）"),
             FieldPanel('weight', help_text="📊 权重数值，越大越靠前（0为不置顶）"),
         ], 
         heading="📢 发布设置", 
@@ -370,6 +408,9 @@ class ArticlePage(Page):
             models.Index(fields=['is_featured', 'weight', 'publish_at'], name='art_feat_weight_pub'),
             models.Index(fields=['language_id', 'region'], name='art_lang_region'),
             models.Index(fields=['has_video', 'is_featured'], name='art_video_feat'),
+            # Hero轮播相关索引
+            models.Index(fields=['is_hero', 'weight', 'publish_at'], name='art_hero_weight_pub'),
+            models.Index(fields=['is_hero', 'cover'], name='art_hero_cover'),
         ]
     
     def __str__(self):
@@ -406,8 +447,87 @@ class ArticlePage(Page):
     def get_category_names(self):
         """获取分类名称列表"""
         return [cat.name for cat in self.get_categories_list()]
+    
+    def calculate_reading_time(self):
+        """计算预计阅读时长（基于文章内容长度）"""
+        if not self.body:
+            return 1  # 默认1分钟
+        
+        # 去除HTML标签，计算纯文本长度
+        import re
+        text_content = re.sub(r'<[^>]+>', '', str(self.body))
+        char_count = len(text_content)
+        
+        # 中文阅读速度约为每分钟400-600字，这里取500字/分钟
+        reading_time = max(1, char_count // 500)
+        return reading_time
+    
+    def update_reading_time(self):
+        """更新预计阅读时长"""
+        self.reading_time = self.calculate_reading_time()
+    
+    def calculate_dynamic_weight(self):
+        """
+        基于统计数据计算动态权重
+        
+        权重计算公式：
+        - 基础权重：原有的手动设置权重（0-100）
+        - 阅读量权重：view_count / 1000 * 10（最高10分）
+        - 互动权重：(like_count + favorite_count) * 5（最高不限）
+        - 评论权重：comment_count * 3（最高不限）
+        - 时效衰减：发布时间越新权重越高
+        """
+        import math
+        from django.utils import timezone
+        import datetime
+        
+        # 1. 基础权重（原有的手动权重）
+        base_weight = self.weight or 0
+        
+        # 2. 统计数据权重
+        view_weight = min((self.view_count or 0) / 1000 * 10, 10)  # 最高10分
+        interaction_weight = ((self.like_count or 0) + (self.favorite_count or 0)) * 5
+        comment_weight = (self.comment_count or 0) * 3
+        
+        # 3. 时效权重（最近7天内的文章有加分）
+        time_weight = 0
+        if self.first_published_at:
+            days_ago = (timezone.now() - self.first_published_at).days
+            if days_ago <= 7:
+                time_weight = max(0, 10 - days_ago)  # 7天内，越新分数越高
+        
+        # 4. 综合计算
+        dynamic_weight = (
+            base_weight * 0.6 +  # 基础权重占60%
+            view_weight * 0.2 +  # 阅读量占20%
+            (interaction_weight + comment_weight) * 0.15 +  # 互动占15%
+            time_weight * 0.05  # 时效性占5%
+        )
+        
+        # 确保在合理范围内
+        return min(int(dynamic_weight), 100)
+    
+    def update_dynamic_weight(self):
+        """更新动态权重"""
+        self.weight = self.calculate_dynamic_weight()
+    
+    def save(self, *args, **kwargs):
+        """保存时自动更新阅读时长和动态权重"""
+        if not self.reading_time:
+            self.update_reading_time()
+        
+        # 如果启用动态权重计算
+        force_dynamic_weight = kwargs.pop('update_dynamic_weight', False)
+        if force_dynamic_weight:
+            self.update_dynamic_weight()
+        
+        super().save(*args, **kwargs)
 
 
+
+# 现在设置表单的 Meta 类
+ArticlePageForm.Meta.model = ArticlePage
+ArticlePageForm.Meta.fields = '__all__'
 
 # 使用优化的管理界面配置
 from ..admin_panels import get_tabbed_interface

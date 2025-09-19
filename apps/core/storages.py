@@ -22,9 +22,12 @@ class PublicMediaStorage(S3Boto3Storage):
         self.endpoint_url = os.getenv("MINIO_ENDPOINT")
         self.region_name = "us-east-1"
         
-        # 公共访问域名配置
+        # 公共访问域名配置 - 支持多种访问场景
         public_domain = os.getenv("MINIO_PUBLIC_DOMAIN", "localhost:9002")
         self.custom_domain = f"{public_domain}/{self.bucket_name}"
+        
+        # 内部访问域名（容器间通信）
+        self.internal_domain = f"minio:9000/{self.bucket_name}"
         
         # 公共文件配置
         self.default_acl = None
@@ -34,6 +37,26 @@ class PublicMediaStorage(S3Boto3Storage):
         self.signature_version = "s3v4"
         self.verify = False
         self.use_ssl = False
+    
+    def url(self, name):
+        """生成正确的公共访问URL"""
+        # 使用Django媒体代理而不是直接访问MinIO
+        # 这解决了浏览器访问MinIO时的网络连接问题
+        clean_name = name.lstrip('/')
+        from django.urls import reverse
+        from django.conf import settings
+        
+        # 获取Django服务的基础URL
+        base_url = getattr(settings, 'WAGTAILADMIN_BASE_URL', 'http://localhost:8000')
+        base_url = base_url.rstrip('/')
+        
+        # 使用媒体代理URL
+        return f"{base_url}/api/media/proxy/{clean_name}"
+    
+    def internal_url(self, name):
+        """生成容器内部访问URL（用于服务间通信）"""
+        clean_name = name.lstrip('/')
+        return f"http://{self.internal_domain}/{clean_name}"
     
     def get_available_name(self, name, max_length=None):
         """重写文件名生成，使用我们的路径生成器"""

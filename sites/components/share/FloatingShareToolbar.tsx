@@ -59,7 +59,7 @@ export default function FloatingShareToolbar({
       setIsScrolled(scrollTop > 100); // 滚动超过100px时显示背景框
     };
 
-    window.addEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 

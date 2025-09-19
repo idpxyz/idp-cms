@@ -15,6 +15,45 @@ export async function GET(req: NextRequest) {
   const limit = url.searchParams.get("limit") || "20";
 
   try {
+    // 特殊处理：Hero轮播数据
+    if (channel === "hero") {
+      const heroUrl = endpoints.buildUrl(
+        endpoints.getCmsEndpoint('/api/articles/'),
+        {
+          site: getMainSite().hostname,
+          page,
+          size: limit,
+          is_hero: "true",
+          order: "-weight,-publish_at",
+          include: "cover,channel"
+        }
+      );
+
+      const response = await fetch(heroUrl, endpoints.createFetchConfig({
+        timeout: 5000,
+        next: {
+          revalidate: 600, // Hero内容缓存10分钟
+          tags: [`hero:${getMainSite().hostname}`, "articles:hero"],
+        },
+      }));
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log(`🎬 Hero API: 获取到 ${data.items?.length || 0} 条Hero轮播内容`);
+        
+        // 转换后端格式为前端期望的格式
+        return NextResponse.json({
+          data: data.items || [],
+          pagination: data.pagination,
+          meta: {
+            ...data.meta,
+            channel: "hero",
+            timestamp: new Date().toISOString()
+          }
+        });
+      }
+    }
+
     // 使用统一的端点管理器构建URL
     // 切换到后端基于 OpenSearch 的门户聚合接口
     const articlesUrl = endpoints.buildUrl(
@@ -23,7 +62,7 @@ export async function GET(req: NextRequest) {
         site: getMainSite().hostname,
         page,
         size: limit,
-        ...(channel && channel !== "recommend" ? { channel: channel } : {})  
+        ...(channel && channel !== "recommend" && channel !== "hero" ? { channel: channel } : {})  
       }
     );
 
@@ -61,17 +100,25 @@ export async function GET(req: NextRequest) {
         title: item.title,
         slug: item.slug,
         excerpt: item.excerpt || "",
-        image_url: item.cover_url || null,
+        image_url: item.cover_url || item.image_url || null,
         cover: null,
         channel: item.channel_slug ? { slug: item.channel_slug, name: item.channel_slug } : undefined,
         region: item.region,
         publish_at: item.publish_at,
         updated_at: item.updated_at,
-        is_featured: false,
+        is_featured: item.is_featured || false,
         allow_aggregate: true,
         canonical_url: item.canonical_url,
         source: item.source_site,
         url: `/portal/article/${item.slug}`,
+        author: item.author,
+        has_video: item.has_video || false,
+        // 统计数据
+        view_count: item.view_count || 0,
+        comment_count: item.comment_count || 0,
+        like_count: item.like_count || 0,
+        favorite_count: item.favorite_count || 0,
+        reading_time: item.reading_time || 1,
       })),
       pagination: data.pagination || {
         page: Number(page),

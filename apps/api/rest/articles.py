@@ -53,7 +53,8 @@ def articles_list(request):
     - categories: 分类过滤（多选，逗号分隔）
     - topics: 专题过滤（多选，逗号分隔）
     - q: 搜索关键词
-    - is_featured: 是否置顶
+    - is_featured: 是否置顶推荐
+    - is_hero: 是否首页轮播
     - since: 时间过滤
     - order: 排序
     - page: 分页
@@ -84,7 +85,7 @@ def articles_list(request):
         queryset = apply_ordering(queryset, request.query_params.get("order", "-publish_at"))
         
         # 6. 性能优化：预取关联数据，避免N+1查询
-        queryset = queryset.select_related('channel', 'region', 'topic').prefetch_related('tags', 'categories')
+        queryset = queryset.select_related('channel', 'region', 'cover').prefetch_related('topics', 'tags', 'categories')
         
         # 7. 分页 - 优化版本，避免重复count查询
         total_count = queryset.count()
@@ -104,10 +105,11 @@ def articles_list(request):
                 "updated_at": article.last_published_at.isoformat() if article.last_published_at else None,
                 "channel_slug": getattr(article.channel, 'slug', '') if article.channel else '',
                 "region": getattr(article.region, 'name', '') if article.region else '',
-                "topic_slug": article.topic_slug if hasattr(article, 'topic_slug') else '',
-                "topic_title": getattr(article.topic, 'title', '') if article.topic else '',
+                "topic_slug": '',  # topics是多对多字段，暂时留空
+                "topic_title": '',  # topics是多对多字段，暂时留空
                 "category_names": article.get_category_names() if hasattr(article, 'get_category_names') else [],
                 "is_featured": getattr(article, 'is_featured', False),
+                "is_hero": getattr(article, 'is_hero', False),
                 "weight": getattr(article, 'weight', 0),
                 "allow_aggregate": getattr(article, 'allow_aggregate', True),
                 "canonical_url": getattr(article, 'canonical_url', ''),
@@ -522,22 +524,82 @@ def portal_articles(request):
         hits = res.get("hits", {})
         total = hits.get("total", {}).get("value", 0)
 
-        # 5. 序列化
+        # 5. 序列化 - 增强图片数据获取
         items = []
+        article_ids = []
+        
+        # 收集文章ID用于批量查询图片
         for h in hits.get("hits", []):
             s = h.get("_source", {})
+            article_id = s.get("article_id") or h.get("_id")
+            article_ids.append(article_id)
+        
+        # 批量查询文章的封面图片和统计数据
+        article_data = {}
+        if article_ids:
+            from apps.news.models.article import ArticlePage
+            articles_query = ArticlePage.objects.filter(
+                id__in=article_ids
+            ).select_related('cover').values(
+                'id', 'cover__file', 'cover__title',
+                'view_count', 'comment_count', 'like_count', 'favorite_count', 'reading_time',
+                'author_name', 'is_featured', 'weight'
+            )
+            
+            for article in articles_query:
+                article_id = str(article['id'])
+                data = {
+                    'view_count': article['view_count'] or 0,
+                    'comment_count': article['comment_count'] or 0,
+                    'like_count': article['like_count'] or 0,
+                    'favorite_count': article['favorite_count'] or 0,
+                    'reading_time': article['reading_time'] or 1,
+                    'author_name': article['author_name'] or '',
+                    'is_featured': article['is_featured'] or False,
+                    'weight': article['weight'] or 0,
+                    'cover_url': '',
+                    'cover_title': ''
+                }
+                
+                # 处理封面图片
+                if article['cover__file']:
+                    data['cover_url'] = f"/media/{article['cover__file']}"
+                    data['cover_title'] = article['cover__title'] or ''
+                
+                article_data[article_id] = data
+        
+        # 构建响应项目
+        for h in hits.get("hits", []):
+            s = h.get("_source", {})
+            article_id = s.get("article_id") or h.get("_id")
+            
+            # 获取文章数据（图片和统计信息）
+            data = article_data.get(str(article_id), {})
+            cover_url = data.get('cover_url', '')
+            
             item = {
-                "id": s.get("article_id") or h.get("_id"),
+                "id": article_id,
                 "title": s.get("title"),
                 "slug": s.get("slug"),
                 "excerpt": s.get("summary") or "",
-                "cover_url": "",  # 可后续扩展
+                "cover_url": cover_url,  # 从数据库获取实际图片
+                "image_url": cover_url,  # 兼容性字段
                 "publish_at": s.get("first_published_at") or s.get("publish_time"),
                 "channel_slug": s.get("primary_channel_slug") or s.get("channel"),
                 "region": s.get("region"),
                 "source_site": site,
                 "source_url": s.get("url") or "",
                 "canonical_url": s.get("url") or "",
+                "author": data.get('author_name') or s.get("author"),  # 优先使用数据库中的作者
+                "has_video": s.get("has_video", False),  # 添加视频标识
+                "is_featured": data.get('is_featured', False),  # 添加推荐标识
+                "weight": data.get('weight', 0),  # 添加权重字段
+                # 统计数据
+                "view_count": data.get('view_count', 0),
+                "comment_count": data.get('comment_count', 0), 
+                "like_count": data.get('like_count', 0),
+                "favorite_count": data.get('favorite_count', 0),
+                "reading_time": data.get('reading_time', 1),
             }
             if fields:
                 item = apply_field_filtering(item, fields)
@@ -566,6 +628,146 @@ def portal_articles(request):
 
     except Exception as e:
         return Response({"error": f"Internal server error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(["GET"])
+def hero_articles(request):
+    """
+    Hero 轮播推荐文章接口
+    
+    专门为首页 Hero Carousel 优化的接口
+    返回高权重、精选的文章，必须有图片
+    
+    支持参数：
+    - site: 站点过滤 (必需)
+    - limit: 返回数量 (默认5)
+    """
+    try:
+        # 获取站点标识
+        site_identifier = get_site_from_request(request)
+        limit = min(int(request.GET.get("limit", 5)), 10)  # 最多10条
+        
+        # 构建查询：高权重 + 精选文章
+        from apps.news.models.article import ArticlePage
+        
+        # 科学的Hero选择策略：多样性 + 权重 + 时效性
+        from django.utils import timezone
+        import datetime
+        
+        # 1. 高权重精选文章（权重>=70，约top 30%）
+        # 优化：只选择必要字段，减少数据传输
+        high_weight_articles = ArticlePage.objects.filter(
+            live=True,
+            is_featured=True,
+            weight__gte=70  # 基于数据分析调整阈值
+        ).select_related('cover', 'channel').values(
+            'id', 'title', 'slug', 'excerpt', 'weight', 'first_published_at',
+            'view_count', 'comment_count', 'like_count', 'favorite_count', 'reading_time',
+            'author_name', 'cover__file', 'cover__title',
+            'channel__id', 'channel__name', 'channel__slug'
+        ).order_by(
+            '-weight', '-first_published_at'
+        )[:limit]
+        
+        # 简化逻辑：如果高权重文章不足，直接补充其他精选文章
+        hero_articles = list(high_weight_articles)
+        if len(hero_articles) < limit:
+            # 获取已选择的文章ID
+            selected_ids = [article['id'] for article in hero_articles]
+            
+            # 补充其他精选文章
+            additional_articles = ArticlePage.objects.filter(
+                live=True,
+                is_featured=True
+            ).exclude(
+                id__in=selected_ids
+            ).values(
+                'id', 'title', 'slug', 'excerpt', 'weight', 'first_published_at',
+                'view_count', 'comment_count', 'like_count', 'favorite_count', 'reading_time',
+                'author_name', 'cover__file', 'cover__title',
+                'channel__id', 'channel__name', 'channel__slug'
+            ).order_by(
+                '-weight', '-first_published_at'
+            )[:(limit - len(hero_articles))]
+            
+            hero_articles.extend(additional_articles)
+        
+        # 构建响应数据
+        items = []
+        for article in hero_articles:
+            # 处理图片 - 使用实际的图片策略
+            if article['cover__file']:
+                image_url = f"/media/{article['cover__file']}"
+            else:
+                # 使用本地默认图片，基于频道分类
+                channel_slug = article['channel__slug'] or "default"
+                image_url = f"/static/images/defaults/hero-{channel_slug}.jpg"
+                
+            item = {
+                "id": str(article['id']),
+                "title": article['title'],
+                "slug": article['slug'],
+                "excerpt": article['excerpt'] or "",
+                "image_url": image_url,
+                "cover_url": image_url,
+                "publish_at": article['first_published_at'].isoformat() if article['first_published_at'] else None,
+                "publish_time": article['first_published_at'].isoformat() if article['first_published_at'] else None,
+                "author": article['author_name'] or "",
+                "source": site_identifier or "官方",
+                "channel": {
+                    "id": article['channel__slug'] or "news",
+                    "name": article['channel__name'] or "新闻",
+                    "slug": article['channel__slug'] or "news"
+                } if article['channel__id'] else None,
+                "tags": [],  # 可以后续扩展
+                "is_featured": True,  # 所有都是精选文章
+                "is_breaking": (article['weight'] or 0) >= 90,  # 权重>=90视为突发新闻（约top 10%）
+                "is_live": False,  # 可以后续扩展
+                "is_event_mode": (article['weight'] or 0) >= 95,  # 权重>=95视为重大事件（约top 5%）
+                "media_type": "image",
+                "weight": article['weight'] or 0,
+                # 统计数据
+                "view_count": article['view_count'] or 0,
+                "comment_count": article['comment_count'] or 0,
+                "like_count": article['like_count'] or 0,
+                "favorite_count": article['favorite_count'] or 0,
+                "reading_time": article['reading_time'] or 1,  # 简化：不调用calculate方法
+            }
+            items.append(item)
+        
+        return Response({
+            "success": True,
+            "items": items,
+            "total": len(items),
+            "debug": {
+                "site": site_identifier,
+                "strategy": "multi_tier_selection",
+                "limit": limit,
+                "actual_returned": len(items),
+                "selection_breakdown": {
+                    "high_weight_articles": len([item for item in items if item["weight"] >= 70]),
+                    "recent_articles": len([item for item in items if item["weight"] < 70]),
+                    "breaking_news": len([item for item in items if item["is_breaking"]]),
+                    "major_events": len([item for item in items if item["is_event_mode"]]),
+                },
+                "channel_diversity": len(set(item["channel"]["slug"] if item["channel"] else "none" for item in items)),
+                "weight_range": {
+                    "min": min([item["weight"] for item in items]) if items else 0,
+                    "max": max([item["weight"] for item in items]) if items else 0,
+                    "avg": sum([item["weight"] for item in items]) / len(items) if items else 0
+                }
+            }
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Hero articles API error: {str(e)}", exc_info=True)
+        return Response({
+            "success": False,
+            "error": "获取Hero文章失败",
+            "message": str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 @api_view(["GET"])

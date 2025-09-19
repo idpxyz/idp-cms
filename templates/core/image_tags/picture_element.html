@@ -1,0 +1,13 @@
+{% if picture_data %}
+<picture class="{{ css_class }}">
+    {% for source in picture_data.sources %}
+    <source media="{{ source.media }}" 
+            srcset="{{ source.srcset }}"
+            sizes="{{ source.sizes }}">
+    {% endfor %}
+    <img src="{{ picture_data.fallback.src }}" 
+         alt="{{ alt_text }}"
+         loading="lazy"
+         class="{{ css_class }}">
+</picture>
+{% endif %}

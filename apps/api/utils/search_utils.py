@@ -1,4 +1,7 @@
-import jieba
+# 使用统一的jieba配置
+from apps.core.jieba_config import get_jieba_instance
+jieba = get_jieba_instance()
+
 from django.db.models import Q, Case, When, Value, IntegerField, F
 from functools import reduce
 import operator

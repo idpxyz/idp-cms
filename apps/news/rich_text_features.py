@@ -14,7 +14,7 @@ class NewsRichTextFeatures:
     
     # 基础编辑器配置
     BASIC_FEATURES = [
-        "bold", "italic", "underline", "strikethrough",
+        "bold", "italic", "strikethrough",
         "h2", "h3", "h4",
         "ol", "ul", 
         "link", "image",
@@ -24,7 +24,7 @@ class NewsRichTextFeatures:
     # 标准新闻编辑器配置
     STANDARD_FEATURES = [
         # === 基础文本格式 ===
-        "bold", "italic", "underline", "strikethrough",
+        "bold", "italic", "strikethrough",
         
         # === 标题层级 ===
         "h1", "h2", "h3", "h4", "h5", "h6",
@@ -50,7 +50,7 @@ class NewsRichTextFeatures:
     # 高级新闻编辑器配置
     ADVANCED_FEATURES = STANDARD_FEATURES + [
         # === 表格支持 ===
-        "table",  # 数据新闻、统计表格
+        # 如需表格请改用 Wagtail TableBlock（非RTE）
         
         # === 自定义新闻块 ===
         # "news-quote",      # 新闻引用块

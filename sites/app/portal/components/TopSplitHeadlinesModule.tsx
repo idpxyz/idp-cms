@@ -45,7 +45,7 @@ export default function TopSplitHeadlinesModule({ count = 2, autoPlayMs = 5000 }
     }
     const apply = () => setLeftHeight(el.offsetHeight || 0);
     apply();
-    window.addEventListener('resize', apply);
+    window.addEventListener('resize', apply, { passive: true });
     return () => window.removeEventListener('resize', apply);
   }, []);
 

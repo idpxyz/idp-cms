@@ -1,0 +1,285 @@
+/**
+ * Wagtail富文本编辑器图片格式化样式
+ * 支持左对齐、右对齐、全屏宽度等格式
+ */
+
+/* =============================================================================
+   富文本图片基础样式
+   ============================================================================= */
+
+.richtext-image {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  margin: 1em 0;
+  transition: all 0.3s ease;
+  
+  /* 调试用 - 可以在浏览器中确认CSS已加载 */
+  border: 2px solid transparent;
+}
+
+/* 调试用 - 左对齐应该有绿色边框 */
+.richtext-image.left {
+  border-color: #10b981 !important;
+}
+
+/* 调试用 - 右对齐应该有蓝色边框 */
+.richtext-image.right {
+  border-color: #3b82f6 !important;
+}
+
+/* 调试用 - 全屏宽度应该有红色边框 */
+.richtext-image.full-width {
+  border-color: #ef4444 !important;
+}
+
+.richtext-image:hover {
+  box-shadow: 0 8px 12px -2px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+}
+
+/* =============================================================================
+   全屏宽度样式 (fullwidth)
+   ============================================================================= */
+
+.richtext-image.full-width,
+.article-content .richtext-image.full-width,
+.article-body .richtext-image.full-width {
+  width: 100% !important;
+  max-width: 800px;
+  display: block !important;
+  margin: 2em auto !important;
+  clear: both;
+  float: none !important; /* 确保不浮动 */
+}
+
+/* =============================================================================
+   左对齐样式 (left) - 文字环绕右侧
+   ============================================================================= */
+
+.richtext-image.left,
+.article-content .richtext-image.left,
+.article-body .richtext-image.left {
+  float: left !important;
+  max-width: 500px;
+  width: 50%;
+  margin: 0 2em 1em 0 !important;
+  clear: left;
+  display: inline !important; /* 确保浮动生效 */
+}
+
+/* 确保左对齐图片后的内容正确环绕 */
+.richtext-image.left + p,
+.richtext-image.left + h1,
+.richtext-image.left + h2,
+.richtext-image.left + h3,
+.richtext-image.left + h4,
+.richtext-image.left + h5,
+.richtext-image.left + h6,
+.richtext-image.left + ul,
+.richtext-image.left + ol,
+.richtext-image.left + blockquote {
+  text-align: left;
+  overflow: hidden; /* 创建新的块格式化上下文 */
+}
+
+/* =============================================================================
+   右对齐样式 (right) - 文字环绕左侧
+   ============================================================================= */
+
+.richtext-image.right,
+.article-content .richtext-image.right,
+.article-body .richtext-image.right {
+  float: right !important;
+  max-width: 500px;
+  width: 50%;
+  margin: 0 0 1em 2em !important;
+  clear: right;
+  display: inline !important; /* 确保浮动生效 */
+}
+
+/* 确保右对齐图片后的内容正确环绕 */
+.richtext-image.right + p,
+.richtext-image.right + h1,
+.richtext-image.right + h2,
+.richtext-image.right + h3,
+.richtext-image.right + h4,
+.richtext-image.right + h5,
+.richtext-image.right + h6,
+.richtext-image.right + ul,
+.richtext-image.right + ol,
+.richtext-image.right + blockquote {
+  text-align: left;
+  overflow: hidden; /* 创建新的块格式化上下文 */
+}
+
+/* =============================================================================
+   清除浮动
+   ============================================================================= */
+
+/* 在图片容器之后自动清除浮动 */
+.richtext-image.left::after,
+.richtext-image.right::after {
+  content: "";
+  display: table;
+  clear: both;
+}
+
+/* 为包含浮动图片的容器添加clearfix */
+.article-body::after,
+.article-content::after {
+  content: "";
+  display: table;
+  clear: both;
+}
+
+/* =============================================================================
+   响应式设计
+   ============================================================================= */
+
+/* 平板设备 */
+@media (max-width: 1024px) {
+  .richtext-image.left,
+  .richtext-image.right {
+    width: 60%;
+    max-width: 400px;
+  }
+  
+  .richtext-image.left {
+    margin: 0 1.5em 1em 0;
+  }
+  
+  .richtext-image.right {
+    margin: 0 0 1em 1.5em;
+  }
+}
+
+/* 移动设备 - 取消浮动，全部改为块级显示 */
+@media (max-width: 768px) {
+  .richtext-image.left,
+  .richtext-image.right {
+    float: none;
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    margin: 1.5em auto;
+    clear: both;
+  }
+  
+  .richtext-image.full-width {
+    margin: 1.5em auto;
+  }
+}
+
+/* 小屏幕设备 */
+@media (max-width: 480px) {
+  .richtext-image {
+    margin: 1em auto;
+    border-radius: 6px;
+  }
+  
+  .richtext-image.full-width {
+    margin: 1em auto;
+  }
+}
+
+/* =============================================================================
+   图片标题样式 (如果使用了figcaption)
+   ============================================================================= */
+
+figure {
+  margin: 0;
+  padding: 0;
+}
+
+figure.richtext-image {
+  margin: 2em 0;
+}
+
+figure.richtext-image.left {
+  float: left;
+  margin: 0 2em 1em 0;
+}
+
+figure.richtext-image.right {
+  float: right;
+  margin: 0 0 1em 2em;
+}
+
+figcaption {
+  margin-top: 0.5em;
+  font-size: 0.9em;
+  color: #6b7280; /* gray-500 */
+  text-align: center;
+  font-style: italic;
+  line-height: 1.4;
+}
+
+/* =============================================================================
+   打印样式
+   ============================================================================= */
+
+@media print {
+  .richtext-image {
+    box-shadow: none;
+    border: 1px solid #ddd;
+    break-inside: avoid;
+  }
+  
+  .richtext-image.left,
+  .richtext-image.right {
+    float: none;
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    margin: 1em 0;
+  }
+}
+
+/* =============================================================================
+   无障碍优化
+   ============================================================================= */
+
+.richtext-image:focus {
+  outline: 2px solid #dc2626;
+  outline-offset: 2px;
+}
+
+/* 高对比度模式 */
+@media (prefers-contrast: high) {
+  .richtext-image {
+    border: 2px solid #000;
+    box-shadow: none;
+  }
+}
+
+/* 减少动画模式 */
+@media (prefers-reduced-motion: reduce) {
+  .richtext-image {
+    transition: none;
+  }
+  
+  .richtext-image:hover {
+    transform: none;
+  }
+}
+
+/* =============================================================================
+   兼容性修复
+   ============================================================================= */
+
+/* 确保在各种容器中都能正确显示 */
+.richtext-image img {
+  width: 100%;
+  height: auto;
+  border-radius: inherit;
+}
+
+/* 防止图片超出容器 */
+.article-body,
+.article-content,
+.rich-text {
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+}

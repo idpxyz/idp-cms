@@ -22,7 +22,7 @@ app.config_from_object("django.conf:settings", namespace="CELERY")
 app.autodiscover_tasks()
 
 # Explicitly register task modules
-app.autodiscover_tasks(['apps.searchapp'])
+app.autodiscover_tasks(['apps.searchapp', 'apps.core'])
 
 # 确保所有任务都绑定到正确的应用
 from celery import current_app

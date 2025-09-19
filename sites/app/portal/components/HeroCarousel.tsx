@@ -69,6 +69,10 @@ export default function HeroCarousel({
   const [imageLoaded, setImageLoaded] = useState<Record<number, boolean>>({});
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const carouselRef = useRef<HTMLDivElement>(null);
+  
+  // 触摸滑动相关状态
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
 
   // 确保有有效的轮播项（只检查图片）
   const validItems = items.filter(item => item && item.image_url);
@@ -223,6 +227,87 @@ export default function HeroCarousel({
     setImageLoaded(prev => ({ ...prev, [index]: true }));
   }, []);
 
+  // 触摸事件处理
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+    setIsPaused(true); // 触摸时暂停自动播放
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  }, []);
+
+  const handleTouchEnd = useCallback(() => {
+    if (!touchStart || !touchEnd) {
+      setTimeout(() => setIsPaused(false), 1000); // 恢复自动播放
+      return;
+    }
+    
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > 50;
+    const isRightSwipe = distance < -50;
+
+    if (isLeftSwipe && totalItems > 1) {
+      goToNext();
+    } else if (isRightSwipe && totalItems > 1) {
+      goToPrevious();
+    }
+    
+    // 延迟恢复自动播放
+    setTimeout(() => setIsPaused(false), 2000);
+  }, [touchStart, touchEnd, totalItems, goToNext, goToPrevious]);
+
+  // 添加被动的触摸事件监听器
+  useEffect(() => {
+    const carousel = carouselRef.current;
+    if (!carousel) return;
+
+    // 使用被动监听器来避免性能警告
+    const addPassiveTouchListeners = () => {
+      carousel.addEventListener('touchstart', (e) => {
+        setTouchEnd(null);
+        setTouchStart(e.touches[0].clientX);
+        setIsPaused(true);
+      }, { passive: true });
+
+      carousel.addEventListener('touchmove', (e) => {
+        setTouchEnd(e.touches[0].clientX);
+      }, { passive: true });
+
+      carousel.addEventListener('touchend', () => {
+        if (!touchStart || !touchEnd) {
+          setTimeout(() => setIsPaused(false), 1000);
+          return;
+        }
+        
+        const distance = touchStart - touchEnd;
+        const isLeftSwipe = distance > 50;
+        const isRightSwipe = distance < -50;
+
+        if (isLeftSwipe && totalItems > 1) {
+          goToNext();
+        } else if (isRightSwipe && totalItems > 1) {
+          goToPrevious();
+        }
+        
+        setTimeout(() => setIsPaused(false), 2000);
+      }, { passive: true });
+    };
+
+    addPassiveTouchListeners();
+
+    return () => {
+      // 清理事件监听器
+      const newCarousel = carouselRef.current;
+      if (newCarousel) {
+        newCarousel.removeEventListener('touchstart', () => {});
+        newCarousel.removeEventListener('touchmove', () => {});
+        newCarousel.removeEventListener('touchend', () => {});
+      }
+    };
+  }, [touchStart, touchEnd, totalItems, goToNext, goToPrevious]);
+
   const currentItem = validItems[currentIndex];
 
   return (
@@ -241,6 +326,9 @@ export default function HeroCarousel({
         <div 
           className="flex transition-transform duration-700 ease-in-out h-full"
           style={{ transform: `translateX(-${currentIndex * 100}%)` }}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
         >
           {validItems.map((item, index) => (
             <div

@@ -4,12 +4,24 @@ from django.core.cache import cache
 from django.utils import timezone
 from wagtail.snippets.models import register_snippet
 from wagtail.admin.panels import FieldPanel, MultiFieldPanel
+from wagtail.images.widgets import AdminImageChooser
+from wagtail.images import get_image_model
+from wagtail.admin.forms import WagtailAdminModelForm
 from wagtail.fields import RichTextField
 from django.utils.translation import gettext_lazy as _
 from modelcluster.models import ClusterableModel
 from taggit.managers import TaggableManager
 from taggit.models import TaggedItemBase
 from modelcluster.fields import ParentalKey
+
+
+# 使用 Wagtail 的模型表单基类（用于 snippets）
+class TopicForm(WagtailAdminModelForm):
+    """
+    自定义表单类，用于改进图片选择器的用户体验
+    """
+    pass
+
 
 class TopicTaggedItem(TaggedItemBase):
     content_object = ParentalKey(
@@ -22,13 +34,16 @@ class TopicTaggedItem(TaggedItemBase):
 class Topic(ClusterableModel):
     """专题模型 - 项目化的内容集合"""
     
+    # 使用自定义表单类来改进图片选择器体验
+    base_form_class = TopicForm
+    
     title = models.CharField(max_length=128, verbose_name="专题标题")
     slug = models.SlugField(unique=True, verbose_name="专题标识符") 
     summary = models.TextField(blank=True, verbose_name="专题摘要")
     
     # 专题封面
     cover_image = models.ForeignKey(
-        'wagtailimages.Image',
+        'media.CustomImage',
         null=True, blank=True,
         on_delete=models.SET_NULL,
         related_name='+',
@@ -187,3 +202,8 @@ class Topic(ClusterableModel):
             queryset = queryset[:limit]
             
         return queryset
+
+
+# 现在设置表单的 Meta 类
+TopicForm.Meta.model = Topic
+TopicForm.Meta.fields = '__all__'

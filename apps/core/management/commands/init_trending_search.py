@@ -9,7 +9,10 @@ from clickhouse_driver import Client
 from wagtail.models import Site
 from apps.news.models import ArticlePage
 import re
-import jieba
+
+# 使用统一的jieba配置
+from apps.core.jieba_config import get_jieba_instance
+jieba = get_jieba_instance()
 import jieba.analyse
 
 logger = logging.getLogger(__name__)

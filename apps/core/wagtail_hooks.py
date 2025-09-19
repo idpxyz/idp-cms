@@ -12,7 +12,6 @@ from django.contrib import messages
 # from wagtail.contrib.modeladmin.options import (
 #     ModelAdmin, ModelAdminGroup, modeladmin_register)
 # from wagtail.contrib.modeladmin.views import IndexView
-from .models.comment import Comment
 from .models import SiteSettings, Channel, Region, Language, ExternalSite, CDNProvider, SiteCDNConfig
 
 
@@ -205,7 +204,6 @@ def add_cdn_menu(request, menu_items, **kwargs):
         pass
 
 
-# Comment模型已经在模型定义中用@register_snippet装饰器注册，无需重复注册
 
 # 暂时注释掉 modeladmin 相关代码，使用 Django admin 管理
 # 或者通过 Wagtail snippets 管理 ExternalSite
