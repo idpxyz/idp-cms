@@ -43,11 +43,47 @@ export interface ChannelStripCategory {
  * 获取频道的分类列表
  */
 export async function getChannelCategories(channelSlug: string): Promise<ChannelStripCategory[]> {
-  // 暂时使用 mock 数据以确保功能正常显示
-  console.log(`Using mock categories for channel ${channelSlug}`);
-  return generateMockCategories(channelSlug);
+  try {
+    // 尝试使用真实的分类API
+    const apiUrl = `/api/categories?channel=${channelSlug}`;
+    console.log(`🔗 Fetching real categories for channel ${channelSlug}`);
+    
+    const response = await fetch(apiUrl, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      cache: 'default',
+    });
 
-  // TODO: 将来启用真实API调用
+    if (!response.ok) {
+      throw new Error(`Categories API responded with status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const categories = data.data || data.results || [];
+    
+    console.log(`✅ Successfully fetched ${categories.length} real categories for channel ${channelSlug}`);
+    
+    // 转换API数据格式为ChannelStripCategory
+    const channelCategories: ChannelStripCategory[] = categories.map((category: any) => ({
+      id: category.id?.toString() || category.slug,
+      name: category.name || category.title,
+      slug: category.slug,
+      count: category.article_count || category.count || 0,
+    }));
+
+    return channelCategories;
+
+  } catch (error) {
+    console.warn(`❌ Failed to fetch real categories for channel ${channelSlug}:`, error);
+    console.log(`🔄 Falling back to mock categories for channel ${channelSlug}`);
+    
+    // 降级到Mock数据
+    return generateMockCategories(channelSlug);
+  }
+
+  // 注释掉的原始TODO代码 - 保留以备参考
   /*
   try {
     const categoriesUrl = endpoints.buildUrl(
@@ -94,13 +130,74 @@ export async function getChannelCategories(channelSlug: string): Promise<Channel
 export async function getChannelArticles(
   channelSlug: string, 
   categorySlug?: string, 
-  limit: number = 6
+  limit: number = 8
 ): Promise<ChannelStripItem[]> {
-  // 暂时使用 mock 数据以确保功能正常显示
-  console.log(`Using mock data for channel ${channelSlug}${categorySlug ? `, category ${categorySlug}` : ''}, limit: ${limit}`);
-  return generateMockChannelArticles(channelSlug, limit);
+  try {
+    // 使用现有的 /api/news/ API
+    const params = new URLSearchParams({
+      channel: channelSlug,
+      limit: limit.toString(),
+    });
 
-  // TODO: 将来启用真实API调用
+    const apiUrl = `/api/news?${params.toString()}`;
+    console.log(`🔗 Fetching real data for channel ${channelSlug}${categorySlug ? `, category ${categorySlug}` : ''}, limit: ${limit}`);
+    
+    const response = await fetch(apiUrl, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      // 客户端缓存控制
+      cache: 'default',
+    });
+
+    if (!response.ok) {
+      throw new Error(`API responded with status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const articles = data.data || [];
+    
+    console.log(`✅ Successfully fetched ${articles.length} real articles for channel ${channelSlug}`);
+    
+    // 转换API数据格式为ChannelStripItem
+    const channelStripItems: ChannelStripItem[] = articles.map((article: any) => ({
+      id: article.id?.toString() || '',
+      title: article.title || '',
+      excerpt: article.excerpt || '',
+      image_url: article.image_url || '',
+      publish_time: article.publish_at || article.updated_at || new Date().toISOString(),
+      author: article.author || '未知作者',
+      source: article.source || article.channel?.name || '来源',
+      channel: {
+        id: article.channel?.slug || channelSlug,
+        name: article.channel?.name || channelSlug,
+        slug: article.channel?.slug || channelSlug,
+      },
+      category: categorySlug ? {
+        id: categorySlug,
+        name: categorySlug,
+        slug: categorySlug,
+      } : undefined,
+      slug: article.slug || '',
+      is_breaking: article.is_breaking || false,
+      is_live: article.is_live || false,
+      view_count: article.view_count || 0,
+      comment_count: article.comment_count || 0,
+      tags: article.tags || [],
+    }));
+
+    return channelStripItems;
+
+  } catch (error) {
+    console.warn(`❌ Failed to fetch real data for channel ${channelSlug}:`, error);
+    console.log(`🔄 Falling back to mock data for channel ${channelSlug}`);
+    
+    // 降级到Mock数据
+    return generateMockChannelArticles(channelSlug, limit);
+  }
+
+  // 注释掉的原始TODO代码 - 保留以备参考
   /*
   try {
     const articlesUrl = endpoints.buildUrl(

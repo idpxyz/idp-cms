@@ -8,8 +8,26 @@ import Section from "@/components/layout/Section";
 import HeroCarousel from "./components/HeroCarousel";
 import { getHeroItems } from "./components/HeroCarousel.utils";
 import TopStoriesGrid from "./components/TopStoriesGrid";
-import { getTopStories } from "./components/TopStoriesGrid.utils";
 import ChannelStrip from "./components/ChannelStrip";
+import ChannelPageRenderer from "./components/ChannelPageRenderer";
+
+// 获取要在首页显示的频道条带（简化版）
+function getHomepageChannelStrips(channels: any[]): any[] {
+  return channels
+    .filter((channel: any) => {
+      // 🎯 完全由后台控制 - 移除硬编码的推荐频道排除逻辑
+      // 只依赖后台配置的 show_in_homepage 字段
+      return channel.show_in_homepage === true;
+    })
+    .sort((a: any, b: any) => {
+      // 按首页显示顺序排序，如果没有则使用原始order
+      const aOrder = a.homepage_order ?? a.order ?? 0;
+      const bOrder = b.homepage_order ?? b.order ?? 0;
+      return aOrder - bOrder;
+    })
+    // 🎯 移除硬编码数量限制 - 完全由后台控制
+    // 运营人员通过设置 show_in_homepage 来控制显示的频道数量
+}
 
 // 获取频道列表
 async function getChannels() {
@@ -62,45 +80,66 @@ async function getChannels() {
 }
 
 export default async function PortalPage({ searchParams }: { searchParams?: Promise<{ channel?: string; tags?: string }> }) {
-  // 频道数据现在通过 Context 提供，但我们仍需要为 NewsContent 获取一份
   const channels = await getChannels();
   const sp = searchParams ? await searchParams : undefined;
   const urlChannel = sp?.channel;
   const tags = sp?.tags;
-  const initialChannelId = (urlChannel && (channels.find((c:any) => c.slug === urlChannel)?.id || urlChannel)) || channels[0]?.id || "";
   
-  // 并行获取数据
-  const [heroItems, topStories] = await Promise.all([
-    getHeroItems(5), // 获取 Hero 轮播数据
-    getTopStories(9), // 获取头条数据 (增加到9条以支持8条右侧显示)
-  ]);
+  // 🎯 页面类型判断
+  const isHomepage = !urlChannel;
+  const isChannelPage = !!urlChannel;
+  
+  // 🔀 如果是频道页，渲染完全不同的页面结构
+  if (isChannelPage) {
+    return <ChannelPageRenderer 
+      channelSlug={urlChannel} 
+      channels={channels} 
+      tags={tags} 
+    />;
+  }
+  
+  // 🏠 首页逻辑保持不变
+  const initialChannelId = channels[0]?.id || "";
+  const channelStrips = getHomepageChannelStrips(channels);
+  
+  // 获取 Hero 轮播数据 (TopStories 改为客户端获取)
+  const heroItems = await getHeroItems(5);
 
 
   return (
     <div className="min-h-screen bg-white">
       {/* 频道导航栏现在在 Layout 中 */}
+      {/* 快讯滚动条已移至 Layout 层，所有页面共享 */}
       
-      {/* Hero Carousel 主要轮播区域 */}
-      <PageContainer padding="md">
-        <HeroCarousel 
-          items={heroItems}
-          autoPlay={true}
-          autoPlayInterval={6000}
-          showDots={true}
-          showArrows={true}
-          heightMode="compact"
-          hasRightRail={false}
-          maxHeightVh={25}
-          className="mb-6"
-        />
-      </PageContainer>
+      {/* Hero Carousel 主要轮播区域 - 只在有数据时显示 */}
+      {heroItems && heroItems.length > 0 && (
+        <PageContainer padding="md">
+          <HeroCarousel 
+            items={heroItems}
+            autoPlay={true}
+            autoPlayInterval={6000}
+            showDots={true}
+            showArrows={true}
+            heightMode="compact"
+            hasRightRail={false}
+            maxHeightVh={25}
+            className="mb-6"
+          />
+        </PageContainer>
+      )}
 
       <PageContainer padding="md">
         
-        {/* Top Stories 头条网格 */}
+        {/* Top Stories 头条网格 - 客户端获取数据 */}
         <Section space="md">
           <TopStoriesGrid 
-            items={topStories}
+            autoFetch={true}
+            fetchLimit={9}
+            fetchOptions={{ 
+              hours: 24, 
+              diversity: 'high', 
+              excludeClusterIds: [] 
+            }}
             title="头条新闻"
             showViewMore={true}
             viewMoreLink="/portal/news"
@@ -108,7 +147,8 @@ export default async function PortalPage({ searchParams }: { searchParams?: Prom
         </Section>
 
         {/* 频道条带区域 */}
-        {channels.slice(1, 4).map((channel: any, index: number) => (
+        {/* 使用简化的配置化显示逻辑 */}
+        {channelStrips.map((channel: any, index: number) => (
           <Section key={channel.id} space="lg">
             <ChannelStrip
               channelId={channel.id}
@@ -116,8 +156,8 @@ export default async function PortalPage({ searchParams }: { searchParams?: Prom
               channelSlug={channel.slug}
               showCategories={true}
               showViewMore={true}
-              viewMoreLink={`/portal/channel/${channel.slug}`}
-              articleLimit={6}
+              viewMoreLink={`/portal?channel=${channel.slug}`}
+              articleLimit={8}
               className="border-b border-gray-100 pb-8"
             />
           </Section>

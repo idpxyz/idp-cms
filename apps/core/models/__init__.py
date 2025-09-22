@@ -32,6 +32,7 @@ from taggit.managers import TaggableManager
 from .site import Site  # 导入扩展后的 Site 模型
 from .site_settings import SiteSettings
 from .channel import Channel, ChannelTaggedItem
+from .channel_template import ChannelTemplate
 from .region import Region, RegionTaggedItem
 from .language import Language
 from .config import CustomConfigItem
@@ -46,6 +47,7 @@ __all__ = [
     'SiteSettings',
     'Channel',
     'ChannelTaggedItem',
+    'ChannelTemplate',
     'Category',
     'CategoryTaggedItem',
     'Region', 

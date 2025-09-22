@@ -54,7 +54,7 @@ def personalized_channels(request):
                     all_channels = list(Channel.objects.filter(
                         sites__id=default_site.id,
                         is_active=True
-                    ).values('id', 'name', 'slug', 'order').order_by('order'))
+                    ).values('id', 'name', 'slug', 'order', 'show_in_homepage', 'homepage_order', 'template').order_by('order'))
                     
         except Exception as channel_error:
             logger.warning(f"频道查询失败: {channel_error}")
@@ -80,45 +80,22 @@ def personalized_channels(request):
     except Exception as e:
         logger.error(f"个性化频道获取失败: {e}")
         
-        # 降级策略：返回默认频道顺序
-        try:
-            fallback_site = get_site_from_request(request)
-            fallback_channels = list(Channel.objects.filter(
-                sites__hostname=fallback_site,
-                is_active=True
-            ).values('id', 'name', 'slug', 'order').order_by('order'))
-            
-            # 如果没有找到，使用默认站点
-            if not fallback_channels:
-                from wagtail.models import Site as WagtailSite
-                default_site = WagtailSite.objects.filter(is_default_site=True).first()
-                if default_site:
-                    fallback_channels = list(Channel.objects.filter(
-                        sites__id=default_site.id,
-                        is_active=True
-                    ).values('id', 'name', 'slug', 'order').order_by('order'))
-        except:
-            # 最终降级：硬编码基本频道
-            fallback_channels = [
-                {"id": "recommend", "name": "推荐", "slug": "recommend", "order": 0},
-                {"id": "tech", "name": "科技", "slug": "tech", "order": 1},
-                {"id": "sports", "name": "体育", "slug": "sports", "order": 2},
-            ]
-        
+        # 🚫 移除降级策略，完全由后台控制
         return JsonResponse({
-            "channels": [
-                {**ch, "weight": 1.0 / len(fallback_channels)} 
-                for ch in fallback_channels
-            ],
-            "strategy": "fallback",
+            "channels": [],
+            "strategy": "error",
             "confidence": 0.0,
-            "error": str(e)
-        })
+            "error": "频道数据获取失败，请联系管理员在后台配置频道数据",
+            "debug": {
+                "error_detail": str(e),
+                "message": "系统不提供默认频道，需要管理员在Django后台配置"
+            }
+        }, status=500)
 
 
 def _sort_channels_by_strategy(channels, strategy, profile):
     """根据策略对频道进行排序"""
-    strategy_type = strategy.get("type", "fallback")
+    strategy_type = strategy.get("type", "personalized")
     channel_weights = strategy.get("weights", {})
     recommended_channels = strategy.get("channels", [])
     

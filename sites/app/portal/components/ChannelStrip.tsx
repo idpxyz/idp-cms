@@ -11,6 +11,7 @@ import {
   formatTimeAgo,
   formatNumber
 } from './ChannelStrip.utils';
+import { getSideNewsPlaceholderImage } from '@/lib/utils/placeholderImages';
 
 export interface ChannelStripProps {
   channelId: string;
@@ -30,7 +31,7 @@ const ChannelStrip: React.FC<ChannelStripProps> = ({
   showCategories = true,
   showViewMore = true,
   viewMoreLink,
-  articleLimit = 6,
+  articleLimit = 8,
   className = '',
 }) => {
   const [categories, setCategories] = useState<ChannelStripCategory[]>([]);
@@ -100,6 +101,11 @@ const ChannelStrip: React.FC<ChannelStripProps> = ({
     }
   };
 
+  // 🎯 内容检查：如果没有文章且不在加载中，不渲染频道条带
+  if (!isLoading && !error && articles.length === 0) {
+    return null;
+  }
+
   return (
     <div className={`bg-white ${className}`}>
       {/* 频道标题头部 */}
@@ -126,7 +132,7 @@ const ChannelStrip: React.FC<ChannelStripProps> = ({
         {/* 查看更多按钮 */}
         {showViewMore && (
           <Link
-            href={viewMoreLink || `/portal/channel/${channelSlug}`}
+            href={viewMoreLink || `/portal?channel=${channelSlug}`}
             className="flex items-center space-x-1 text-red-600 hover:text-red-700 transition-colors"
           >
             <span className="text-sm font-medium">查看更多</span>
@@ -248,19 +254,15 @@ const ChannelStrip: React.FC<ChannelStripProps> = ({
               >
                 {/* 文章图片 */}
                 <div className="relative aspect-video bg-gray-200 overflow-hidden">
-                  {article.image_url ? (
-                    <Image
-                      src={article.image_url}
-                      alt={article.title}
-                      fill
-                      className="object-cover group-hover:scale-105 transition-transform duration-200"
-                      sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 25vw"
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-gradient-to-r from-gray-300 to-gray-400 flex items-center justify-center">
-                      <span className="text-gray-600 text-sm">暂无图片</span>
-                    </div>
-                  )}
+                  <Image
+                    src={article.image_url || getSideNewsPlaceholderImage(article)}
+                    alt={article.title}
+                    fill
+                    className="object-cover group-hover:scale-105 transition-transform duration-200"
+                    sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                    priority={index === 0}
+                    loading={index <= 1 ? 'eager' : 'lazy'}
+                  />
 
                   {/* 突发/直播标签 */}
                   {(article.is_breaking || article.is_live) && (

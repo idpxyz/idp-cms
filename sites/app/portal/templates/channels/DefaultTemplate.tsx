@@ -1,0 +1,62 @@
+import React from 'react';
+import PageContainer from "@/components/layout/PageContainer";
+import Section from "@/components/layout/Section";
+import NewsContent from "../../NewsContent";
+import ChannelStrip from "../../components/ChannelStrip";
+
+interface ChannelTemplateProps {
+  channel: any;
+  channels: any[];
+  tags?: string;
+}
+
+/**
+ * 📄 默认频道模板
+ * 用于没有自定义模板的频道
+ */
+const DefaultTemplate: React.FC<ChannelTemplateProps> = ({ 
+  channel, 
+  channels, 
+  tags 
+}) => {
+  return (
+    <PageContainer>
+      {/* 简洁的头部 */}
+      <Section space="lg">
+        <div className="bg-white rounded-xl p-6 border border-gray-200">
+          <h1 className="text-3xl font-bold text-gray-900 mb-4">
+            {channel.name}
+          </h1>
+          {channel.description && (
+            <p className="text-gray-600 text-lg">
+              {channel.description}
+            </p>
+          )}
+        </div>
+      </Section>
+
+      {/* 频道内容 */}
+      <Section space="lg">
+        <ChannelStrip
+          channelId={channel.id}
+          channelName={channel.name}
+          channelSlug={channel.slug}
+          showCategories={true}
+          showViewMore={false}
+          articleLimit={12}
+        />
+      </Section>
+
+      {/* 智能推荐 */}
+      <Section space="md">
+        <NewsContent
+          channels={channels}
+          initialChannelId={channel.id}
+          tags={tags}
+        />
+      </Section>
+    </PageContainer>
+  );
+};
+
+export default DefaultTemplate;

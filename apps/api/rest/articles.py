@@ -16,6 +16,7 @@ from apps.core.models import Channel, Region, SiteSettings, Category
 from apps.core.site_utils import get_site_from_request
 from apps.searchapp.client import get_client
 from apps.searchapp.alias import read_alias
+from wagtail.rich_text import expand_db_html
 from .utils import (
     validate_site_parameter,
     apply_field_filtering,
@@ -244,7 +245,7 @@ def article_detail(request, slug):
             "title": article.title,
             "slug": article.slug,
             "excerpt": getattr(article, 'introduction', ''),
-            "body": str(article.body) if hasattr(article, 'body') else '',
+            "body": expand_db_html(article.body).replace('http://authoring:8000', 'http://192.168.8.195:8000') if hasattr(article, 'body') and article.body else '',
             "publish_at": article.first_published_at.isoformat() if article.first_published_at else None,
             "updated_at": article.last_published_at.isoformat() if article.last_published_at else None,
             "channel_slug": getattr(article.channel, 'slug', '') if article.channel else '',
@@ -352,7 +353,17 @@ def channels_list(request):
                 "id": channel.id,
                 "slug": channel.slug,
                 "name": channel.name,
-                "order": getattr(channel, 'order', 0)
+                "order": getattr(channel, 'order', 0),
+                # 🆕 首页显示配置字段
+                "show_in_homepage": getattr(channel, 'show_in_homepage', True),
+                "homepage_order": getattr(channel, 'homepage_order', 0),
+                # 🎨 模板信息
+                "template": {
+                    "id": channel.template.id if channel.template else None,
+                    "name": channel.template.name if channel.template else None,
+                    "slug": channel.template.slug if channel.template else None,
+                    "file_name": channel.template.file_name if channel.template else None,
+                } if channel.template else None,
             }
             for channel in channels
         ]
