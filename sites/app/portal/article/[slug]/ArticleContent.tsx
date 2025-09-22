@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import "../../../../styles/article.css";
 import Image from "next/image";
 import Link from "next/link";
@@ -9,7 +9,6 @@ import { trackPageView, trackDwell } from "@/lib/tracking/analytics";
 import { useIntersectionObserver } from "@/lib/hooks/useIntersectionObserver";
 import { formatDateTimeFull, formatDateTime } from "@/lib/utils/date";
 import { useChannels } from "../../ChannelContext";
-import FloatingShareToolbar from "@/components/share/FloatingShareToolbar";
 import TableOfContents from "./TableOfContents";
 import { useInteraction } from "@/lib/context/InteractionContext";
 import { useAuth } from "@/lib/context/AuthContext";
@@ -57,6 +56,12 @@ export default function ArticleContent({
   const { toggleLike, toggleFavorite, getArticleInteraction, refreshArticleStats, updateCommentCount } = useInteraction();
   const { addToHistory } = useReadingHistory();
   const [readingProgress, setReadingProgress] = useState(0);
+  const [readingStartTime, setReadingStartTime] = useState<number | null>(null);
+  const [currentReadDuration, setCurrentReadDuration] = useState(0);
+  
+  // 使用useRef获取最新的值，避免闭包问题
+  const latestProgressRef = useRef(0);
+  const latestDurationRef = useRef(0);
   
   // 获取文章互动状态
   const articleInteraction = getArticleInteraction(article.id.toString());
@@ -67,24 +72,145 @@ export default function ArticleContent({
     refreshArticleStats(article.id.toString());
   }, [article.id, refreshArticleStats]);
 
-  // 记录阅读历史（用户打开文章时）
+  // 阅读进度和时长追踪
   useEffect(() => {
-    if (isAuthenticated && article) {
-      // 延迟3秒记录，确保用户真正开始阅读
-      const timer = setTimeout(() => {
-        addToHistory({
+    if (!isAuthenticated || !article) return;
+
+    // 开始计时
+    const startTime = Date.now();
+    setReadingStartTime(startTime);
+
+    // 计算文章内容的阅读进度
+    const calculateReadingProgress = () => {
+      const contentElement = document.querySelector('[data-article-content]') as HTMLElement;
+      if (!contentElement) return 0;
+
+      const contentRect = contentElement.getBoundingClientRect();
+      const contentHeight = contentElement.scrollHeight;
+      const viewportHeight = window.innerHeight;
+      const scrollTop = window.pageYOffset;
+      
+      // 计算内容区域在视口中的位置
+      const contentTop = contentElement.offsetTop;
+      const contentBottom = contentTop + contentHeight;
+      
+      // 计算用户已经阅读的内容百分比
+      const scrolledFromTop = Math.max(0, scrollTop - contentTop + viewportHeight);
+      const readableHeight = contentHeight;
+      const progress = Math.min(100, Math.max(0, (scrolledFromTop / readableHeight) * 100));
+      
+      return Math.round(progress);
+    };
+
+    // 滚动监听器
+    const handleScroll = () => {
+      const progress = calculateReadingProgress();
+      setReadingProgress(progress);
+      latestProgressRef.current = progress;
+      
+      // 更新当前阅读时长
+      const currentTime = Date.now();
+      const duration = Math.round((currentTime - startTime) / 1000); // 秒
+      setCurrentReadDuration(duration);
+      latestDurationRef.current = duration;
+    };
+
+    // 初始计算
+    handleScroll();
+    
+    // 添加滚动监听
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    
+    // 定期更新阅读时长
+    const durationTimer = setInterval(() => {
+      const currentTime = Date.now();
+      const duration = Math.round((currentTime - startTime) / 1000);
+      setCurrentReadDuration(duration);
+      latestDurationRef.current = duration;
+    }, 1000);
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      clearInterval(durationTimer);
+    };
+  }, [isAuthenticated, article]);
+
+  // 记录阅读历史 - 只在用户认证和文章加载时触发一次
+  useEffect(() => {
+    if (!isAuthenticated || !article) return;
+
+
+    let initialRecorded = false;
+
+    // 初始记录（3秒后）
+    const initialTimer = setTimeout(async () => {
+      try {
+        const historyData = {
           articleId: article.id.toString(),
           articleTitle: article.title,
           articleSlug: article.slug,
           articleChannel: article.channel?.name || '未知',
-          readDuration: 0,
-          readProgress: 0,
-        });
-      }, 3000);
+          readDuration: latestDurationRef.current, // 使用真实的阅读时长
+          readProgress: Math.max(latestProgressRef.current, 5), // 至少5%的基础进度
+        };
+        
+        const success = await addToHistory(historyData);
+        
+        if (success) {
+          initialRecorded = true;
+        }
+      } catch (error) {
+        // 静默处理错误
+      }
+    }, 3000);
 
-      return () => clearTimeout(timer);
-    }
-  }, [isAuthenticated, article, addToHistory]);
+    // 定期更新阅读进度（每30秒）
+    const updateTimer = setInterval(async () => {
+      if (initialRecorded && latestDurationRef.current > 5) {
+        
+        try {
+          await addToHistory({
+            articleId: article.id.toString(),
+            articleTitle: article.title,
+            articleSlug: article.slug,
+            articleChannel: article.channel?.name || '未知',
+            readDuration: latestDurationRef.current,
+            readProgress: latestProgressRef.current,
+          });
+        } catch (error) {
+          // 静默处理错误
+        }
+      }
+    }, 30000); // 每30秒更新一次
+
+    // 页面卸载时最终更新
+    const handleBeforeUnload = async () => {
+      if (initialRecorded && latestDurationRef.current > 5) {
+        const finalData = {
+          articleId: article.id.toString(),
+          articleTitle: article.title,
+          articleSlug: article.slug,
+          articleChannel: article.channel?.name || '未知',
+          readDuration: latestDurationRef.current,
+          readProgress: latestProgressRef.current,
+        };
+        
+        try {
+          await addToHistory(finalData);
+        } catch (error) {
+          // 静默处理错误
+        }
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      clearTimeout(initialTimer);
+      clearInterval(updateTimer);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [isAuthenticated, article]); // ❗ 关键修复：移除会变化的依赖项
 
   // 处理点赞
   const handleLike = async () => {
@@ -147,10 +273,6 @@ export default function ArticleContent({
     }
   };
 
-  const shareLink = typeof window !== "undefined" ? window.location.href : "";
-  const shareTitle = article.title;
-  const sharePic = article.image_url || "";
-  const shareDesc = article.excerpt || "";
 
   // 页面浏览追踪
   useEffect(() => {
@@ -220,9 +342,9 @@ export default function ArticleContent({
     event.preventDefault();
     const channelSlug = article.channel?.slug;
     if (channelSlug) {
-      console.log('🍞 Breadcrumb channel clicked:', channelSlug);
-      // 🎯 使用新架构的统一切换函数
-      switchChannel(channelSlug);
+      // ⚡ 性能优化：使用直接路由跳转，避免复杂的switchChannel逻辑
+      const url = channelSlug === 'recommend' ? '/portal' : `/portal?channel=${channelSlug}`;
+      router.push(url);
     }
   };
 
@@ -235,57 +357,92 @@ export default function ArticleContent({
           style={{ width: `${readingProgress}%` }}
         />
       </div>
-      {/* 面包屑导航 - 简洁版 */}
+
+      {/* 全屏封面图片 */}
+      {(article.image_url || article.cover?.url) && (
+        <div className="w-full">
+          <div className="relative aspect-[21/9] w-full overflow-hidden">
+            <Image
+              src={article.image_url || article.cover?.url}
+              alt={article.title}
+              fill
+              className="object-cover"
+              sizes="100vw"
+              priority
+            />
+            {/* 图片上的渐变遮罩 */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
+            
+            {/* 图片上的标题信息 */}
+            <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
+              <div className="max-w-7xl mx-auto">
+                <div className="mb-2">
+                  <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-600 text-white">
+                    {article.channel?.name || "未知频道"}
+                  </span>
+                </div>
+                <h1 className="text-2xl md:text-4xl font-bold mb-2 drop-shadow-lg">
+                  {article.title}
+                </h1>
+                <div className="flex items-center text-sm opacity-90">
+                  <span>{article.author}</span>
+                  <span className="mx-2">•</span>
+                  <span>{formatDateTimeFull(article.publish_at)}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 面包屑导航 - 与文章内容宽度完全一致 */}
       <nav className="py-2">
-        <div className="flex items-center text-sm">
-          <Link href="/portal" className="text-gray-500 hover:text-gray-700">
-            首页
-          </Link>
-          <span className="mx-2 text-gray-400">/</span>
-          <button
-            onClick={handleChannelBreadcrumbClick}
-            className="text-gray-500 hover:text-gray-700 transition-colors"
-          >
-            {article.channel?.name || "未知频道"}
-          </button>
-          <span className="mx-2 text-gray-400">/</span>
-          <span className="text-gray-900 truncate">{article.title}</span>
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2">
+              <div className="flex items-center text-sm">
+                <Link href="/portal" className="text-gray-500 hover:text-gray-700">
+                  首页
+                </Link>
+                <span className="mx-2 text-gray-400">/</span>
+                <button
+                  onClick={handleChannelBreadcrumbClick}
+                  className="text-gray-500 hover:text-gray-700 transition-colors"
+                >
+                  {article.channel?.name || "未知频道"}
+                </button>
+                <span className="mx-2 text-gray-400">/</span>
+                <span className="text-gray-900 truncate">{article.title}</span>
+              </div>
+            </div>
+          </div>
         </div>
       </nav>
 
       <div className="py-2">
-        <div className="relative max-w-7xl mx-auto">
-          <div className="flex gap-4">
-            {/* 左侧分享栏 - 只在超大屏幕显示 */}
-            <aside className="hidden xl:block">
-              <div className="sticky top-32 h-0">
-                <FloatingShareToolbar
-                  shareLink={shareLink}
-                  shareTitle={shareTitle}
-                  sharePic={sharePic}
-                  shareDesc={shareDesc}
-                />
-              </div>
-            </aside>
-            
-            {/* 主内容和右侧栏容器 */}
-            <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-4">
-              {/* 主内容列 */}
-              <div className="lg:col-span-2">
+        <div className="max-w-7xl mx-auto px-4">
+          {/* 主内容和右侧栏容器 */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* 主内容列 */}
+            <div className="lg:col-span-2">
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
                 {/* 文章头部 */}
             <div className="p-6">
-              {/* 频道标签 */}
-              <div className="mb-3">
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                  {article.channel?.name || "未知频道"}
-                </span>
-              </div>
+              {/* 频道标签 - 只在无封面图片时显示 */}
+              {!(article.image_url || article.cover?.url) && (
+                <div className="mb-3">
+                  <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                    {article.channel?.name || "未知频道"}
+                  </span>
+                </div>
+              )}
 
-              {/* 文章标题 */}
-              <h1 className="text-2xl font-bold text-gray-900 mb-3 leading-tight">
-                {article.title}
-              </h1>
+              {/* 文章标题 - 只在无封面图片时显示 */}
+              {!(article.image_url || article.cover?.url) && (
+                <h1 className="text-2xl font-bold text-gray-900 mb-3 leading-tight">
+                  {article.title}
+                </h1>
+              )}
 
               {/* 文章元信息 */}
               <div className="flex items-center justify-between text-sm text-gray-600 mb-4 pb-4 border-b border-gray-200">
@@ -388,7 +545,7 @@ export default function ArticleContent({
             {/* 文章内容 - 优化阅读体验 */}
             <div className="px-6 pb-6">
               <div
-                className="article-content max-w-none"
+                className="article-content max-w-none prose prose-lg max-w-full"
                 data-article-content
                 dangerouslySetInnerHTML={{ __html: article.content }}
               />
@@ -637,6 +794,5 @@ export default function ArticleContent({
           </div>
         </div>
       </div>
-    </div>
   );
 }

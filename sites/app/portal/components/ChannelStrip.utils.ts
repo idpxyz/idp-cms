@@ -147,8 +147,9 @@ export async function getChannelArticles(
       headers: {
         'Content-Type': 'application/json',
       },
-      // 客户端缓存控制
-      cache: 'default',
+      // ⚡ 性能优化：增强缓存策略
+      cache: 'force-cache',
+      next: { revalidate: 300 }, // 5分钟缓存
     });
 
     if (!response.ok) {

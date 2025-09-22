@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { 
@@ -11,6 +11,7 @@ import {
   formatTimeAgo,
   formatNumber
 } from './ChannelStrip.utils';
+import { channelStripCache, getCacheKey } from './ChannelStrip.cache';
 import { getSideNewsPlaceholderImage } from '@/lib/utils/placeholderImages';
 
 export interface ChannelStripProps {
@@ -57,9 +58,21 @@ const ChannelStrip: React.FC<ChannelStripProps> = ({
     fetchCategories();
   }, [channelSlug, showCategories]);
 
-  // 获取文章数据
+  // ⚡ 获取文章数据（带缓存）
   useEffect(() => {
     async function fetchArticles() {
+      // 1. 检查缓存
+      const cacheKey = getCacheKey(channelSlug, selectedCategory || undefined, articleLimit);
+      const cachedData = channelStripCache.get<ChannelStripItem[]>(cacheKey);
+      
+      if (cachedData) {
+        console.log(`📦 Using cached data for ${channelSlug} (${cachedData.length} articles)`);
+        setArticles(cachedData);
+        setIsLoading(false);
+        return;
+      }
+
+      // 2. 缓存未命中，获取新数据
       setIsLoading(true);
       setError('');
       
@@ -69,8 +82,11 @@ const ChannelStrip: React.FC<ChannelStripProps> = ({
           selectedCategory || undefined, 
           articleLimit
         );
+        
+        // 3. 存入缓存
+        channelStripCache.set(cacheKey, articlesData);
         setArticles(articlesData);
-        console.log(`Loaded ${articlesData.length} articles for ${channelSlug}`);
+        console.log(`⚡ Loaded & cached ${articlesData.length} articles for ${channelSlug}`);
       } catch (err) {
         console.error(`Error loading articles for channel ${channelSlug}:`, err);
         setError('加载失败，请稍后重试');
