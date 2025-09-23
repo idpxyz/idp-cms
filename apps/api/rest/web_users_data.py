@@ -70,21 +70,8 @@ def add_reading_history(request):
     
     serializer = ReadingHistorySerializer(data=data)
     if serializer.is_valid():
-        # 如果已存在相同文章的记录，更新而不是创建新的
-        existing = ReadingHistory.objects.filter(
-            user=user, 
-            article_id=data['article_id']
-        ).first()
-        
-        if existing:
-            # 更新现有记录
-            for attr, value in serializer.validated_data.items():
-                setattr(existing, attr, value)
-            existing.save()
-            record = existing
-        else:
-            # 创建新记录
-            record = serializer.save(user=user)
+        # 每次都创建新的阅读记录，允许用户多次阅读同一文章
+        record = serializer.save(user=user)
         
         return Response({
             'success': True,

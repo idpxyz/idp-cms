@@ -39,20 +39,76 @@ class PublicMediaStorage(S3Boto3Storage):
         self.use_ssl = False
     
     def url(self, name):
-        """生成正确的公共访问URL"""
-        # 使用Django媒体代理而不是直接访问MinIO
-        # 这解决了浏览器访问MinIO时的网络连接问题
-        clean_name = name.lstrip('/')
-        from django.urls import reverse
-        from django.conf import settings
+        """
+        生成媒体文件的公共访问URL
         
-        # 获取Django服务的基础URL
-        # 优先使用容器内可访问的地址用于Next.js图片优化
-        base_url = getattr(settings, 'WAGTAILADMIN_BASE_URL', 'http://authoring:8000')
-        base_url = base_url.rstrip('/')
+        使用统一的URL配置管理器，并智能判断请求类型
+        """
+        from apps.core.url_config import URLConfig
         
-        # 使用媒体代理URL
-        return f"{base_url}/api/media/proxy/{clean_name}"
+        # 智能判断是否应该使用内部URL
+        for_internal = self._should_use_internal_url()
+        return URLConfig.build_media_proxy_url(name, for_internal=for_internal)
+    
+    def _should_use_internal_url(self):
+        """
+        智能判断是否应该使用内部URL
+        
+        判断逻辑：
+        1. 如果是API请求且来自内部服务 → 使用内部URL
+        2. 如果是浏览器访问或Admin访问 → 使用外部URL
+        3. 默认情况 → 使用外部URL（更安全）
+        
+        Returns:
+            bool: True表示使用内部URL，False表示使用外部URL
+        """
+        import threading
+        
+        try:
+            # 尝试获取当前请求
+            current_request = getattr(threading.current_thread(), 'request', None)
+            
+            if current_request and hasattr(current_request, 'META'):
+                user_agent = current_request.META.get('HTTP_USER_AGENT', '').lower()
+                http_host = current_request.META.get('HTTP_HOST', '')
+                request_path = getattr(current_request, 'path', '')
+                
+                # 判断是否为浏览器访问
+                is_browser = any(browser in user_agent for browser in [
+                    'mozilla', 'chrome', 'safari', 'firefox', 'edge', 'webkit'
+                ])
+                
+                # 判断是否为Admin访问
+                is_admin_path = (
+                    '/admin' in request_path or 
+                    '/cms' in request_path or 
+                    request_path.startswith('/admin')
+                )
+                
+                # 判断是否为localhost访问
+                is_localhost = 'localhost' in http_host or '127.0.0.1' in http_host
+                
+                # 决策逻辑：
+                # 1. 浏览器访问localhost → 使用外部URL
+                # 2. Admin访问 → 使用外部URL  
+                # 3. API请求且非localhost → 使用内部URL
+                # 4. 其他情况 → 使用外部URL（默认安全策略）
+                
+                if is_browser and is_localhost:
+                    return False  # 浏览器访问localhost，使用外部URL
+                elif is_admin_path:
+                    return False  # Admin访问，使用外部URL
+                elif not is_browser and not is_localhost:
+                    return True   # API请求且非localhost，使用内部URL
+                else:
+                    return False  # 默认使用外部URL
+                    
+        except Exception:
+            # 异常情况下使用外部URL（更安全）
+            pass
+        
+        # 默认使用外部URL
+        return False
     
     def internal_url(self, name):
         """生成容器内部访问URL（用于服务间通信）"""

@@ -12,6 +12,11 @@ from apps.news.models.article import ArticlePage
 from wagtail.models import Site
 from ..utils.rate_limit import FEED_RATE_LIMIT
 from apps.core.flags import flag
+from ..utils.modern_cache import (
+    ModernCacheStrategy, ModernCacheManager, SmartCacheKey, CacheHeaders,
+    BreakingNewsDetector, ContentType, CacheLayer,
+    get_cache_time, generate_cache_key, should_cache
+)
 
 
 def _normalize_text(text: str) -> str:
@@ -198,6 +203,26 @@ def headlines(request):
             # 兜底 publish_at
             if not item.get("publish_at") and item.get("publish_time"):
                 item["publish_at"] = item["publish_time"]
+            
+            # 添加封面图片信息（从数据库获取）
+            cover_url = None
+            try:
+                article_id = item.get("article_id") or item.get("id")
+                if article_id:
+                    # 从数据库获取文章封面
+                    try:
+                        article = ArticlePage.objects.get(id=int(article_id))
+                        if article.cover:
+                            cover_url = f"http://192.168.8.195:8000/api/media/proxy/{article.cover.file.name}"
+                    except (ArticlePage.DoesNotExist, ValueError):
+                        pass
+            except Exception:
+                pass
+            
+            # 添加图片字段
+            item["image_url"] = cover_url
+            item["cover"] = {"url": cover_url} if cover_url else None
+            
             candidates.append(item)
         # 若ES无结果，进入DB回退
         if total_hits == 0 or not candidates:
@@ -248,6 +273,15 @@ def headlines(request):
                 except Exception:
                     pages = list(ArticlePage.objects.live().order_by('-first_published_at')[:elastic_size])
         for p in pages:
+            # 获取封面图片URL
+            cover_url = None
+            if p.cover:
+                try:
+                    # 使用媒体代理URL
+                    cover_url = f"http://192.168.8.195:8000/api/media/proxy/{p.cover.file.name}"
+                except Exception:
+                    pass
+            
             item = {
                 "id": str(p.id),
                 "article_id": str(p.id),
@@ -258,6 +292,8 @@ def headlines(request):
                 "channel": getattr(p.channel, 'slug', 'recommend') if p.channel else 'recommend',
                 "topic": getattr(p, 'topic_slug', ''),
                 "author": getattr(p, 'author_name', ''),
+                "image_url": cover_url,  # 添加图片URL
+                "cover": {"url": cover_url} if cover_url else None,  # 添加cover对象
                 "quality_score": 1.0,
                 "ctr_1h": 0.0,
                 "pop_1h": 0.0,
@@ -381,13 +417,47 @@ def headlines(request):
     if len(filtered) < size:
         filtered = [x for x in clustered if x.get("cluster_slug") not in set(exclude_clusters)]
 
-    # 简易缓存（仅缓存首屏且不包含排除列表的请求）
+    # 现代化缓存策略
     cache_key = None
+    content_type = ContentType.NORMAL
+    
     if start_offset == 0 and not exclude_clusters:
-        cache_key = f"headlines:v1:{site}:{region or '-'}:{lang or '-'}:{hours}:{diversity}:{size}"
-        cached = cache.get(cache_key)
-        if cached:
-            return Response(cached)
+        # 1. 智能检测内容类型
+        request_data = {
+            'diversity': diversity,
+            'hours': hours,
+            'channels': req_channels,
+            'region': region,
+            'lang': lang
+        }
+        content_type = ModernCacheStrategy.detect_content_type(request_data)
+        
+        # 2. 生成现代缓存key
+        cache_params = {
+            'hours': hours,
+            'diversity': diversity, 
+            'size': size,
+            'region': region,
+            'lang': lang,
+            'channels': req_channels
+        }
+        
+        session_id = request.headers.get('X-Session-ID')
+        user_id = session_id if session_id and session_id.startswith('user_') else None
+        
+        cache_key = generate_cache_key(
+            content_type, CacheLayer.BACKEND, site, cache_params, user_id
+        )
+        
+        # 3. 检查缓存
+        if should_cache(content_type, CacheLayer.BACKEND):
+            cached = ModernCacheManager.get(cache_key)
+            if cached:
+                response = Response(cached)
+                # 设置现代响应头
+                for key, value in CacheHeaders.generate_response_headers(content_type).items():
+                    response[key] = value
+                return response
 
     # 游标分页
     end = start_offset + size
@@ -427,12 +497,39 @@ def headlines(request):
         token = base64.urlsafe_b64encode(json.dumps({"offset": end}).encode()).decode()
         next_cursor = token
 
-    payload = {"items": top, "next_cursor": next_cursor}
+    # 动态检测突发新闻
+    if BreakingNewsDetector.detect(top):
+        content_type = ContentType.BREAKING
+    
+    # 获取缓存时间
+    cache_time = get_cache_time(content_type, CacheLayer.BACKEND)
+    
+    payload = {
+        "items": top, 
+        "next_cursor": next_cursor,
+        "content_type": content_type.value,
+        "cache_strategy": {
+            "type": content_type.value,
+            "backend_ttl": cache_time,
+            "gateway_ttl": get_cache_time(content_type, CacheLayer.GATEWAY),
+            "cdn_ttl": get_cache_time(content_type, CacheLayer.CDN)
+        }
+    }
+    
     if flag("features.debug_enabled", False):
         payload["debug"] = debug
-    # 设置缓存（仅首屏且无排除列表）
-    if cache_key:
-        cache.set(cache_key, payload, timeout=60)
-    return Response(payload)
+    
+    # 现代化缓存设置
+    if cache_key and should_cache(content_type, CacheLayer.BACKEND):
+        ModernCacheManager.set(cache_key, payload, cache_time, content_type)
+    
+    # 构建响应
+    response = Response(payload)
+    
+    # 设置现代响应头
+    for key, value in CacheHeaders.generate_response_headers(content_type).items():
+        response[key] = value
+    
+    return response
 
 

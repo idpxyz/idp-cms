@@ -27,16 +27,16 @@ def monitoring_dashboard(request):
         # 1. 缓存性能指标
         cache_stats = cache_monitor.get_stats()
         
-        # 2. 聚合API响应性能测试
+        # 2. 现代API响应性能测试
         import time
-        start_time = time.time()
+        from django.test import RequestFactory
+        factory = RequestFactory()
         
+        start_time = time.time()
         try:
-            from apps.api.rest.aggregations import agg_headlines
-            from django.test import RequestFactory
-            factory = RequestFactory()
-            request = factory.get('/api/agg/headlines/?size=1')
-            response = agg_headlines(request)
+            from apps.api.rest.headlines import headlines
+            request = factory.get('/api/headlines/?size=1')
+            response = headlines(request)
             headlines_healthy = response.status_code == 200
             headlines_response_time = time.time() - start_time
         except Exception:
@@ -45,9 +45,9 @@ def monitoring_dashboard(request):
         
         start_time = time.time()
         try:
-            from apps.api.rest.aggregations import agg_hot
-            request = factory.get('/api/agg/hot/?size=1')
-            response = agg_hot(request)
+            from apps.api.rest.hot import hot
+            request = factory.get('/api/hot/?size=1')
+            response = hot(request)
             hot_healthy = response.status_code == 200
             hot_response_time = time.time() - start_time
         except Exception:
@@ -187,20 +187,21 @@ def monitoring_health(request):
     简化的健康检查端点
     """
     try:
-        # 快速检查关键组件
+        # 快速检查现代API组件
         try:
-            from apps.api.rest.aggregations import agg_headlines, agg_hot
+            from apps.api.rest.headlines import headlines
+            from apps.api.rest.hot import hot
             from django.test import RequestFactory
             factory = RequestFactory()
             
-            # 测试头条API
-            request = factory.get('/api/agg/headlines/?size=1')
-            headlines_response = agg_headlines(request)
+            # 测试现代头条API
+            request = factory.get('/api/headlines/?size=1')
+            headlines_response = headlines(request)
             headlines_ok = headlines_response.status_code == 200
             
             # 测试热门API
-            request = factory.get('/api/agg/hot/?size=1') 
-            hot_response = agg_hot(request)
+            request = factory.get('/api/hot/?size=1') 
+            hot_response = hot(request)
             hot_ok = hot_response.status_code == 200
             
             status = "healthy" if (headlines_ok and hot_ok) else "degraded"

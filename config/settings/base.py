@@ -88,6 +88,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "apps.branding.middleware.AdminRememberMeMiddleware",  # 记住我功能
     "apps.core.middleware.CorrelationIdMiddleware",
+    "apps.core.middleware.ThreadLocalRequestMiddleware",  # 线程本地请求存储
     # "apps.api.middleware.idempotency.RetryableErrorMiddleware",  # 暂时禁用，待排查
     # "apps.api.middleware.idempotency.IdempotencyMiddleware",  # 暂时禁用，待进一步验证
     # "apps.api.middleware.response_standard.APIResponseStandardMiddleware",  # 暂时禁用，待修复
@@ -268,7 +269,9 @@ SITE_ID = 1
 
     # Wagtail配置
 WAGTAIL_SITE_NAME = "IDP-CMS"
-WAGTAILADMIN_BASE_URL = os.getenv("WAGTAIL_BASE_URL", "http://localhost:8000")
+# WAGTAILADMIN_BASE_URL 已废弃，使用新的统一URL配置管理器
+# 保留此行仅为向后兼容，实际URL由 apps.core.url_config.URLConfig 管理
+WAGTAILADMIN_BASE_URL = os.getenv("DJANGO_BASE_URL", "http://localhost:8000")
 
 # 直接扩展 Wagtail 的 Site 模型，无需自定义模型配置
 
@@ -301,19 +304,19 @@ CORS_ALLOW_HEADERS = list(default_headers) + [
 CELERY_TIMEZONE = TIME_ZONE
 CELERY_ENABLE_UTC = False
 CELERY_BEAT_SCHEDULE = {
-    # 媒体文件清理任务
-    'cleanup-orphan-files': {
-        'task': 'apps.media.tasks.cleanup_orphan_files',
-        'schedule': 3600.0,  # 每小时执行一次
-    },
-    'cleanup-temp-files': {
-        'task': 'apps.media.tasks.cleanup_temp_files', 
-        'schedule': 86400.0,  # 每天执行一次
-    },
-    'cleanup-old-renditions': {
-        'task': 'apps.media.tasks.cleanup_old_renditions',
-        'schedule': 86400.0,  # 每天执行一次
-    },
+    # 媒体文件清理任务 - 暂时禁用以防止误删图片
+    # 'cleanup-orphan-files': {
+    #     'task': 'apps.media.tasks.cleanup_orphan_files',
+    #     'schedule': 3600.0,  # 每小时执行一次
+    # },
+    # 'cleanup-temp-files': {
+    #     'task': 'apps.media.tasks.cleanup_temp_files', 
+    #     'schedule': 86400.0,  # 每天执行一次
+    # },
+    # 'cleanup-old-renditions': {
+    #     'task': 'apps.media.tasks.cleanup_old_renditions',
+    #     'schedule': 86400.0,  # 每天执行一次
+    # },
     'generate-storage-stats': {
         'task': 'apps.media.tasks.generate_storage_stats',
         'schedule': 3600.0,  # 每小时生成一次统计
@@ -342,17 +345,8 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'apps.searchapp.tasks.check_db_opensearch_consistency',
         'schedule': 600.0,  # 每10分钟检查一次
     },
-    # Headlines/Hot 预计算任务
-    'compute-headlines': {
-        'task': 'apps.api.tasks.aggregations.compute_headlines',
-        'schedule': 60.0,  # 每分钟刷新一次短缓存
-        'options': {'queue': 'default'},
-    },
-    'compute-hot': {
-        'task': 'apps.api.tasks.aggregations.compute_hot',
-        'schedule': 60.0,  # 每分钟刷新一次短缓存
-        'options': {'queue': 'default'},
-    },
+    # 现代缓存系统不需要预计算任务，删除旧的聚合缓存任务
+    # compute_hot 任务也已删除，现代缓存系统实时处理
     
     # 数据同步和行为分析任务
     'batch-update-article-weights': {

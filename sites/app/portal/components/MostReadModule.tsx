@@ -40,7 +40,7 @@ export default function MostReadModule({ onArticleClick, limit = 8, excludeClust
         params.set('diversity', diversity);
       }
       
-      const response = await fetch(`/api/agg/hot?${params.toString()}`);
+      const response = await fetch(`/api/hot?${params.toString()}`);
       const res = await response.json();
 
       const arr = res.items || [];

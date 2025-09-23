@@ -9,10 +9,20 @@ import ChannelNavigation from "./ChannelNavigation";
 import { endpoints } from "@/lib/config/endpoints";
 
 export const metadata: Metadata = {
-  title: "IDP-CMS 门户 - 专业新闻聚合平台",
+  title: "党报头条 - 倾听人民的声音",
   description:
-    "IDP-CMS门户是专业的新闻聚合平台，为您提供最新、最全面的资讯服务，涵盖政治、经济、文化、科技等各个领域。",
-  keywords: "新闻,资讯,聚合,平台,IDP-CMS,门户",
+    "党报头条是权威主流媒体融合平台，坚持党媒属性，传播党的声音，服务人民群众， 倾听人民的声音。聚焦要闻时政、民生服务、经济发展、文化传承、科技创新等重点领域，打造有思想、有温度、有品质的新闻资讯服务。",
+  keywords: "党报头条,主流媒体,融媒体,要闻时政,民生服务,权威资讯,党的声音,人民的声音,新闻平台",
+  openGraph: {
+    title: "党报头条 - 倾听人民的声音",
+    description: "倾听人民的声音，聚焦要闻时政、民生服务、经济发展、文化传承、科技创新等重点领域，打造有思想、有温度、有品质的新闻资讯服务。",
+    type: "website",
+    locale: "zh_CN",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 interface PortalLayoutProps {
@@ -42,7 +52,7 @@ async function getChannels() {
     if (response.ok) {
       const data = await response.json();
       const channels = data.channels || [];
-      const recommendChannel = { id: "recommend", name: "推荐", slug: "recommend", order: -1 };
+      const recommendChannel = { id: "recommend", name: "首页", slug: "recommend", order: -1 };
       const otherChannels = channels
         .filter((ch: any) => ch.slug !== "recommend")
         .map((ch: any) => ({
@@ -59,7 +69,7 @@ async function getChannels() {
   // 返回最小可用的频道集合，而不是 null
   console.log('Using minimal fallback channels in layout');
   return [
-    { id: "recommend", name: "推荐", slug: "recommend", order: -1 }
+    { id: "recommend", name: "首页", slug: "recommend", order: -1 }
   ];
 }
 

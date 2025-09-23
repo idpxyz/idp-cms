@@ -7,6 +7,7 @@ import DefaultTemplate from './DefaultTemplate';
 import SocialTemplate from './SocialTemplate';
 import CultureTemplate from './CultureTemplate';
 import TechTemplate from './TechTemplate';
+import FashionTemplate from './FashionTemplate';
 
 // 模板映射表 - 只列出需要特殊模板的频道
 const CHANNEL_TEMPLATES = {
@@ -15,6 +16,7 @@ const CHANNEL_TEMPLATES = {
   'culture': CultureTemplate,
   'tech': TechTemplate,
   'technology': TechTemplate,   // 别名支持
+  'fashion': FashionTemplate,   // 时尚频道
 } as const;
 
 /**
@@ -27,4 +29,4 @@ export function getChannelTemplate(channelSlug: string) {
 }
 
 // 简化导出
-export { DefaultTemplate, SocialTemplate, CultureTemplate, TechTemplate };
+export { DefaultTemplate, SocialTemplate, CultureTemplate, TechTemplate, FashionTemplate };

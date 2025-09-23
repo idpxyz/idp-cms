@@ -1,7 +1,7 @@
 import React from "react";
 import { categoryService, articleService, tagService } from "@/lib/api";
 import { getMainSite } from "@/lib/config/sites";
-import NewsContent from "../../NewsContent";
+import NewsContent from "../../components/NewsContent";
 import PageContainer from "@/components/layout/PageContainer";
 import Section from "@/components/layout/Section";
 import { notFound } from 'next/navigation';
@@ -52,13 +52,13 @@ async function getChannels() {
       order: cat.order || 0
     }));
     
-    // 添加推荐频道
-    const recommendChannel = { id: "recommend", name: "推荐", slug: "recommend", order: -1 };
+    // 添加首页频道
+    const recommendChannel = { id: "recommend", name: "首页", slug: "recommend", order: -1 };
     return [recommendChannel, ...channelData];
   } catch (error) {
     console.error('Error fetching channels:', error);
-    // 返回默认推荐频道
-    return [{ id: "recommend", name: "推荐", slug: "recommend", order: -1 }];
+    // 返回默认首页频道
+    return [{ id: "recommend", name: "首页", slug: "recommend", order: -1 }];
   }
 }
 

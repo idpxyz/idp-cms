@@ -357,7 +357,7 @@ export default function SearchPage() {
                       <div className="flex-1 min-w-0">
                         <h2 className="text-lg font-semibold text-gray-900 mb-2">
                           <a 
-                            href={result.url}
+                            href={result.slug ? `/portal/article/${result.slug}` : result.url}
                             className="hover:text-blue-600 transition-colors"
                             dangerouslySetInnerHTML={{
                               __html: result.highlight?.title || result.title

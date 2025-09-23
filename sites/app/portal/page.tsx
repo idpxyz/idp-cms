@@ -1,7 +1,7 @@
 import React from "react";
 import { endpoints } from "@/lib/config/endpoints";
 import { getMainSite } from "@/lib/config/sites";
-import NewsContent from "./NewsContent";
+import NewsContent from "./components/NewsContent";
 import PageContainer from "@/components/layout/PageContainer";
 import Section from "@/components/layout/Section";
 // Hero 轮播组件
@@ -15,7 +15,7 @@ import ChannelPageRenderer from "./components/ChannelPageRenderer";
 function getHomepageChannelStrips(channels: any[]): any[] {
   return channels
     .filter((channel: any) => {
-      // 🎯 完全由后台控制 - 移除硬编码的推荐频道排除逻辑
+      // 🎯 完全由后台控制 - 移除硬编码的频道排除逻辑
       // 只依赖后台配置的 show_in_homepage 字段
       return channel.show_in_homepage === true;
     })
@@ -50,9 +50,9 @@ async function getChannels() {
       const data = await response.json();
       console.log('Successfully fetched channels from backend:', data.channels?.length || 0);
       
-      // 确保推荐频道在最前面，并将数字ID转换为字符串slug以保持一致性
+      // 确保首页频道在最前面，并将数字ID转换为字符串slug以保持一致性
       const channels = data.channels || [];
-      const recommendChannel = { id: "recommend", name: "推荐", slug: "recommend", order: -1 };
+      const homepageChannel = { id: "recommend", name: "首页", slug: "recommend", order: -1 };
       const otherChannels = channels
         .filter((ch: any) => ch.slug !== "recommend")
         .map((ch: any) => ({
@@ -60,7 +60,7 @@ async function getChannels() {
           id: ch.slug // 使用slug作为ID，保持与前端期望的字符串ID一致
         }));
       
-      return [recommendChannel, ...otherChannels];
+      return [homepageChannel, ...otherChannels];
     } else {
       if (response.status === 429) {
         console.log('Backend API rate limited, using fallback channels');
@@ -72,10 +72,10 @@ async function getChannels() {
     console.error('Error fetching channels from backend:', error);
   }
 
-  // API调用失败时只返回推荐频道，避免硬编码数据库频道
-  console.log('API failed, returning minimal fallback with recommend channel only');
+  // API调用失败时只返回首页频道，避免硬编码数据库频道
+  console.log('API failed, returning minimal fallback with homepage channel only');
   return [
-    { id: "recommend", name: "推荐", slug: "recommend", order: -1 },
+    { id: "recommend", name: "首页", slug: "recommend", order: -1 },
   ];
 }
 

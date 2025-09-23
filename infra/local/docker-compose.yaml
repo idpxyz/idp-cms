@@ -1,6 +1,8 @@
 services:
   postgres:
     image: postgres:latest
+    env_file:
+      - ../../.env.core
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-news}
       POSTGRES_USER: ${POSTGRES_USER:-news}
@@ -68,7 +70,9 @@ services:
 
   opensearch:
     image: opensearchproject/opensearch:3
-    env_file: ../../.env
+    env_file:
+      - ../../.env.core
+      - ../../.env.features
     environment:
       - discovery.type=single-node
       - plugins.security.disabled=${OPENSEARCH_SECURITY_DISABLED:-true}
@@ -118,23 +122,13 @@ services:
 
   authoring:
     build: { context: ../../, dockerfile: Dockerfile }
-    env_file: ../../.env
+    env_file:
+      - ../../.env.core
+      - ../../.env.features  
+      - ../../.env.development
     environment:
-      # 开发期常见主机放行（可在外部用 ALLOWED_HOSTS 覆写）
+      # 动态覆盖配置（仅在需要时使用）
       DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1,192.168.8.195,portal.local}
-      DJANGO_SETTINGS_MODULE: config.settings.dev
-      DJANGO_DEBUG: "1"
-      # 让存储生成容器内可访问的绝对URL，便于 Next 图片优化拉取
-      WAGTAIL_BASE_URL: "http://authoring:8000"
-      # MinIO 配置
-      MINIO_ENDPOINT: ${MINIO_ENDPOINT:-http://minio:9000}
-      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
-      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin}
-      MINIO_BUCKET: ${MINIO_BUCKET:-media}
-      MINIO_PUBLIC_DOMAIN: ${MINIO_PUBLIC_DOMAIN:-localhost:9002}
-      # 禁用媒体清理任务，防止误删图片
-      ENABLE_MEDIA_CLEANUP: "0"
-      ENABLE_RENDITION_CLEANUP: "0"
     user: "${DEV_UID:-1000}:${DEV_GID:-1000}"
     volumes: ["../../:/app"]
     working_dir: /app
@@ -160,7 +154,10 @@ services:
 
   celery:
     build: { context: ../../, dockerfile: Dockerfile }
-    env_file: ../../.env
+    env_file:
+      - ../../.env.core
+      - ../../.env.features
+      - ../../.env.development
     environment:
       DJANGO_SETTINGS_MODULE: config.settings.dev
       ENABLE_MEDIA_CLEANUP: "0"
@@ -176,7 +173,10 @@ services:
 
   celery-beat:
     build: { context: ../../, dockerfile: Dockerfile }
-    env_file: ../../.env
+    env_file:
+      - ../../.env.core
+      - ../../.env.features
+      - ../../.env.development
     environment:
       DJANGO_SETTINGS_MODULE: config.settings.dev
       ENABLE_MEDIA_CLEANUP: "0"
@@ -192,7 +192,9 @@ services:
 
   portal:
     build: { context: ../../portal/next, dockerfile: Dockerfile }
-    env_file: ../../.env
+    env_file:
+      - ../../.env.core
+      - ../../.env.features
     environment:
       # ★ SSR 在容器内访问后端（服务名 authoring）
       DJANGO_API_URL: ${DJANGO_API_URL:-http://authoring:8000}
@@ -238,7 +240,7 @@ services:
     depends_on:
       - authoring
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/api/ready"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/ready"]
       interval: 10s
       timeout: 5s
       retries: 10

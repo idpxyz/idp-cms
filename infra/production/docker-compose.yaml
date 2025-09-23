@@ -40,7 +40,10 @@ services:
 
   opensearch:
     image: opensearchproject/opensearch:3
-    env_file: ../../.env
+    env_file:
+      - ../../.env.core
+      - ../../.env.features
+      - ../../.env.production
     environment:
       - discovery.type=single-node
       - plugins.security.disabled=${OPENSEARCH_SECURITY_DISABLED:-false}
@@ -58,7 +61,10 @@ services:
 
   authoring:
     build: { context: ../../, dockerfile: authoring/Dockerfile }
-    env_file: ../../.env
+    env_file:
+      - ../../.env.core
+      - ../../.env.features
+      - ../../.env.production
     environment:
       DJANGO_DEBUG: ${DJANGO_DEBUG:-0}
       DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1}
@@ -78,7 +84,10 @@ services:
 
   portal:
     build: { context: ../../portal/next, dockerfile: Dockerfile }
-    env_file: ../../.env
+    env_file:
+      - ../../.env.core
+      - ../../.env.features
+      - ../../.env.production
     environment:
       NODE_ENV: production
       NEXT_PUBLIC_FEED_API_URL: ${NEXT_PUBLIC_FEED_API_URL:-http://localhost:8000}

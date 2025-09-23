@@ -346,14 +346,14 @@ class AnonymousRecommendationEngine:
         # 获取当前站点的所有活跃频道
         active_channels = self.get_active_channels(site.id)
         
-        # 如果没有活跃频道，使用fallback策略
+        # 如果没有活跃频道，返回错误策略 - 完全由后台控制
         if not active_channels:
             return {
-                "type": "fallback",
+                "type": "no_channels_configured", 
                 "channels": [],
                 "weights": {},
                 "diversity_boost": 0,
-                "error": "No active channels available"
+                "error": "没有配置活跃频道，请在Django后台设置频道数据"
             }
         
         if confidence < 0.3:

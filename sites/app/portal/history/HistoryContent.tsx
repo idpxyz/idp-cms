@@ -14,6 +14,8 @@ export default function HistoryContent() {
     history,
     isLoading: historyLoading,
     totalItems,
+    hasMore,
+    loadMoreHistory,
     removeFromHistory,
     removeMultipleFromHistory,
     clearHistory,
@@ -442,6 +444,30 @@ export default function HistoryContent() {
           </div>
         )}
       </div>
+
+      {/* 分页控制 */}
+      {history.length > 0 && hasMore && (
+        <div className="flex justify-center mt-6">
+          <button
+            onClick={loadMoreHistory}
+            disabled={historyLoading}
+            className="flex items-center space-x-2 px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {historyLoading && (
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+            )}
+            <span>{historyLoading ? '加载中...' : '加载更多'}</span>
+          </button>
+        </div>
+      )}
+
+      {/* 分页状态信息 */}
+      {totalItems > 0 && (
+        <div className="text-center mt-4 text-sm text-gray-500">
+          已显示 {history.length} / {totalItems} 条记录
+          {!hasMore && totalItems > history.length && ' (可能有记录被删除)'}
+        </div>
+      )}
     </div>
   );
 }

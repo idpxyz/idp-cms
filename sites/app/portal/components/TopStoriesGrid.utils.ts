@@ -2,16 +2,301 @@ import { fetchTrendingFeed } from '@/lib/api/feed';
 import { getNews } from '@/lib/api/news';
 import { TopStoryItem } from './TopStoriesGrid';
 
+// 现代化前端缓存系统
+interface ModernCacheItem {
+  data: any;
+  expiry: number;
+  contentType: string;
+  timestamp: number;
+}
+
+class ModernFrontendCache {
+  private static cache = new Map<string, ModernCacheItem>();
+  
+  // 现代化缓存时间配置
+  private static readonly CACHE_TIMES: Record<string, number> = {
+    'breaking': 0,      // 突发新闻实时
+    'hot': 5,          // 热点5秒
+    'trending': 10,    // 趋势10秒
+    'normal': 15,      // 普通15秒
+    'recommend': 30    // 推荐30秒
+  };
+  
+  static set(key: string, data: any, contentType: string): void {
+    const ttlSeconds = this.CACHE_TIMES[contentType] || 15;
+    
+    if (ttlSeconds <= 0) {
+      console.log(`🚫 Frontend Cache SKIP: ${contentType} (no cache)`);
+      return;
+    }
+    
+    const ttlMs = ttlSeconds * 1000;
+    const expiry = Date.now() + ttlMs;
+    
+    this.cache.set(key, {
+      data,
+      expiry,
+      contentType,
+      timestamp: Date.now()
+    });
+    
+    console.log(`💾 Frontend Cache SET: ${key} (TTL: ${ttlSeconds}s, Type: ${contentType})`);
+    
+    // 自动清理
+    setTimeout(() => this.cleanup(key), ttlMs);
+  }
+  
+  static get(key: string): any | null {
+    const item = this.cache.get(key);
+    if (!item) return null;
+    
+    if (Date.now() > item.expiry) {
+      this.cache.delete(key);
+      console.log(`🗑️ Frontend Cache EXPIRED: ${key}`);
+      return null;
+    }
+    
+    console.log(`✅ Frontend Cache HIT: ${key} (Type: ${item.contentType})`);
+    return item.data;
+  }
+  
+  static invalidate(pattern: string): number {
+    let count = 0;
+    const keysToDelete: string[] = [];
+    
+    this.cache.forEach((_, key) => {
+      if (key.includes(pattern)) {
+        keysToDelete.push(key);
+      }
+    });
+    
+    keysToDelete.forEach(key => {
+      this.cache.delete(key);
+      count++;
+    });
+    
+    if (count > 0) {
+      console.log(`🧹 Frontend Cache INVALIDATE: ${pattern} (${count} keys)`);
+    }
+    return count;
+  }
+  
+  private static cleanup(key: string): void {
+    const item = this.cache.get(key);
+    if (item && Date.now() > item.expiry) {
+      this.cache.delete(key);
+    }
+  }
+  
+  static getStats(): { size: number; items: Array<{key: string; contentType: string; age: number}> } {
+    const now = Date.now();
+    const items: Array<{key: string; contentType: string; age: number}> = [];
+    
+    this.cache.forEach((item, key) => {
+      items.push({
+        key,
+        contentType: item.contentType,
+        age: Math.round((now - item.timestamp) / 1000)
+      });
+    });
+    
+    return { size: this.cache.size, items };
+  }
+}
+
+// 生成客户端会话ID（用于去重）
+function generateSessionId(): string {
+  if (typeof window !== 'undefined') {
+    // 尝试从 sessionStorage 获取已存在的 sessionId
+    let sessionId = sessionStorage.getItem('headlines_session_id');
+    if (!sessionId) {
+      // 生成新的随机会话ID
+      sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      sessionStorage.setItem('headlines_session_id', sessionId);
+    }
+    return sessionId;
+  }
+  return 'ssr_session'; // SSR fallback
+}
+
+// 获取请求头配置（包含用户信息）
+function getRequestHeaders(userId?: string): HeadersInit {
+  const sessionId = userId ? `user_${userId}` : generateSessionId();
+  return {
+    'X-Session-ID': sessionId,
+    'Content-Type': 'application/json',
+  };
+}
+
 /**
  * 获取头条新闻数据
- * 优先级：模拟数据 -> 智能推荐 -> 传统新闻API
+ * 使用专业的headlines API，对标今日头条级体验
  */
-export async function getTopStories(limit: number = 6): Promise<TopStoryItem[]> {
-  // 直接使用模拟数据，确保立即显示效果
-  console.log('Using mock top stories data for immediate display');
-  return generateMockTopStories(limit);
+export async function getTopStories(
+  limit: number = 9,
+  options?: {
+    excludeClusterIds?: string[];
+    hours?: number;
+    diversity?: 'high' | 'med' | 'low';
+    userId?: string; // 新增：用户ID，用于个性化去重
+  }
+): Promise<TopStoryItem[]> {
+  try {
+    console.log('📰 TopStories: 获取专业头条数据...');
+    
+    // 构建现代缓存key
+    const params = new URLSearchParams({
+      size: limit.toString(),
+      hours: String(options?.hours ?? 24),
+      diversity: String(options?.diversity ?? 'high'),
+      site: 'aivoya.com'
+    });
+    (options?.excludeClusterIds || []).forEach(id => params.append('exclude_cluster_ids', id));
+    
+    const apiUrl = `/api/headlines?${params.toString()}`;
+    const cacheKey = `headlines_v3_${apiUrl.replace(/[^a-zA-Z0-9]/g, '_')}`;
+    
+    // 检查现代前端缓存
+    if (typeof window !== 'undefined') {
+      const cachedData = ModernFrontendCache.get(cacheKey);
+      if (cachedData) {
+        return cachedData;
+      }
+    }
+    
+    console.log(`🔍 TopStories: Fetching URL: ${apiUrl}`);
+    
+    // 智能缓存策略
+    const response = await fetch(apiUrl, {
+      headers: getRequestHeaders(options?.userId)
+      // 移除固定的revalidate，让后端动态控制
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Headlines API failed: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    
+    // 获取现代缓存策略信息
+    const contentType = response.headers.get('X-Content-Type') || data.content_type || 'normal';
+    const cacheStrategy = response.headers.get('X-Cache-Strategy') || 'modern-v3';
+    
+    console.log(`📰 获取到 ${data.items?.length || 0} 条专业头条内容 (Type: ${contentType})`);
+    console.log(`🎯 现代缓存策略: ${cacheStrategy}`);
+    
+    if (data.items && data.items.length > 0) {
+      const topStories = data.items.map((item: any) => transformToTopStoryItem(item));
+      console.log(`📰 转换后头条内容: ${topStories.length} 条`);
+      
+      // 现代前端缓存
+      if (typeof window !== 'undefined') {
+        ModernFrontendCache.set(cacheKey, topStories, contentType);
+      }
+      
+      return topStories;
+    }
+    // 第一次无数据，尝试扩大时间窗、放宽多样性
+    const retryParams = new URLSearchParams({
+      size: limit.toString(),
+      hours: String(options?.hours ?? 168), // 7天
+      diversity: String(options?.diversity ?? 'med'),
+      site: 'aivoya.com'
+    });
+    (options?.excludeClusterIds || []).forEach(id => retryParams.append('exclude_cluster_ids', id));
+    const retryUrl = `/api/headlines?${retryParams.toString()}`;
+    console.log(`🔁 TopStories: 无数据，改用宽松参数重试: ${retryUrl}`);
+    const retryRes = await fetch(retryUrl, {
+      headers: getRequestHeaders(options?.userId),
+      next: { revalidate: 60 }
+    });
+    if (retryRes.ok) {
+      const retryData = await retryRes.json();
+      if (retryData.items && retryData.items.length > 0) {
+        const relaxed = retryData.items.map((item: any) => transformToTopStoryItem(item));
+        console.log(`✅ TopStories: 宽松参数获取到 ${relaxed.length} 条`);
+        return relaxed;
+      }
+    }
+  } catch (error) {
+    console.warn('🚫 Headlines API failed, no data available:', error);
+  }
+  
+  // 兜底：使用新闻列表API（真实数据）
+  try {
+    console.log('🧰 TopStories: 使用新闻API兜底...');
+    const newsRes = await getNews('recommend', 1, limit * 2);
+    if (newsRes?.data?.length > 0) {
+      const mapped = newsRes.data
+        .filter((it: any) => it.cover?.url || it.image_url)
+        .slice(0, limit)
+        .map((it: any) => ({
+          id: String(it.id),
+          title: it.title,
+          excerpt: it.excerpt || it.summary || '',
+          slug: it.slug || `article-${it.id}`,
+          image_url: it.cover?.url || it.image_url,
+          publish_time: it.publish_at || it.first_published_at || it.created_at,
+          author: it.author_name || it.author || '',
+          channel: it.channel ? {
+            id: it.channel.slug || String(it.channel.id || ''),
+            name: it.channel.name,
+            slug: it.channel.slug || String(it.channel.id || '')
+          } : undefined,
+          tags: it.tags || [],
+          is_featured: !!it.is_featured,
+          is_editor_pick: !!it.is_editor_pick,
+          view_count: it.view_count || 0,
+          comment_count: it.comment_count || 0,
+          reading_time: it.reading_time || 3,
+        }));
+      if (mapped.length > 0) {
+        console.log(`✅ TopStories: 新闻API兜底返回 ${mapped.length} 条`);
+        return mapped;
+      }
+    }
+  } catch (e) {
+    console.warn('🚫 TopStories: 新闻API兜底失败', e);
+  }
 
-  // 以下代码注释掉，需要时可以恢复
+  console.log('❌ TopStories: 无数据');
+  return [];
+
+}
+
+/**
+ * 转换headlines API数据为TopStoryItem格式
+ */
+function transformToTopStoryItem(item: any): TopStoryItem {
+  return {
+    id: item.id.toString(),
+    title: item.title,
+    excerpt: item.excerpt || item.summary || '',
+    slug: item.slug || `article-${item.id}`,
+    image_url: item.cover?.url || item.image_url,
+    publish_time: item.publish_at || item.first_published_at || item.created_at,
+    author: item.author_name || item.author || '',
+    channel: item.channel ? (
+      typeof item.channel === 'string' ? {
+        id: item.channel,
+        name: item.channel,
+        slug: item.channel
+      } : {
+        id: item.channel.slug || item.channel.id?.toString() || '',
+        name: item.channel.name || '',
+        slug: item.channel.slug || item.channel.id?.toString() || ''
+      }
+    ) : undefined,
+    tags: item.tags || [],
+    is_featured: item.is_featured || false,
+    is_editor_pick: item.is_editor_pick || false,
+    view_count: item.view_count || 0,
+    comment_count: item.comment_count || 0,
+    reading_time: item.reading_time || 3,
+  };
+}
+
+  // 以下代码已废弃，保留备查
   /*
   try {
     // 首先尝试获取热门推荐内容
@@ -79,160 +364,5 @@ export async function getTopStories(limit: number = 6): Promise<TopStoryItem[]> 
     console.warn('Failed to fetch news for top stories:', error);
   }
 
-  return generateMockTopStories(limit);
+  // 此处原有代码已废弃，不再使用mock数据
   */
-}
-
-/**
- * 生成模拟头条数据（开发和测试用）
- */
-export function generateMockTopStories(count: number = 6): TopStoryItem[] {
-  const mockItems: TopStoryItem[] = [
-    {
-      id: 'top-1',
-      title: '全球经济复苏加速，中国GDP增长超预期达到8.5%',
-      excerpt: '国家统计局今日发布最新数据显示，中国经济在第三季度表现强劲，GDP同比增长8.5%，超出市场预期的7.8%。专家认为，这得益于消费复苏和出口贸易的强劲增长。',
-      slug: 'china-gdp-growth-exceeds-expectations',
-      image_url: 'https://picsum.photos/800/450?random=1',
-      publish_time: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
-      author: '经济日报记者',
-      channel: { id: 'finance', name: '财经', slug: 'finance' },
-      tags: ['经济', 'GDP', '增长'],
-      is_featured: true,
-      is_editor_pick: true,
-      view_count: 15420,
-      comment_count: 89,
-      reading_time: 5,
-    },
-    {
-      id: 'top-2',
-      title: '科技创新突破：量子计算机实现新的里程碑式进展',
-      excerpt: '中科院量子信息与量子科技创新研究院宣布，其研发的量子计算机在特定算法上的计算能力较传统超级计算机提升了100万倍。',
-      slug: 'quantum-computing-breakthrough-milestone',
-      image_url: 'https://picsum.photos/800/450?random=2',
-      publish_time: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
-      author: '科技日报',
-      channel: { id: 'tech', name: '科技', slug: 'tech' },
-      tags: ['科技', '量子计算', '创新'],
-      is_featured: true,
-      is_editor_pick: false,
-      view_count: 12350,
-      comment_count: 67,
-      reading_time: 4,
-    },
-    {
-      id: 'top-3',
-      title: '教育改革新政策：义务教育阶段将全面实施素质教育评价体系',
-      excerpt: '教育部发布新的教育评价改革方案，将在全国义务教育阶段全面推行多元化素质教育评价体系，改变唯分数论的传统模式。',
-      slug: 'education-reform-quality-assessment-system',
-      image_url: 'https://picsum.photos/800/450?random=3',
-      publish_time: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-      author: '教育周刊',
-      channel: { id: 'education', name: '教育', slug: 'education' },
-      tags: ['教育', '改革', '评价体系'],
-      is_featured: false,
-      is_editor_pick: true,
-      view_count: 9876,
-      comment_count: 134,
-      reading_time: 6,
-    },
-    {
-      id: 'top-4',
-      title: '环保新举措：全国碳交易市场启动，助力碳中和目标实现',
-      excerpt: '全国碳排放权交易市场正式启动交易，首日成交量达到410万吨，成交额超过2亿元，标志着中国碳市场建设迈出重要一步。',
-      slug: 'national-carbon-trading-market-launch',
-      image_url: 'https://picsum.photos/800/450?random=4',
-      publish_time: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
-      author: '环境报',
-      channel: { id: 'environment', name: '环境', slug: 'environment' },
-      tags: ['环保', '碳交易', '碳中和'],
-      is_featured: false,
-      is_editor_pick: false,
-      view_count: 7654,
-      comment_count: 45,
-      reading_time: 4,
-    },
-    {
-      id: 'top-5',
-      title: '体育盛事：2024年奥运会中国代表团名单公布，创历史新高',
-      excerpt: '中国奥委会正式公布2024年巴黎奥运会中国体育代表团名单，共有777名运动员参加33个大项的比赛，参赛人数创历史新高。',
-      slug: 'china-olympics-team-2024-record-size',
-      image_url: 'https://picsum.photos/800/450?random=5',
-      publish_time: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
-      author: '体育周报',
-      channel: { id: 'sports', name: '体育', slug: 'sports' },
-      tags: ['体育', '奥运会', '代表团'],
-      is_featured: false,
-      is_editor_pick: false,
-      view_count: 11234,
-      comment_count: 78,
-      reading_time: 3,
-    },
-    {
-      id: 'top-6',
-      title: '文化传承：非遗保护工作取得重大进展，数字化保护全面启动',
-      excerpt: '文化和旅游部宣布启动非物质文化遗产数字化保护工程，计划用5年时间建成覆盖全国的非遗数字化保护体系。',
-      slug: 'intangible-heritage-digital-protection-project',
-      image_url: 'https://picsum.photos/800/450?random=6',
-      publish_time: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
-      author: '文化日报',
-      channel: { id: 'culture', name: '文化', slug: 'culture' },
-      tags: ['文化', '非遗', '数字化'],
-      is_featured: false,
-      is_editor_pick: false,
-      view_count: 5432,
-      comment_count: 32,
-      reading_time: 4,
-    },
-    {
-      id: 'top-7',
-      title: '医疗健康：新冠疫苗接种率达95%，群体免疫屏障基本建立',
-      excerpt: '国家卫健委发布数据显示，全国新冠疫苗接种率已达95%，有效建立了群体免疫屏障，为经济社会全面恢复提供了坚实保障。',
-      slug: 'covid-vaccine-coverage-95-percent',
-      image_url: 'https://picsum.photos/800/450?random=7',
-      publish_time: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
-      author: '健康报',
-      channel: { id: 'health', name: '健康', slug: 'health' },
-      tags: ['医疗', '疫苗', '健康'],
-      is_featured: false,
-      is_editor_pick: false,
-      view_count: 8765,
-      comment_count: 56,
-      reading_time: 3,
-    },
-    {
-      id: 'top-8',
-      title: '交通发展：高铁网络再扩容，新增3条高速铁路线正式通车',
-      excerpt: '今日，京雄商高铁、西十高铁、成达万高铁三条新线同时开通运营，中国高铁运营里程突破4.5万公里，覆盖全国主要城市群。',
-      slug: 'high-speed-rail-network-expansion',
-      image_url: 'https://picsum.photos/800/450?random=8',
-      publish_time: new Date(Date.now() - 7 * 60 * 60 * 1000).toISOString(),
-      author: '交通日报',
-      channel: { id: 'transport', name: '交通', slug: 'transport' },
-      tags: ['交通', '高铁', '基建'],
-      is_featured: false,
-      is_editor_pick: false,
-      view_count: 6543,
-      comment_count: 28,
-      reading_time: 4,
-    },
-    {
-      id: 'top-9',
-      title: '农业现代化：智慧农业试点成效显著，粮食产量提升15%',
-      excerpt: '农业农村部公布智慧农业试点成果，通过物联网、大数据、人工智能等技术应用，试点地区粮食产量平均提升15%，农药使用量减少30%。',
-      slug: 'smart-agriculture-pilot-success',
-      image_url: 'https://picsum.photos/800/450?random=9',
-      publish_time: new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString(),
-      author: '农民日报',
-      channel: { id: 'agriculture', name: '农业', slug: 'agriculture' },
-      tags: ['农业', '智慧农业', '现代化'],
-      is_featured: false,
-      is_editor_pick: false,
-      view_count: 4321,
-      comment_count: 19,
-      reading_time: 5,
-    },
-  ];
-
-  return mockItems.slice(0, count);
-}

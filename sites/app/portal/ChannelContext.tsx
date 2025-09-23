@@ -80,10 +80,10 @@ interface ChannelContextType {
 
 const ChannelContext = createContext<ChannelContextType | undefined>(undefined);
 
-// 最小化默认频道列表 - 仅包含推荐频道，避免硬编码数据库频道
+// 最小化默认频道列表 - 仅包含首页频道，避免硬编码数据库频道
 // 真实频道数据应该完全来自数据库API
 const DEFAULT_CHANNELS: Channel[] = [
-  { id: "recommend", name: "推荐", slug: "recommend", order: -1 },
+  { id: "recommend", name: "首页", slug: "recommend", order: -1 },
 ];
 
 interface ChannelProviderProps {
@@ -194,7 +194,7 @@ export function ChannelProvider({ children, initialChannels }: ChannelProviderPr
         console.log('Successfully fetched channels from backend:', data.channels.length);
         
         const channels = data.channels;
-        const recommendChannel = { id: "recommend", name: "推荐", slug: "recommend", order: -1 };
+        const recommendChannel = { id: "recommend", name: "首页", slug: "recommend", order: -1 };
         const otherChannels = channels
           .filter((ch: any) => ch.slug !== "recommend")
           .map((ch: any) => ({
@@ -228,7 +228,7 @@ export function ChannelProvider({ children, initialChannels }: ChannelProviderPr
       saveChannelsToStorage(newChannels, now);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch channels');
-      // API失败时只保留推荐频道，不使用硬编码的数据库频道
+      // API失败时只保留首页频道，不使用硬编码的数据库频道
       console.warn('Failed to fetch channels, using minimal fallback');
       setChannels(DEFAULT_CHANNELS);
     } finally {

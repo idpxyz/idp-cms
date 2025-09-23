@@ -95,7 +95,7 @@ class ReadingHistory(models.Model):
     user = models.ForeignKey(WebUser, on_delete=models.CASCADE, related_name='reading_history')
     article_id = models.CharField('文章ID', max_length=100)
     article_title = models.CharField('文章标题', max_length=200)
-    article_slug = models.SlugField('文章链接')
+    article_slug = models.CharField('文章链接', max_length=200)  # 改为CharField，允许中文
     article_channel = models.CharField('文章频道', max_length=50)
     
     # 阅读信息
@@ -108,7 +108,7 @@ class ReadingHistory(models.Model):
         verbose_name = '阅读历史'
         verbose_name_plural = '阅读历史'
         ordering = ['-read_time']
-        unique_together = ['user', 'article_id']
+        # 移除unique_together限制，允许同一用户多次阅读同一文章的记录
     
     def __str__(self):
         return f'{self.user.username} 阅读 {self.article_title}'

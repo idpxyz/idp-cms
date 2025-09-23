@@ -12,6 +12,7 @@
   line-height: 1.75;
   color: #374151; /* gray-700 */
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  width: 100%; /* 确保充分利用容器宽度 */
 }
 
 /* 移动端字体调整 */
@@ -25,7 +26,7 @@
 /* 段落样式 */
 .article-content p {
   margin-bottom: 1.5em;
-  max-width: 65ch; /* 最佳阅读宽度 */
+  max-width: none; /* 移除宽度限制，充分利用容器空间 */
 }
 
 .article-content p:last-child {
@@ -228,7 +229,7 @@
   
   .article-content p {
     margin-bottom: 1.25em;
-    max-width: none; /* 移动端不限制宽度 */
+    max-width: none; /* 移动端充分利用屏幕宽度 */
   }
   
   .article-content h1,

@@ -54,9 +54,35 @@ const nextConfig = {
     return config;
   },
 
-  // 允许外部图片域名
+  // 现代化图片配置 - 使用 remotePatterns 替代废弃的 domains
   images: {
-    domains: ["localhost", "authoring", "local-authoring-1", "picsum.photos", "images.unsplash.com", "lf9-static.bytednsdoc.com"],
+    remotePatterns: [
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+      },
+      {
+        protocol: 'http',
+        hostname: 'authoring',
+      },
+      {
+        protocol: 'http',
+        hostname: 'local-authoring-1',
+      },
+      {
+        protocol: 'http',
+        hostname: '192.168.8.195',
+      },
+      {
+        protocol: 'https',
+        hostname: 'picsum.photos',
+      },
+      {
+        protocol: 'https',
+        hostname: 'lf9-static.bytednsdoc.com',
+      }
+      // 移除 images.unsplash.com，使用稳定的 Picsum
+    ],
   },
 
   async rewrites() {

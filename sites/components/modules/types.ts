@@ -1,11 +1,9 @@
 export type ModuleKey =
-  | "quick-ticker"
   | "most-read"
   | "region-switcher"
   | "strategy-bar"
   | "today-headlines"
-  | "editors-choice"
-  | "top-split-headlines";
+  | "editors-choice";
 
 export interface ModuleConfigItem {
   key: ModuleKey | string;

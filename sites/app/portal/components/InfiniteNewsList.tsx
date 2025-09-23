@@ -38,7 +38,7 @@ const InfiniteNewsList: React.FC<InfiniteNewsListProps> = ({
       
       if (useSmartStrategy) {
         // 使用智能推荐策略
-        const strategy = getAnonymousStrategy(confidenceScore);
+        const strategy = await getAnonymousStrategy(confidenceScore);
         response = await fetchFeedByStrategy(strategy.strategy, initialSize, confidenceScore);
         
         // 更新置信度
@@ -140,7 +140,7 @@ const InfiniteNewsList: React.FC<InfiniteNewsListProps> = ({
           </div>
 
           <Link 
-            href={article.url || `/portal/news/${article.id}`}
+            href={article.slug ? `/portal/article/${article.slug}` : `/portal/news/${article.id}`}
             className="block group"
           >
             <h3 className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors mb-2 line-clamp-2">

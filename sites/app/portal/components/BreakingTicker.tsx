@@ -106,7 +106,7 @@ export default function BreakingTicker({
 
   return (
     <div className={`bg-red-600 text-white py-2 overflow-hidden ${className}`}>
-      <div className="container mx-auto px-4">
+      <div className="max-w-7xl mx-auto px-4">
         <div className="flex items-center">
           {/* Breaking News 标签 */}
           <div className="flex items-center space-x-2 flex-shrink-0 mr-4">

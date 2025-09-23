@@ -7,53 +7,38 @@ export const runtime = "nodejs";
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const size = searchParams.get('size') || '10';
+    const size = searchParams.get('size') || '20';
     const site = searchParams.get('site') || getMainSite().hostname;
-    const hours = searchParams.get('hours') || '168';
-    const buckets = searchParams.get('buckets') || '1h,6h,24h';
+    const cursor = searchParams.get('cursor') || '';
     const region = searchParams.get('region') || '';
     const lang = searchParams.get('lang') || '';
     const diversity = searchParams.get('diversity') || 'med';
-    const cursor = searchParams.get('cursor') || '';
     const excludeClusterIds = searchParams.getAll('exclude_cluster_ids');
 
     const djangoUrlObj = new URL(endpoints.getCmsEndpoint('/api/hot/'));
     djangoUrlObj.searchParams.set('size', size);
     djangoUrlObj.searchParams.set('site', site);
-    djangoUrlObj.searchParams.set('hours', hours);
-    djangoUrlObj.searchParams.set('buckets', buckets);
+    if (cursor) djangoUrlObj.searchParams.set('cursor', cursor);
     if (region) djangoUrlObj.searchParams.set('region', region);
     if (lang) djangoUrlObj.searchParams.set('lang', lang);
     if (diversity) djangoUrlObj.searchParams.set('diversity', diversity);
-    if (cursor) djangoUrlObj.searchParams.set('cursor', cursor);
-    excludeClusterIds.forEach(v => djangoUrlObj.searchParams.append('exclude_cluster_ids', v));
+    excludeClusterIds.forEach(id => djangoUrlObj.searchParams.append('exclude_cluster_ids', id));
     const djangoUrl = djangoUrlObj.toString();
 
-    const sessionId = request.headers.get('X-Session-ID') || 'anonymous';
-    const userAgent = request.headers.get('User-Agent') || 'Next.js-Client';
-
-    const response = await fetch(djangoUrl, endpoints.createFetchConfig({
-      method: 'GET',
-      headers: {
-        'X-Session-ID': sessionId,
-        'User-Agent': userAgent,
-      },
-      next: { revalidate: 60 },
-    }));
-
+    const response = await fetch(
+      djangoUrl,
+      endpoints.createFetchConfig({ method: 'GET', timeout: Math.max(15000, endpoints.getCmsTimeout()) })
+    );
     if (!response.ok) {
-      return NextResponse.json({ success: false, message: 'Hot backend error' }, { status: response.status });
+      return NextResponse.json({ success: false, message: 'Aggregated hot backend error' }, { status: response.status });
     }
-
     const data = await response.json();
     return NextResponse.json(data, {
-      headers: {
-        'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
-      }
+      headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300' }
     });
   } catch (err) {
-    console.error('Hot proxy error:', err);
-    return NextResponse.json({ success: false, message: 'Hot backend unavailable' }, { status: 503 });
+    console.error('Agg hot proxy error:', err);
+    return NextResponse.json({ success: false, message: 'Aggregated hot backend unavailable' }, { status: 503 });
   }
 }
 

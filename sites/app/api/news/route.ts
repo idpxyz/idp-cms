@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
       const response = await fetch(heroUrl, endpoints.createFetchConfig({
         timeout: 5000,
         next: {
-          revalidate: 600, // Hero内容缓存10分钟
+          revalidate: 30, // Hero内容缓存30秒，便于快速更新
           tags: [`hero:${getMainSite().hostname}`, "articles:hero"],
         },
       }));
@@ -55,9 +55,19 @@ export async function GET(req: NextRequest) {
     }
 
     // 使用统一的端点管理器构建URL
-    // 切换到后端基于 OpenSearch 的门户聚合接口
-    const articlesUrl = endpoints.buildUrl(
+    // 优先使用门户聚合接口，如果失败则回退到普通文章接口
+    const portalUrl = endpoints.buildUrl(
       endpoints.getCmsEndpoint('/api/portal/articles/'),
+      {
+        site: getMainSite().hostname,
+        page,
+        size: limit,
+        ...(channel && channel !== "recommend" && channel !== "hero" ? { channel: channel } : {})  
+      }
+    );
+
+    const fallbackUrl = endpoints.buildUrl(
+      endpoints.getCmsEndpoint('/api/articles/'),
       {
         site: getMainSite().hostname,
         page,
@@ -78,16 +88,24 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    const response = await fetch(articlesUrl, fetchConfig);
+    // 先尝试门户聚合API，如果失败则回退到普通文章API
+    let response = await fetch(portalUrl, fetchConfig);
+    let usedFallback = false;
 
     if (!response.ok) {
-      return NextResponse.json(
-        {
-          error: `Upstream error: ${response.status}`,
-          upstream_status: response.status,
-        },
-        { status: response.status }
-      );
+      console.warn(`Portal API failed with status ${response.status}, trying fallback...`);
+      response = await fetch(fallbackUrl, fetchConfig);
+      usedFallback = true;
+      
+      if (!response.ok) {
+        return NextResponse.json(
+          {
+            error: `Both portal and fallback APIs failed. Status: ${response.status}`,
+            upstream_status: response.status,
+          },
+          { status: response.status }
+        );
+      }
     }
 
     const data = await response.json();

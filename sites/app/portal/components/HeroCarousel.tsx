@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import { formatDateTime } from '@/lib/utils/date';
+import { getTopStoryPlaceholderImage } from '@/lib/utils/placeholderImages';
 
 // 继承原有接口，添加新的模式支持
 export interface HeroItem {
@@ -338,10 +339,9 @@ export default function HeroCarousel({
             >
               {/* 背景图片 */}
               <div className="absolute inset-0">
-                {item.image_url ? (
-                  <>
-                    <Image
-                      src={item.image_url}
+                <>
+                  <Image
+                    src={item.image_url || getTopStoryPlaceholderImage(item)}
                       alt={item.title}
                       fill
                       className={`object-cover transition-opacity duration-300 ${
@@ -349,6 +349,7 @@ export default function HeroCarousel({
                       }`}
                       priority={index === 0}
                       fetchPriority={index === 0 ? 'high' : 'auto'}
+                      loading={index <= 1 ? 'eager' : 'lazy'}
                       onLoad={() => handleImageLoad(index)}
                       sizes={hasRightRail ? "(min-width: 1024px) 66vw, 100vw" : "100vw"}
                     />
@@ -358,20 +359,6 @@ export default function HeroCarousel({
                       </div>
                     )}
                   </>
-                ) : (
-                  // 无图片占位符
-                  <div className="w-full h-full bg-gradient-to-r from-gray-300 to-gray-400 flex items-center justify-center">
-                    <div className="text-gray-600 text-center">
-                      <div className="w-16 h-16 mx-auto mb-4 bg-white/20 rounded-full flex items-center justify-center">
-                        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                        </svg>
-                      </div>
-                      <p>暂无图片</p>
-                    </div>
-                  </div>
-                )}
                 
                 {/* 渐变遮罩 - 更轻柔的颜色 */}
                 <div className={`absolute inset-0 ${
@@ -513,38 +500,7 @@ export default function HeroCarousel({
           </div>
         )}
 
-        {/* 播放控制 */}
-        {totalItems > 1 && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsPlaying(prev => !prev);
-            }}
-            className={`absolute top-4 right-4 rounded-full flex items-center justify-center transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white/50 ${
-              actualHeightMode === 'takeover'
-                ? 'w-12 h-12 bg-black/60 hover:bg-black/80 text-white'
-                : 'w-10 h-10 bg-black/50 hover:bg-black/70 text-white'
-            }`}
-            aria-label={isPlaying ? '暂停轮播' : '开始轮播'}
-          >
-            {isPlaying && !isPaused ? (
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
-              </svg>
-            ) : (
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M8 5v14l11-7z"/>
-              </svg>
-            )}
-          </button>
-        )}
 
-        {/* 模式指示器 - 开发调试用 */}
-        {process.env.NODE_ENV === 'development' && (
-          <div className="absolute top-4 left-4 bg-black/70 text-white px-2 py-1 rounded text-xs">
-            {actualHeightMode} {hasRightRail ? '+ rail' : ''}
-          </div>
-        )}
       </div>
 
       {/* 右侧栏 - 仅在非 takeover 模式下显示 */}

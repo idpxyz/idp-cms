@@ -1,0 +1,133 @@
+{
+  "description": "频道配置示例 - 可用于测试新的配置字段",
+  "examples": [
+    {
+      "name": "科技频道配置",
+      "slug": "tech",
+      "homepage_display": {
+        "show_strip": true,
+        "strip_order": 1,
+        "strip_priority": "high",
+        "article_limit": 8,
+        "show_categories": true
+      },
+      "responsive_config": {
+        "mobile": {
+          "show_strip": true,
+          "article_limit": 4
+        },
+        "tablet": {
+          "show_strip": true,
+          "article_limit": 6
+        },
+        "desktop": {
+          "show_strip": true,
+          "article_limit": 8
+        }
+      },
+      "display_config": {
+        "icon_url": "/icons/tech.svg",
+        "color_theme": "#3B82F6",
+        "description": "最新科技资讯、产品评测和行业趋势分析"
+      }
+    },
+    {
+      "name": "财经频道配置",
+      "slug": "finance", 
+      "homepage_display": {
+        "show_strip": true,
+        "strip_order": 2,
+        "strip_priority": "high",
+        "article_limit": 6,
+        "show_categories": true
+      },
+      "responsive_config": {
+        "mobile": {
+          "show_strip": true,
+          "article_limit": 3
+        },
+        "tablet": {
+          "show_strip": true,
+          "article_limit": 5
+        },
+        "desktop": {
+          "show_strip": true,
+          "article_limit": 6
+        }
+      },
+      "display_config": {
+        "icon_url": "/icons/finance.svg",
+        "color_theme": "#10B981",
+        "description": "财经新闻、市场分析和投资理财指南"
+      }
+    },
+    {
+      "name": "文化频道配置",
+      "slug": "culture",
+      "homepage_display": {
+        "show_strip": true,
+        "strip_order": 3,
+        "strip_priority": "medium",
+        "article_limit": 4,
+        "show_categories": false
+      },
+      "responsive_config": {
+        "mobile": {
+          "show_strip": false,
+          "article_limit": 0
+        },
+        "tablet": {
+          "show_strip": true,
+          "article_limit": 3
+        },
+        "desktop": {
+          "show_strip": true,
+          "article_limit": 4
+        }
+      },
+      "display_config": {
+        "icon_url": "/icons/culture.svg",
+        "color_theme": "#8B5CF6",
+        "description": "文化艺术、社会生活和人文思考"
+      }
+    },
+    {
+      "name": "体育频道配置（不在首页显示）",
+      "slug": "sports",
+      "homepage_display": {
+        "show_strip": false,
+        "strip_order": 99,
+        "strip_priority": "low",
+        "article_limit": 6,
+        "show_categories": true
+      },
+      "responsive_config": {
+        "mobile": {
+          "show_strip": false,
+          "article_limit": 0
+        },
+        "tablet": {
+          "show_strip": false,
+          "article_limit": 0
+        },
+        "desktop": {
+          "show_strip": false,
+          "article_limit": 0
+        }
+      },
+      "display_config": {
+        "icon_url": "/icons/sports.svg",
+        "color_theme": "#F59E0B",
+        "description": "体育赛事、运动资讯和健身指南"
+      }
+    }
+  ],
+  "usage_notes": [
+    "show_strip: false 的频道不会在首页显示条带",
+    "strip_order 数字越小，显示顺序越靠前",
+    "strip_priority 影响相同order时的排序: high > medium > low",
+    "article_limit 控制每个条带显示的文章数量",
+    "responsive_config 可以为不同设备设置不同的显示策略",
+    "mobile设备上可以通过 show_strip: false 隐藏某些频道条带"
+  ]
+}

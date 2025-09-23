@@ -4,71 +4,111 @@ import { BreakingNewsItem } from './BreakingTicker';
 
 /**
  * 获取快讯数据
- * 优先级：模拟数据 -> 智能推荐 -> 传统新闻API
+ * 优先级：Headlines API (breaking news) -> 最新推荐 -> 模拟数据兜底
  */
 export async function getBreakingNews(limit: number = 8): Promise<BreakingNewsItem[]> {
-  // 直接使用模拟数据，确保立即显示效果
-  console.log('Using mock breaking news data for immediate display');
-  return generateMockBreakingNews(limit);
-
-  // 以下代码注释掉，需要时可以恢复
-  /*
   try {
-    // 首先尝试获取最新的突发新闻
-    const trendingResponse = await fetchTrendingFeed(limit * 2);
+    console.log('🚨 Breaking News: 获取最新快讯数据...');
     
-    if (trendingResponse.items && trendingResponse.items.length > 0) {
-      return trendingResponse.items
-        .filter(item => 
-          new Date(item.publish_time || item.publish_at).getTime() > Date.now() - 24 * 60 * 60 * 1000
-        )
-        .slice(0, limit)
-        .map(item => ({
-          id: item.id,
-          title: item.title,
-          slug: item.slug,
-          publish_time: item.publish_time || item.publish_at,
-          channel: item.channel ? {
-            id: item.channel.slug || 'unknown',
-            name: item.channel.name,
-            slug: item.channel.slug || 'unknown'
-          } : undefined,
-          is_urgent: item.is_featured || false,
-        }));
+    // 首先尝试获取 breaking news (最近6小时内的紧急新闻)
+    const headlinesUrl = `/api/headlines?size=${limit * 2}&hours=6&diversity=high&site=aivoya.com`;
+    console.log(`🔍 Breaking News: Fetching URL: ${headlinesUrl}`);
+    
+    const response = await fetch(headlinesUrl, {
+      next: { revalidate: 30 }, // 快讯数据30秒缓存
+      headers: {
+        'X-Session-ID': `breaking_${Date.now()}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      console.log(`🚨 获取到 ${data.items?.length || 0} 条快讯候选`);
+      
+      if (data.items && data.items.length > 0) {
+        // 优先筛选最新的、有紧急标记的新闻
+        const breakingItems = data.items
+          .filter((item: any) => {
+            const publishTime = new Date(item.publish_time || item.publish_at);
+            const hoursAgo = (Date.now() - publishTime.getTime()) / (1000 * 60 * 60);
+            return hoursAgo <= 24; // 24小时内的新闻
+          })
+          .slice(0, limit)
+          .map((item: any) => transformToBreakingItem(item));
+        
+        console.log(`🚨 转换后快讯内容: ${breakingItems.length} 条`);
+        if (breakingItems.length > 0) {
+          return breakingItems;
+        }
+      }
     }
   } catch (error) {
-    console.warn('Failed to fetch trending feed for breaking ticker:', error);
+    console.warn('🚫 Headlines API failed for breaking news:', error);
   }
 
   try {
-    // 备选方案：使用传统新闻API
+    // 备选方案：使用首页频道的最新内容
+    console.log('⚠️ Breaking News: Headlines API失败，回退到首页频道...');
     const newsResponse = await getNews('recommend', 1, limit * 2);
     
     if (newsResponse.data && newsResponse.data.length > 0) {
-      return newsResponse.data
-        .filter(item => 
-          new Date(item.publish_at).getTime() > Date.now() - 24 * 60 * 60 * 1000
-        )
+      const recentNews = newsResponse.data
+        .filter((item: any) => {
+          const publishTime = new Date(item.publish_at || item.first_published_at);
+          const hoursAgo = (Date.now() - publishTime.getTime()) / (1000 * 60 * 60);
+          return hoursAgo <= 24; // 24小时内
+        })
         .slice(0, limit)
-        .map(item => ({
-          id: item.id,
+        .map((item: any) => ({
+          id: item.id.toString(),
           title: item.title,
           slug: item.slug,
-          publish_time: item.publish_at,
+          publish_time: item.publish_at || item.first_published_at,
           channel: item.channel ? {
-            id: item.channel.slug || 'unknown',
+            id: item.channel.slug || item.channel.id.toString(),
             name: item.channel.name,
-            slug: item.channel.slug || 'unknown'
+            slug: item.channel.slug || item.channel.id.toString()
           } : undefined,
-          is_urgent: item.is_featured || false,
+          is_urgent: item.is_featured || item.is_breaking || false,
         }));
+      
+      console.log(`✅ Breaking News: 首页频道获取到 ${recentNews.length} 条数据`);
+      if (recentNews.length > 0) {
+        return recentNews;
+      }
     }
   } catch (error) {
-    console.warn('Failed to fetch news for breaking ticker:', error);
+    console.warn('🚫 News API also failed for breaking ticker:', error);
   }
 
+  // 最后兜底：使用模拟数据
+  console.log('🚫 Breaking News: 所有API均失败，使用模拟数据');
   return generateMockBreakingNews(limit);
-  */
+}
+
+/**
+ * 转换 Headlines API 数据为 BreakingNewsItem 格式
+ */
+function transformToBreakingItem(item: any): BreakingNewsItem {
+  return {
+    id: item.id || item.article_id || 'unknown',
+    title: item.title || '未知标题',
+    slug: item.slug || `article-${item.id}`,
+    publish_time: item.publish_time || item.publish_at || new Date().toISOString(),
+    channel: item.channel ? (
+      typeof item.channel === 'string' ? {
+        id: item.channel,
+        name: item.channel,
+        slug: item.channel
+      } : {
+        id: item.channel.slug || item.channel.id?.toString() || '',
+        name: item.channel.name || '',
+        slug: item.channel.slug || item.channel.id?.toString() || ''
+      }
+    ) : undefined,
+    is_urgent: item.is_breaking || item.is_urgent || item.is_featured || false,
+  };
 }
 
 /**

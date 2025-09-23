@@ -3,6 +3,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useAuth } from '@/lib/context/AuthContext';
+import { getTopStories } from './TopStoriesGrid.utils';
+import { getTopStoryPlaceholderImage, getSideNewsPlaceholderImage } from '@/lib/utils/placeholderImages';
 
 export interface TopStoryItem {
   id: string;
@@ -26,7 +29,7 @@ export interface TopStoryItem {
 }
 
 export interface TopStoriesGridProps {
-  items: TopStoryItem[];
+  items?: TopStoryItem[]; // 改为可选，支持自动获取数据模式
   title?: string;
   showViewMore?: boolean;
   viewMoreLink?: string;
@@ -36,10 +39,18 @@ export interface TopStoriesGridProps {
   mainNewsAutoPlayInterval?: number;
   showMainNewsDots?: boolean;
   pauseOnHover?: boolean;
+  // 自动获取数据配置
+  autoFetch?: boolean; // 新增：是否自动获取数据
+  fetchLimit?: number; // 新增：获取数据的数量
+  fetchOptions?: {
+    excludeClusterIds?: string[];
+    hours?: number;
+    diversity?: 'high' | 'med' | 'low';
+  }; // 新增：获取数据的选项
 }
 
 export default function TopStoriesGrid({
-  items = [],
+  items: initialItems = [],
   title = "头条新闻",
   showViewMore = true,
   viewMoreLink = "/portal/news",
@@ -49,12 +60,58 @@ export default function TopStoriesGrid({
   mainNewsAutoPlayInterval = 3000,
   showMainNewsDots = true,
   pauseOnHover = true,
+  // 自动获取数据配置
+  autoFetch = false,
+  fetchLimit = 9,
+  fetchOptions = {},
 }: TopStoriesGridProps) {
+  
+  // 客户端数据状态
+  const [items, setItems] = useState<TopStoryItem[]>(initialItems);
+  const [isLoading, setIsLoading] = useState(autoFetch && initialItems.length === 0); // 如果需要自动获取且没有初始数据，则显示加载状态
+  const [error, setError] = useState<string | null>(null);
+  const { user, isAuthenticated } = useAuth();
   
   // 主要新闻轮播状态管理
   const [currentMainIndex, setCurrentMainIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // 客户端数据获取逻辑
+  useEffect(() => {
+    if (!autoFetch) return;
+    
+    // 如果已经有初始数据，则不立即重新获取（除非是用户状态变化）
+    if (initialItems.length > 0 && items.length > 0) {
+      console.log('🔄 TopStoriesGrid: 已有数据，跳过初始获取');
+      return;
+    }
+
+    const fetchData = async () => {
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        console.log('🔄 TopStoriesGrid: 客户端获取数据中...');
+        console.log(`👤 用户状态: ${isAuthenticated ? `已登录 (ID: ${user?.id})` : '未登录'}`);
+        
+        const data = await getTopStories(fetchLimit, {
+          ...fetchOptions,
+          userId: isAuthenticated && user?.id ? user.id : undefined,
+        });
+
+        console.log(`✅ TopStoriesGrid: 获取到 ${data.length} 条数据`);
+        setItems(data);
+      } catch (err) {
+        console.error('❌ TopStoriesGrid: 数据获取失败:', err);
+        setError('数据获取失败，请稍后重试');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [autoFetch, fetchLimit, isAuthenticated, user?.id, JSON.stringify(fetchOptions)]);
 
   // 轮播逻辑
   useEffect(() => {
@@ -118,8 +175,62 @@ export default function TopStoriesGrid({
     return num.toString();
   };
 
-  if (items.length === 0) {
-    return null;
+  // Loading状态
+  if (isLoading) {
+    return (
+      <section className={`bg-white ${className}`}>
+        <div className="animate-pulse">
+          <div className="h-6 w-40 bg-gray-200 rounded mb-4" />
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
+            <div className="lg:col-span-2">
+              <div className="aspect-[16/9] w-full bg-gray-200 rounded-lg" />
+              <div className="mt-3 h-5 w-3/4 bg-gray-200 rounded" />
+              <div className="mt-2 h-4 w-1/2 bg-gray-100 rounded" />
+            </div>
+            <div className="space-y-3">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="flex space-x-3">
+                  <div className="w-20 h-14 bg-gray-200 rounded" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 w-4/5 bg-gray-200 rounded" />
+                    <div className="h-3 w-2/5 bg-gray-100 rounded" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  // Error状态
+  if (error) {
+    return (
+      <section className={`bg-white ${className}`}>
+        <div className="text-center py-8">
+          <div className="text-red-500 mb-2">⚠️ {error}</div>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="text-blue-600 hover:text-blue-800 underline"
+          >
+            点击重试
+          </button>
+        </div>
+      </section>
+    );
+  }
+
+  // 空数据状态 - 只有在非加载状态且确实没有数据时才显示
+  if (!isLoading && items.length === 0) {
+    return (
+      <section className={`bg-white ${className}`}>
+        <div className="text-center py-8 text-gray-500">
+          <div className="mb-2">📰</div>
+          <div>暂无头条新闻</div>
+        </div>
+      </section>
+    );
   }
 
   // 取前9条新闻 (1条主图轮播 + 8条右侧列表)
@@ -161,22 +272,16 @@ export default function TopStoriesGrid({
               <Link href={`/portal/article/${currentMainItem.slug}`} className="block">
                 {/* 图片容器 */}
                 <div className="relative aspect-[16/9] mb-4 overflow-hidden rounded-lg bg-gray-200">
-                  {currentMainItem.image_url ? (
-                    <Image
-                      src={currentMainItem.image_url}
-                      alt={currentMainItem.title}
-                      fill
-                      className="object-cover transition-transform duration-300 group-hover:scale-105"
-                      sizes="(max-width: 1024px) 100vw, 66vw"
-                      priority
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-gray-200">
-                      <svg className="w-16 h-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
-                    </div>
-                  )}
+                  <Image
+                    src={currentMainItem.image_url || getTopStoryPlaceholderImage(currentMainItem)}
+                    alt={currentMainItem.title}
+                    fill
+                    className="object-cover transition-transform duration-300 group-hover:scale-105"
+                    sizes="(max-width: 1024px) 100vw, 66vw"
+                    priority
+                    placeholder="blur"
+                    blurDataURL="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0nMzIwJyBoZWlnaHQ9JzE4MCcgeG1sbnM9J2h0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnJz48cmVjdCBmaWxsPSIjZWVlIiB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIi8+PC9zdmc+"
+                  />
                   
                   {/* 标签和编辑推荐标识 */}
                   <div className="absolute top-3 left-3 flex items-center space-x-2">
@@ -279,22 +384,16 @@ export default function TopStoriesGrid({
                   <div className="flex space-x-3">
                     {/* 小图 */}
                     <div className="flex-shrink-0 w-20 h-14 overflow-hidden rounded bg-gray-200">
-                      {item.image_url ? (
-                        <Image
-                          src={item.image_url}
-                          alt={item.title}
-                          width={80}
-                          height={56}
-                          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                          sizes="80px"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-gray-200">
-                          <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                          </svg>
-                        </div>
-                      )}
+                      <Image
+                        src={item.image_url || getSideNewsPlaceholderImage(item)}
+                        alt={item.title}
+                        width={80}
+                        height={56}
+                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                        sizes="80px"
+                        placeholder="blur"
+                        blurDataURL="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0nODAnIGhlaWdodD0nNTYnIHhtbG5zPSdodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2Zyc+PHJlY3QgZmlsbD0iI2VlZSIgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIvPjwvc3ZnPi"
+                      />
                     </div>
 
                     {/* 文章信息 */}

@@ -1,40 +1,53 @@
 import React from "react";
-import TestHeadlinesModule from "../components/TestHeadlinesModule";
+import TopStoriesGrid from "../components/TopStoriesGrid";
 
 export default function TestHeadlinesPage() {
   return (
     <div className="container mx-auto p-8">
-      <h1 className="text-2xl font-bold mb-8">今日头条模块测试</h1>
+      <h1 className="text-2xl font-bold mb-8">现代头条模块测试 (v3)</h1>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {/* 测试API版本 */}
+        {/* 热点新闻 */}
         <div className="max-w-md">
-          <h2 className="text-lg font-semibold mb-4 text-blue-600">测试API版本</h2>
-          <TestHeadlinesModule 
-            count={8}
-            countLg={10}
-            useTestApi={true}
+          <h2 className="text-lg font-semibold mb-4 text-blue-600">热点新闻 (24小时)</h2>
+          <TopStoriesGrid 
+            autoFetch={true}
+            fetchLimit={8}
+            fetchOptions={{ 
+              hours: 24, 
+              diversity: 'high' 
+            }}
+            title="热点新闻"
+            showViewMore={true}
+            viewMoreLink="/portal/news"
           />
         </div>
         
-        {/* 生产API版本 */}
+        {/* 趋势新闻 */}
         <div className="max-w-md">
-          <h2 className="text-lg font-semibold mb-4 text-green-600">生产API版本</h2>
-          <TestHeadlinesModule 
-            count={8}
-            countLg={10}
-            useTestApi={false}
+          <h2 className="text-lg font-semibold mb-4 text-green-600">趋势新闻 (168小时)</h2>
+          <TopStoriesGrid 
+            autoFetch={true}
+            fetchLimit={8}
+            fetchOptions={{ 
+              hours: 168, 
+              diversity: 'med' 
+            }}
+            title="趋势新闻"
+            showViewMore={true}
+            viewMoreLink="/portal/news"
           />
         </div>
       </div>
       
       <div className="mt-8 text-sm text-gray-600">
-        <p>测试说明：</p>
+        <p>现代缓存系统测试说明：</p>
         <ul className="list-disc pl-5 mt-2">
-          <li>左侧使用测试API，右侧使用生产API</li>
-          <li>测试API响应快速且稳定</li>
-          <li>生产API可能较慢或超时</li>
-          <li>观察浏览器控制台的调试信息</li>
+          <li>左侧显示24小时热点新闻，右侧显示168小时趋势新闻</li>
+          <li>使用现代化v3缓存架构，智能分层缓存</li>
+          <li>支持突发新闻实时检测和动态缓存时间</li>
+          <li>观察浏览器控制台的现代缓存调试信息</li>
+          <li>检查Network面板的X-Cache-Strategy响应头</li>
         </ul>
       </div>
     </div>
