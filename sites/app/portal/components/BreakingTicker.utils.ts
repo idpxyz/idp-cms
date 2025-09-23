@@ -26,8 +26,8 @@ export async function getBreakingNews(limit: number = 8): Promise<BreakingNewsIt
   try {
     console.log('🚨 Breaking News: 获取最新快讯数据...');
     
-    // 首先尝试获取 breaking news (最近6小时内的紧急新闻)
-    const headlinesPath = `/api/headlines?size=${limit * 2}&hours=6&diversity=high&site=aivoya.com`;
+    // 首先尝试获取 breaking news (最近6小时内的紧急新闻) - 注意尾部斜杠
+    const headlinesPath = `/api/headlines/?size=${limit * 2}&hours=6&diversity=high&site=aivoya.com`;
     const headlinesUrl = getApiUrl(headlinesPath);
     console.log(`🔍 Breaking News: Fetching URL: ${headlinesUrl}`);
     

@@ -171,8 +171,8 @@ export async function getTopStories(
     // 🎯 不再需要excludeClusterIds，后端OpenSearch自动处理
     // (options?.excludeClusterIds || []).forEach(id => params.append('exclude_cluster_ids', id));
     
-    // 🔧 使用统一的API URL构建方法
-    const apiUrl = getApiUrl(`/api/headlines?${params.toString()}`);
+    // 🔧 使用统一的API URL构建方法 (注意尾部斜杠)
+    const apiUrl = getApiUrl(`/api/headlines/?${params.toString()}`);
     const cacheKey = `headlines_v3_${apiUrl.replace(/[^a-zA-Z0-9]/g, '_')}`;
     
     // 检查现代前端缓存
@@ -225,7 +225,7 @@ export async function getTopStories(
     });
     // 🎯 不再需要excludeClusterIds，后端OpenSearch自动处理
     // (options?.excludeClusterIds || []).forEach(id => retryParams.append('exclude_cluster_ids', id));
-    const retryUrl = getApiUrl(`/api/headlines?${retryParams.toString()}`);
+    const retryUrl = getApiUrl(`/api/headlines/?${retryParams.toString()}`);
     console.log(`🔁 TopStories: 无数据，改用宽松参数重试: ${retryUrl}`);
     const retryRes = await fetch(retryUrl, {
       headers: getRequestHeaders(options?.userId),
