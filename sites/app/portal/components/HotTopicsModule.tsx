@@ -1,5 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
+import { buildFrontendApiUrl } from '@/lib/utils/api-url';
 
 export default function HotTopicsModule() {
   const [topics, setTopics] = useState<any[]>([]);
@@ -9,7 +10,7 @@ export default function HotTopicsModule() {
     const load = async () => {
       try {
         setLoading(true);
-        const res = await fetch(`/api/topics?size=8`, { cache: 'no-store' });
+        const res = await fetch(buildFrontendApiUrl('/api/topics?size=8'), { cache: 'no-store' });
         const data = res.ok ? await res.json() : { items: [] };
         const items = (data && (data.items || data)) || [];
         setTopics(items || []);

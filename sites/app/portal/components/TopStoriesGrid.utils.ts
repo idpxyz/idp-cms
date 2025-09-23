@@ -1,22 +1,7 @@
 import { fetchTrendingFeed } from '@/lib/api/feed';
 import { getNews } from '@/lib/api/news';
 import { TopStoryItem } from './TopStoriesGrid';
-
-/**
- * 获取API URL - 兼容服务端渲染和客户端
- */
-function getApiUrl(path: string): string {
-  // 检测运行环境
-  if (typeof window === 'undefined') {
-    // 服务端环境：使用后端API的内部地址
-    const baseUrl = process.env.DJANGO_API_URL || 'http://authoring:8000';
-    return `${baseUrl}${path}`;
-  } else {
-    // 客户端环境：使用前端可访问的API地址
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
-    return `${baseUrl}${path}`;
-  }
-}
+import { buildBackendApiUrl } from '@/lib/utils/api-url';
 
 // 现代化前端缓存系统
 interface ModernCacheItem {
@@ -172,7 +157,7 @@ export async function getTopStories(
     // (options?.excludeClusterIds || []).forEach(id => params.append('exclude_cluster_ids', id));
     
     // 🔧 使用统一的API URL构建方法 (注意尾部斜杠)
-    const apiUrl = getApiUrl(`/api/headlines/?${params.toString()}`);
+    const apiUrl = buildBackendApiUrl(`/api/headlines/?${params.toString()}`);
     const cacheKey = `headlines_v3_${apiUrl.replace(/[^a-zA-Z0-9]/g, '_')}`;
     
     // 检查现代前端缓存
@@ -225,7 +210,7 @@ export async function getTopStories(
     });
     // 🎯 不再需要excludeClusterIds，后端OpenSearch自动处理
     // (options?.excludeClusterIds || []).forEach(id => retryParams.append('exclude_cluster_ids', id));
-    const retryUrl = getApiUrl(`/api/headlines/?${retryParams.toString()}`);
+    const retryUrl = buildBackendApiUrl(`/api/headlines/?${retryParams.toString()}`);
     console.log(`🔁 TopStories: 无数据，改用宽松参数重试: ${retryUrl}`);
     const retryRes = await fetch(retryUrl, {
       headers: getRequestHeaders(options?.userId),

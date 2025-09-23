@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { buildFrontendApiUrl } from '@/lib/utils/api-url';
 
 interface RealTimeEvent {
   ts: string;
@@ -33,7 +34,7 @@ export default function MonitorPage() {
     // 保留原有的统计数据获取（用于初始化）
     const fetchStats = async () => {
       try {
-        const response = await fetch("/api/analytics");
+        const response = await fetch(buildFrontendApiUrl("/api/analytics"));
         if (response.ok) {
           const data = await response.json();
           setStats({
@@ -196,7 +197,7 @@ export default function MonitorPage() {
     const fetchSystemStats = async () => {
       try {
         console.log("🔍 正在获取系统监控数据...");
-        const response = await fetch("/api/monitoring/dashboard");
+        const response = await fetch(buildFrontendApiUrl("/api/monitoring/dashboard"));
         console.log("📡 监控API响应状态:", response.status);
         
         if (response.ok) {

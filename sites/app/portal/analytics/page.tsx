@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { formatDateTime } from "@/lib/utils/date";
+import { buildFrontendApiUrl } from '@/lib/utils/api-url';
 
 interface AnalyticsData {
   totalEvents: number;
@@ -37,7 +38,7 @@ export default function AnalyticsPage() {
   const fetchAnalyticsData = async () => {
     try {
       setLoading(true);
-      const response = await fetch("/api/analytics");
+      const response = await fetch(buildFrontendApiUrl("/api/analytics"));
       if (!response.ok) {
         throw new Error("Failed to fetch analytics data");
       }

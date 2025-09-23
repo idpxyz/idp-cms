@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { getNews } from "@/lib/api/news";
+import { buildFrontendApiUrl } from '@/lib/utils/api-url';
 import { 
   fetchFeed, 
   fetchPersonalizedFeed, 
@@ -1147,8 +1148,8 @@ export default function NewsContent({
     const fetchModules = async () => {
       try {
         const [homeRes, sideRes] = await Promise.all([
-          fetch(`/api/frontend/modules?region=home&type=portal`, { next: { revalidate: 600 } }),
-          fetch(`/api/frontend/modules?region=sidebar&type=portal`, { next: { revalidate: 600 } }),
+          fetch(buildFrontendApiUrl('/api/frontend/modules?region=home&type=portal'), { next: { revalidate: 600 } }),
+          fetch(buildFrontendApiUrl('/api/frontend/modules?region=sidebar&type=portal'), { next: { revalidate: 600 } }),
         ]);
 
         const homeJson = homeRes.ok ? await homeRes.json() : { modules: [] };

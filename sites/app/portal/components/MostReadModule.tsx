@@ -1,6 +1,7 @@
 "use client";
 import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import type { FeedItem } from "@/lib/api/feed"; // Keep type definition
+import { buildFrontendApiUrl } from '@/lib/utils/api-url';
 
 export default function MostReadModule({ onArticleClick, limit = 8, excludeClusterIds = [] as string[], region, lang, diversity = 'med' as 'low'|'med'|'high' }: { onArticleClick?: (slug: string) => void; limit?: number; excludeClusterIds?: string[]; region?: string; lang?: string; diversity?: 'low'|'med'|'high' }) {
   const [items, setItems] = useState<FeedItem[]>([]);
@@ -40,7 +41,7 @@ export default function MostReadModule({ onArticleClick, limit = 8, excludeClust
         params.set('diversity', diversity);
       }
       
-      const response = await fetch(`/api/hot?${params.toString()}`);
+      const response = await fetch(buildFrontendApiUrl(`/api/hot?${params.toString()}`));
       const res = await response.json();
 
       const arr = res.items || [];

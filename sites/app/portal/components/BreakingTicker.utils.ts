@@ -1,22 +1,7 @@
 import { fetchTrendingFeed } from '@/lib/api/feed';
 import { getNews } from '@/lib/api/news';
 import { BreakingNewsItem } from './BreakingTicker';
-
-/**
- * 构建API URL - 处理服务端/客户端环境差异
- */
-function getApiUrl(path: string): string {
-  // 检测运行环境
-  if (typeof window === 'undefined') {
-    // 服务端环境：使用后端API的内部地址
-    const baseUrl = process.env.DJANGO_API_URL || 'http://authoring:8000';
-    return `${baseUrl}${path}`;
-  } else {
-    // 客户端环境：使用前端可访问的API地址
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
-    return `${baseUrl}${path}`;
-  }
-}
+import { buildBackendApiUrl } from '@/lib/utils/api-url';
 
 /**
  * 获取快讯数据
@@ -28,7 +13,7 @@ export async function getBreakingNews(limit: number = 8): Promise<BreakingNewsIt
     
     // 首先尝试获取 breaking news (最近6小时内的紧急新闻) - 注意尾部斜杠
     const headlinesPath = `/api/headlines/?size=${limit * 2}&hours=6&diversity=high&site=aivoya.com`;
-    const headlinesUrl = getApiUrl(headlinesPath);
+    const headlinesUrl = buildBackendApiUrl(headlinesPath);
     console.log(`🔍 Breaking News: Fetching URL: ${headlinesUrl}`);
     
     const response = await fetch(headlinesUrl, {
