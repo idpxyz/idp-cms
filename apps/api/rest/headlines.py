@@ -200,17 +200,21 @@ def headlines(request):
         query_channels = req_channels if req_channels else []
     elif mode == "hero":
         # Hero模式：不限制频道，获取所有标记为Hero的内容
+        # 🎯 Hero文章应该始终显示，不受seen_ids影响
         query_channels = []
     else:
         # 普通模式：使用默认的热门频道
         query_channels = req_channels if req_channels else ["hot", "trending"]
+    
+    # 🎯 Hero模式不使用seen_ids，确保Hero文章始终显示
+    query_seen_ids = [] if mode == "hero" else cached_seen
     
     body = build_query(
         query_template,
         site=site,
         channels=query_channels,
         hours=hours,
-        seen_ids=cached_seen,
+        seen_ids=query_seen_ids,
         size=elastic_size,
     )
 

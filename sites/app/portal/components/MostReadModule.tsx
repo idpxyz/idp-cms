@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import type { FeedItem } from "@/lib/api/feed"; // Keep type definition
-import { buildFrontendApiUrl } from '@/lib/utils/api-url';
+import { buildBackendApiUrl } from '@/lib/utils/api-url';
 
 export default function MostReadModule({ onArticleClick, limit = 8, excludeClusterIds = [] as string[], region, lang, diversity = 'med' as 'low'|'med'|'high' }: { onArticleClick?: (slug: string) => void; limit?: number; excludeClusterIds?: string[]; region?: string; lang?: string; diversity?: 'low'|'med'|'high' }) {
   const [items, setItems] = useState<FeedItem[]>([]);
@@ -41,11 +41,44 @@ export default function MostReadModule({ onArticleClick, limit = 8, excludeClust
         params.set('diversity', diversity);
       }
       
-      const response = await fetch(buildFrontendApiUrl(`/api/hot?${params.toString()}`));
+      const response = await fetch(buildBackendApiUrl(`/api/hot?${params.toString()}`));
       const res = await response.json();
 
-      const arr = res.items || [];
-      setItems(prev => loadMore ? [...prev, ...arr] : (arr.length > 0 ? arr : prev));
+      console.log('🔍 MostReadModule API Response:', { 
+        status: response.status, 
+        itemsCount: res.items?.length, 
+        hasItems: !!res.items?.length,
+        firstItem: res.items?.[0]?.title,
+        nextCursor: res.next_cursor
+      });
+
+      // 🎯 转换API数据格式以匹配FeedItem类型
+      const rawItems = res.items || [];
+      const arr = rawItems.map((item: any) => ({
+        ...item,
+        excerpt: item.excerpt || item.summary || '', // API返回summary，FeedItem需要excerpt
+        publish_time: item.publish_time || item.publish_at || '', // 统一时间字段
+        url: item.url || `/portal/article/${item.slug || item.id}` // 确保有url
+      }));
+      
+      console.log('📊 MostReadModule Data Processing:', { 
+        rawItemsLength: rawItems.length,
+        arrLength: arr.length, 
+        loadMore, 
+        prevLength: items.length,
+        firstItemTitle: arr[0]?.title,
+        firstItemExcerpt: arr[0]?.excerpt
+      });
+      
+      setItems(prev => {
+        const newItems = loadMore ? [...prev, ...arr] : (arr.length > 0 ? arr : prev);
+        console.log('✅ MostReadModule Items Updated:', { 
+          from: prev.length, 
+          to: newItems.length,
+          action: loadMore ? 'append' : 'replace'
+        });
+        return newItems;
+      });
       setCursor(res.next_cursor || undefined);
 
     } catch (e) {

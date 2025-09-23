@@ -369,13 +369,12 @@ export default function TopStoriesGrid({
                 <Link href={`/portal/article/${item.slug}`} className="block">
                   <div className="flex space-x-4">
                     {/* 优化后的图片 - 增大尺寸 */}
-                    <div className="flex-shrink-0 w-28 h-20 sm:w-32 sm:h-22 overflow-hidden rounded-lg bg-gray-200">
+                    <div className="flex-shrink-0 w-28 h-20 sm:w-32 sm:h-22 overflow-hidden rounded-lg bg-gray-200 relative">
                       <Image
                         src={item.image_url || getSideNewsPlaceholderImage(item)}
                         alt={item.title}
-                        width={128}
-                        height={88}
-                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                        fill
+                        className="object-cover transition-transform duration-300 group-hover:scale-105"
                         sizes="(max-width: 640px) 112px, 128px"
                         placeholder="blur"
                         blurDataURL="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0nMTI4JyBoZWlnaHQ9Jzg4JyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnPjxyZWN0IGZpbGw9IiNlZWUiIHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiLz48L3N2Zz4="

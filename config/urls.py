@@ -17,6 +17,9 @@ from wagtail.documents import urls as wagtaildocs_urls
 from apps.api.rest.feed import feed
 from apps.api.rest.headlines import headlines
 from apps.api.rest.hot import hot
+# 新的专用API端点
+from apps.api.rest.hero import hero_items
+from apps.api.rest.topstories import topstories
 # 旧的聚合缓存系统已删除，使用现代headlines API
 from apps.api.rest.test_api import test_headlines, test_hot
 from apps.api.rest.topics import (
@@ -110,6 +113,10 @@ urlpatterns = [
     path("api/feed/", feed, name="api-feed"),
     path("api/headlines/", headlines, name="api-headlines"),
     path("api/hot/", hot, name="api-hot"),
+    
+    # 🎯 新的专用API端点
+    path("api/hero/", hero_items, name="api-hero"),
+    path("api/topstories/", topstories, name="api-topstories"),
     # 旧的聚合API已删除，使用现代 /api/headlines/ 和 /api/hot/
     
     # 测试API

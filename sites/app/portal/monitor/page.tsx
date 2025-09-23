@@ -62,13 +62,11 @@ export default function MonitorPage() {
         clearTimeout(reconnectTimeout);
       }
 
-      console.log("🔗 建立SSE连接...");
       // 使用真实的分析事件流（带降级机制）
       const eventSource = new EventSource('/api/analytics/stream');
       currentEventSource = eventSource;
       
       eventSource.onopen = () => {
-        console.log("✅ SSE连接已建立");
         setIsConnected(true);
       };
       
@@ -80,7 +78,6 @@ export default function MonitorPage() {
           }
           
           const eventData = JSON.parse(event.data);
-          console.log("📡 收到SSE事件:", eventData);
           
           // 添加新事件到列表顶部，保持最多10条
           setEvents(prev => [eventData, ...prev.slice(0, 9)]);
@@ -99,7 +96,6 @@ export default function MonitorPage() {
       eventSource.addEventListener('connected', (event) => {
         try {
           const data = JSON.parse(event.data || '{}');
-          console.log("🎉 SSE连接确认:", data);
           setIsConnected(true);
         } catch (error) {
           console.error("❌ 连接确认事件解析失败:", error, "原始数据:", event.data);
@@ -115,7 +111,6 @@ export default function MonitorPage() {
           }
           
           const eventData = JSON.parse(event.data);
-          console.log("📈 收到分析事件:", eventData);
           
           // 添加新事件到列表顶部
           setEvents(prev => [eventData, ...prev.slice(0, 9)]);
@@ -136,10 +131,8 @@ export default function MonitorPage() {
             const data = JSON.parse(event.data);
             console.error("🚨 SSE服务器错误:", data);
           } else {
-            console.debug("🔗 SSE连接事件:", event.type); // 降级为debug，避免控制台噪音
           }
         } catch (error) {
-          console.debug("🔗 SSE事件处理:", error); // 降级为debug
         }
       });
       
@@ -147,12 +140,10 @@ export default function MonitorPage() {
         try {
           if (event.data) {
             const data = JSON.parse(event.data);
-            console.debug("💓 SSE心跳:", data.timestamp, `事件计数: ${data.event_count}`);
           }
           // 心跳事件确认连接正常
           setIsConnected(true);
         } catch (error) {
-          console.debug("💓 心跳解析失败，但连接正常:", error);
           setIsConnected(true);
         }
       });
@@ -161,10 +152,8 @@ export default function MonitorPage() {
         try {
           if (event.data) {
             const data = JSON.parse(event.data);
-            console.info("ℹ️ SSE信息:", data.message);
           }
         } catch (error) {
-          console.debug("ℹ️ 信息事件解析失败:", error);
         }
       });
       
@@ -174,15 +163,11 @@ export default function MonitorPage() {
         
         // 检查连接状态
         if (eventSource.readyState === EventSource.CLOSED) {
-          console.log("🔄 SSE连接已关闭，3秒后重连...");
           reconnectTimeout = setTimeout(() => {
-            console.log("🔄 开始重新连接SSE...");
             connectSSE();
           }, 3000);
         } else if (eventSource.readyState === EventSource.CONNECTING) {
-          console.log("🔗 SSE正在重连中...");
         } else {
-          console.log("🔄 SSE连接状态未知，5秒后重连...");
           reconnectTimeout = setTimeout(() => {
             connectSSE();
           }, 5000);
@@ -196,13 +181,10 @@ export default function MonitorPage() {
 
     const fetchSystemStats = async () => {
       try {
-        console.log("🔍 正在获取系统监控数据...");
         const response = await fetch(buildFrontendApiUrl("/api/monitoring/dashboard"));
-        console.log("📡 监控API响应状态:", response.status);
         
         if (response.ok) {
           const data = await response.json();
-          console.log("✅ 系统监控数据:", data);
           setSystemStats(data);
         } else {
           console.error("❌ 监控API错误:", response.status, response.statusText);

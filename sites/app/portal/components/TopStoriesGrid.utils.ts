@@ -27,7 +27,6 @@ class ModernFrontendCache {
     const ttlSeconds = this.CACHE_TIMES[contentType] || 15;
     
     if (ttlSeconds <= 0) {
-      console.log(`🚫 Frontend Cache SKIP: ${contentType} (no cache)`);
       return;
     }
     
@@ -41,7 +40,6 @@ class ModernFrontendCache {
       timestamp: Date.now()
     });
     
-    console.log(`💾 Frontend Cache SET: ${key} (TTL: ${ttlSeconds}s, Type: ${contentType})`);
     
     // 自动清理
     setTimeout(() => this.cleanup(key), ttlMs);
@@ -53,11 +51,9 @@ class ModernFrontendCache {
     
     if (Date.now() > item.expiry) {
       this.cache.delete(key);
-      console.log(`🗑️ Frontend Cache EXPIRED: ${key}`);
       return null;
     }
     
-    console.log(`✅ Frontend Cache HIT: ${key} (Type: ${item.contentType})`);
     return item.data;
   }
   
@@ -77,7 +73,6 @@ class ModernFrontendCache {
     });
     
     if (count > 0) {
-      console.log(`🧹 Frontend Cache INVALIDATE: ${pattern} (${count} keys)`);
     }
     return count;
   }
@@ -131,7 +126,7 @@ function getRequestHeaders(userId?: string): HeadersInit {
 
 /**
  * 获取头条新闻数据
- * 使用专业的headlines API，对标今日头条级体验
+ * 使用专用的TopStories API，包含复杂的推荐算法
  */
 export async function getTopStories(
   limit: number = 9,
@@ -139,88 +134,96 @@ export async function getTopStories(
     hours?: number;
     diversity?: 'high' | 'med' | 'low';
     userId?: string; // 用户ID，用于个性化去重
-    // 🎯 不再需要excludeClusterIds，后端OpenSearch自动处理Hero去重
+    excludeClusterIds?: string[]; // 可选的聚类排除ID
   }
 ): Promise<TopStoryItem[]> {
   try {
-    console.log('📰 TopStories: 获取专业头条数据...');
-    
     // 构建现代缓存key
     const params = new URLSearchParams({
       size: limit.toString(),
       hours: String(options?.hours ?? 24),
       diversity: String(options?.diversity ?? 'high'),
-      site: 'aivoya.com', // 🔧 恢复站点参数，后端可能需要这个参数
-      mode: 'topstories' // 🎯 使用TopStories模式，后端自动排除Hero内容
+      site: 'aivoya.com'
     });
-    // 🎯 不再需要excludeClusterIds，后端OpenSearch自动处理
-    // (options?.excludeClusterIds || []).forEach(id => params.append('exclude_cluster_ids', id));
     
-    // 🔧 使用统一的API URL构建方法 (注意尾部斜杠)
-    const apiUrl = buildBackendApiUrl(`/api/headlines/?${params.toString()}`);
-    const cacheKey = `headlines_v3_${apiUrl.replace(/[^a-zA-Z0-9]/g, '_')}`;
+    // 添加排除的聚类ID（如果提供）
+    if (options?.excludeClusterIds && options.excludeClusterIds.length > 0) {
+      options.excludeClusterIds.forEach(id => params.append('exclude_cluster_ids', id));
+    }
+    
+    // 🎯 使用专用的TopStories API端点
+    const apiUrl = buildBackendApiUrl(`/api/topstories/?${params.toString()}`);
+    const cacheKey = `topstories_v4_${apiUrl.replace(/[^a-zA-Z0-9]/g, '_')}`;
     
     // 检查现代前端缓存
     if (typeof window !== 'undefined') {
       const cachedData = ModernFrontendCache.get(cacheKey);
       if (cachedData) {
+        console.log(`📦 Using cached TopStories data`);
         return cachedData;
       }
     }
     
-    console.log(`🔍 TopStories: Fetching URL: ${apiUrl}`);
+    console.log(`🔍 Fetching TopStories from dedicated API: ${apiUrl}`);
     
     // 智能缓存策略
     const response = await fetch(apiUrl, {
-      headers: getRequestHeaders(options?.userId)
-      // 移除固定的revalidate，让后端动态控制
+      headers: getRequestHeaders(options?.userId),
+      next: { revalidate: 60 }, // TopStories需要更频繁更新
+      signal: AbortSignal.timeout(8000), // 8秒超时，允许复杂计算
     });
     
     if (!response.ok) {
-      throw new Error(`Headlines API failed: ${response.status}`);
+      throw new Error(`TopStories API failed: ${response.status}`);
     }
     
     const data = await response.json();
     
     // 获取现代缓存策略信息
     const contentType = response.headers.get('X-Content-Type') || data.content_type || 'normal';
-    const cacheStrategy = response.headers.get('X-Cache-Strategy') || 'modern-v3';
+    const cacheStrategy = response.headers.get('X-Cache-Strategy') || 'topstories-v4';
     
-    console.log(`📰 获取到 ${data.items?.length || 0} 条专业头条内容 (Type: ${contentType})`);
-    console.log(`🎯 现代缓存策略: ${cacheStrategy}`);
+    console.log(`📊 TopStories API response: ${data.items?.length || 0} items, cache: ${cacheStrategy}`);
     
     if (data.items && data.items.length > 0) {
       const topStories = data.items.map((item: any) => transformToTopStoryItem(item));
-      console.log(`📰 转换后头条内容: ${topStories.length} 条`);
       
       // 现代前端缓存
       if (typeof window !== 'undefined') {
         ModernFrontendCache.set(cacheKey, topStories, contentType);
       }
       
+      console.log(`✅ Processed ${topStories.length} TopStories items`);
       return topStories;
     }
     // 第一次无数据，尝试扩大时间窗、放宽多样性
+    console.log('📝 No TopStories found, trying with relaxed parameters...');
     const retryParams = new URLSearchParams({
       size: limit.toString(),
       hours: String(options?.hours ?? 168), // 7天
-      diversity: String(options?.diversity ?? 'med'),
-      site: 'aivoya.com', // 🔧 恢复站点参数
-      mode: 'topstories' // 🎯 重试时也使用TopStories模式
+      diversity: String(options?.diversity ?? 'med'), // 放宽多样性
+      site: 'aivoya.com'
     });
-    // 🎯 不再需要excludeClusterIds，后端OpenSearch自动处理
-    // (options?.excludeClusterIds || []).forEach(id => retryParams.append('exclude_cluster_ids', id));
-    const retryUrl = buildBackendApiUrl(`/api/headlines/?${retryParams.toString()}`);
-    console.log(`🔁 TopStories: 无数据，改用宽松参数重试: ${retryUrl}`);
+    
+    // 重试时也包含排除ID（如果有）
+    if (options?.excludeClusterIds && options.excludeClusterIds.length > 0) {
+      options.excludeClusterIds.forEach(id => retryParams.append('exclude_cluster_ids', id));
+    }
+    
+    const retryUrl = buildBackendApiUrl(`/api/topstories/?${retryParams.toString()}`);
+    console.log(`🔄 Retrying TopStories with relaxed params: ${retryUrl}`);
+    
     const retryRes = await fetch(retryUrl, {
       headers: getRequestHeaders(options?.userId),
-      next: { revalidate: 60 }
+      next: { revalidate: 60 },
+      signal: AbortSignal.timeout(8000),
     });
+    
     if (retryRes.ok) {
       const retryData = await retryRes.json();
       if (retryData.items && retryData.items.length > 0) {
         const relaxed = retryData.items.map((item: any) => transformToTopStoryItem(item));
-        console.log(`✅ TopStories: 宽松参数获取到 ${relaxed.length} 条`);
+        console.log(`✅ Retry successful: ${relaxed.length} TopStories items`);
         return relaxed;
       }
     }
@@ -230,7 +233,6 @@ export async function getTopStories(
   
   // 兜底：使用新闻列表API（真实数据）
   try {
-    console.log('🧰 TopStories: 使用新闻API兜底...');
     const newsRes = await getNews('recommend', 1, limit * 2);
     if (newsRes?.data?.length > 0) {
       const mapped = newsRes.data
@@ -257,7 +259,6 @@ export async function getTopStories(
           reading_time: it.reading_time || 3,
         }));
       if (mapped.length > 0) {
-        console.log(`✅ TopStories: 新闻API兜底返回 ${mapped.length} 条`);
         return mapped;
       }
     }
@@ -265,7 +266,6 @@ export async function getTopStories(
     console.warn('🚫 TopStories: 新闻API兜底失败', e);
   }
 
-  console.log('❌ TopStories: 无数据');
   return [];
 
 }

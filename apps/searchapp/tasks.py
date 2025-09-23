@@ -41,8 +41,24 @@ def update_ctr_features(site:str=None):
     os = get_client()
     idx = write_alias(site)
     for site, aid, ctr1h, c1h in rows:
-        # 使用index方法进行upsert操作，如果文档不存在则创建，存在则更新
-        os.index(index=idx, id=aid, body={"ctr_1h": float(ctr1h or 0.0), "pop_1h": float(c1h or 0.0)})
+        # 🎯 使用update方法进行部分更新，保留文档的其他字段（如is_hero等）
+        try:
+            os.update(
+                index=idx, 
+                id=aid, 
+                body={
+                    "doc": {
+                        "ctr_1h": float(ctr1h or 0.0), 
+                        "pop_1h": float(c1h or 0.0)
+                    }
+                },
+                doc_as_upsert=True  # 如果文档不存在则创建
+            )
+        except Exception as e:
+            # 如果update失败（如文档不存在），记录日志但继续处理
+            import logging
+            logging.getLogger(__name__).warning(f"更新文章 {aid} CTR特征失败: {e}")
+            continue
 
 
 @app.task(autoretry_for=(Exception,), retry_backoff=True, max_retries=3)

@@ -83,6 +83,7 @@ class DataSyncService:
                 'favorite_count': article.favorite_count or 0,
                 'weight': article.weight or 0,
                 'is_featured': article.is_featured,
+                'is_hero': article.is_hero,  # 🎯 添加缺失的is_hero字段
                 'updated_at': timezone.now().isoformat()
             })
             
@@ -219,6 +220,9 @@ class DataSyncService:
             stats['total'] = articles.count()
             
             for article in articles:
+                # 🎯 确保获取最新的文章状态，特别是is_hero字段
+                article.refresh_from_db()
+                
                 # 同步到OpenSearch
                 if self.sync_article_to_opensearch(article):
                     stats['opensearch_success'] += 1

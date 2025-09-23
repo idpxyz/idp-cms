@@ -108,6 +108,54 @@ def build_query(name:str, **params)->dict:
     if size:
         obj["size"] = int(size)
     
+    # 🎯 Handle extra_filters - 添加对额外过滤条件的支持
+    extra_filters = params.get("extra_filters", [])
+    if extra_filters:
+        # 处理 function_score 查询结构
+        if "query" in obj and "function_score" in obj["query"]:
+            if "bool" in obj["query"]["function_score"]["query"]:
+                bool_query = obj["query"]["function_score"]["query"]["bool"]
+                
+                # 确保 must_not 数组存在
+                if "must_not" not in bool_query:
+                    bool_query["must_not"] = []
+                
+                # 添加额外的过滤条件到 must_not
+                for filter_condition in extra_filters:
+                    # 如果是 is_hero: False 的条件，转换为 must_not is_hero: True
+                    if (isinstance(filter_condition, dict) and 
+                        "term" in filter_condition and
+                        "is_hero" in filter_condition["term"] and
+                        filter_condition["term"]["is_hero"] is False):
+                        bool_query["must_not"].append({"term": {"is_hero": True}})
+                    else:
+                        # 其他条件直接添加到 filter
+                        if "filter" not in bool_query:
+                            bool_query["filter"] = []
+                        bool_query["filter"].append(filter_condition)
+        
+        # 处理简单的 bool 查询结构（hero模板等）
+        elif "query" in obj and "bool" in obj["query"]:
+            bool_query = obj["query"]["bool"]
+            
+            # 确保 must_not 数组存在
+            if "must_not" not in bool_query:
+                bool_query["must_not"] = []
+            
+            # 添加额外的过滤条件
+            for filter_condition in extra_filters:
+                # 如果是 is_hero: False 的条件，转换为 must_not is_hero: True
+                if (isinstance(filter_condition, dict) and 
+                    "term" in filter_condition and
+                    "is_hero" in filter_condition["term"] and
+                    filter_condition["term"]["is_hero"] is False):
+                    bool_query["must_not"].append({"term": {"is_hero": True}})
+                else:
+                    # 其他条件直接添加到 filter
+                    if "filter" not in bool_query:
+                        bool_query["filter"] = []
+                    bool_query["filter"].append(filter_condition)
+    
     # Debug: log the final object before returning
     logger.info(f"DEBUG: Final object: {json.dumps(obj, ensure_ascii=False)}")
     

@@ -46,7 +46,6 @@ export async function getChannelCategories(channelSlug: string): Promise<Channel
   try {
     // 尝试使用真实的分类API
     const apiUrl = `/api/categories?channel=${channelSlug}`;
-    console.log(`🔗 Fetching real categories for channel ${channelSlug}`);
     
     const response = await fetch(apiUrl, {
       method: 'GET',
@@ -63,8 +62,6 @@ export async function getChannelCategories(channelSlug: string): Promise<Channel
     const data = await response.json();
     const categories = data.data || data.results || [];
     
-    console.log(`✅ Successfully fetched ${categories.length} real categories for channel ${channelSlug}`);
-    
     // 转换API数据格式为ChannelStripCategory
     const channelCategories: ChannelStripCategory[] = categories.map((category: any) => ({
       id: category.id?.toString() || category.slug,
@@ -77,7 +74,6 @@ export async function getChannelCategories(channelSlug: string): Promise<Channel
 
   } catch (error) {
     console.warn(`❌ Failed to fetch real categories for channel ${channelSlug}:`, error);
-    console.log(`🔄 Falling back to mock categories for channel ${channelSlug}`);
     
     // 降级到Mock数据
     return generateMockCategories(channelSlug);
@@ -104,7 +100,6 @@ export async function getChannelCategories(channelSlug: string): Promise<Channel
     
     if (response.ok) {
       const data = await response.json();
-      console.log(`Successfully fetched categories for channel ${channelSlug}:`, data.results?.length || 0);
       
       return (data.results || []).map((cat: any) => ({
         id: cat.id,
@@ -140,7 +135,6 @@ export async function getChannelArticles(
     });
 
     const apiUrl = `/api/news?${params.toString()}`;
-    console.log(`🔗 Fetching real data for channel ${channelSlug}${categorySlug ? `, category ${categorySlug}` : ''}, limit: ${limit}`);
     
     const response = await fetch(apiUrl, {
       method: 'GET',
@@ -158,8 +152,6 @@ export async function getChannelArticles(
 
     const data = await response.json();
     const articles = data.data || [];
-    
-    console.log(`✅ Successfully fetched ${articles.length} real articles for channel ${channelSlug}`);
     
     // 转换API数据格式为ChannelStripItem
     const channelStripItems: ChannelStripItem[] = articles.map((article: any) => ({
@@ -192,7 +184,6 @@ export async function getChannelArticles(
 
   } catch (error) {
     console.warn(`❌ Failed to fetch real data for channel ${channelSlug}:`, error);
-    console.log(`🔄 Falling back to mock data for channel ${channelSlug}`);
     
     // 降级到Mock数据
     return generateMockChannelArticles(channelSlug, limit);
@@ -222,7 +213,6 @@ export async function getChannelArticles(
     
     if (response.ok) {
       const data = await response.json();
-      console.log(`Successfully fetched articles for channel ${channelSlug}${categorySlug ? `, category ${categorySlug}` : ''}:`, data.results?.length || 0);
       
       return (data.results || []).map((article: any) => ({
         id: article.id,

@@ -502,7 +502,6 @@ export default function NewsContent({
 
   // 🎯 新架构：简化的频道变化监听
   useEffect(() => {
-    console.log('🔄 NewsContent: Channel changed to:', currentChannelSlug);
     // 🔥 立即清理旧内容，防止显示上个频道的缓存内容
     setNewsList([]);
     // 频道变化时滚动到顶部
@@ -589,7 +588,6 @@ export default function NewsContent({
       
       // 🎯 分类模式处理
       if (categoryMode && categorySlug) {
-        console.log(`📁 Fetching articles for category: ${categorySlug}`);
         
         // 解析分页信息
         let currentPage = 1;
@@ -655,7 +653,6 @@ export default function NewsContent({
           }
         };
         
-        console.log(`📁 Category API returned ${adaptedItems.length} items for page ${currentPage}`);
       } else {
         // 🎯 原有的频道模式处理
         // 若存在标签筛选，则直接使用文章列表API（channel + tags），绕过推荐逻辑
@@ -725,7 +722,6 @@ export default function NewsContent({
         } else {
         // 判断是否使用智能推荐（当没有标签时）
         const useSmartFeed = shouldUseSmartFeed(currentChannelSlug, confidenceScore);
-        console.log(`🔍 NewsContent: Channel ${currentChannelSlug}, useSmartFeed: ${useSmartFeed}, confidence: ${confidenceScore}`);
         
         if (useSmartFeed) {
         // 使用智能推荐系统
@@ -754,7 +750,6 @@ export default function NewsContent({
         }
       } else {
         // 使用传统新闻API：按当前频道（slug）获取新闻并适配为FeedResponse
-        console.log(`📰 Fetching traditional news for channel: ${currentChannelSlug}`);
         
         // 🔄 从cursor解析页码，如果没有cursor则从第1页开始
         let currentPage = 1;
@@ -768,9 +763,7 @@ export default function NewsContent({
           }
         }
         
-        console.log(`📰 Fetching page ${currentPage} for channel: ${currentChannelSlug}`);
         const res = await getNews(currentChannelSlug, currentPage, 20);
-        console.log(`📰 Traditional news API returned ${res.data?.length || 0} items, total: ${res.total || 'unknown'}`);
         
         const adaptedItems: FeedItem[] = (res.data || []).map((item: any) => ({
           id: item.id,
@@ -792,7 +785,6 @@ export default function NewsContent({
           ? Buffer.from(JSON.stringify({ page: currentPage + 1 })).toString('base64')
           : '';
         
-        console.log(`📰 Traditional API pagination: page=${currentPage}, total=${res.total}, hasNext=${!!nextCursor}`);
 
         feedResponse = {
           items: adaptedItems,
@@ -841,12 +833,6 @@ export default function NewsContent({
           const existingIds = new Set(prev.map(item => item.id));
           // 过滤掉重复的文章
           const uniqueNewItems = newItems.filter(item => !existingIds.has(item.id));
-          console.log('📊 数据去重信息:', {
-            原有文章数: prev.length,
-            新返回文章数: newItems.length,
-            去重后新增文章数: uniqueNewItems.length,
-            重复文章数: newItems.length - uniqueNewItems.length
-          });
           return [...prev, ...uniqueNewItems];
         });
       } else {
@@ -868,47 +854,15 @@ export default function NewsContent({
       const newHasMore = !!(feedResponse.next_cursor && feedResponse.next_cursor.trim() !== "");
       
       // 详细调试信息
-      console.log('🔍 hasMore判断调试:', {
-        nextCursor: feedResponse.next_cursor,
-        nextCursorType: typeof feedResponse.next_cursor,
-        nextCursorLength: feedResponse.next_cursor?.length,
-        isEmpty: feedResponse.next_cursor === "",
-        isNull: feedResponse.next_cursor === null,
-        isUndefined: feedResponse.next_cursor === undefined,
-        trimResult: feedResponse.next_cursor?.trim(),
-        newHasMore: newHasMore,
-        currentHasMore: hasMore,
-        returnedItems: newItems.length
-      });
       
       // 强制检查：如果返回0篇文章但有next_cursor，可能是状态不一致
       // 若返回0条但有next_cursor，允许继续请求下一页（让后端决策）
       
       setHasMore(newHasMore);
-      
-      // 调试信息：显示停止加载的原因
-      if (isLoadMore && !newHasMore) {
-        console.log('🏁 停止加载原因:', {
-          nextCursor: feedResponse.next_cursor,
-          isEmpty: feedResponse.next_cursor === "",
-          isNull: feedResponse.next_cursor === null,
-          isUndefined: feedResponse.next_cursor === undefined,
-          reason: !feedResponse.next_cursor ? 'next_cursor为空' : 'next_cursor为空字符串'
-        });
-      }
+        
       
 
-      // 调试信息（仅在加载更多时显示，避免无限循环）
-      if (isLoadMore) {
-        console.log('📊 加载更多调试信息:', {
-          cursor: cursorRef.current,
-          returnedItems: feedResponse.items?.length || 0,
-          nextCursor: feedResponse.next_cursor,
-          hasNextCursor: !!feedResponse.next_cursor,
-          newHasMore: newHasMore,
-          totalItemsAfterMerge: newsList.length + newItems.length
-        });
-      }
+      // 加载更多处理
       
       // 更新推荐系统状态
       if (feedResponse.debug) {
@@ -939,26 +893,16 @@ export default function NewsContent({
     
     // 防止过于频繁的请求（至少间隔1秒）
     if (now - lastLoadTimeRef.current < 1000) {
-      console.log('⏳ 请求过于频繁，跳过加载');
       return;
     }
     
-    console.log('🚀 尝试加载更多:', { 
-      loadingMore, 
-      hasMore, 
-      cursor: cursorRef.current,
-      cursorState: cursor,
-      newsCount: newsList.length
-    });
     
     if (loadingMore || !hasMore) {
-      console.log('❌ 加载被阻止:', { loadingMore, hasMore });
       return;
     }
     
     // 额外检查：如果没有cursor，说明已经加载完了
     if (!cursorRef.current) {
-      console.log('❌ 没有cursor，停止加载');
       setHasMore(false);
       return;
     }
@@ -967,7 +911,6 @@ export default function NewsContent({
     lastLoadTimeRef.current = now;
     
     try {
-      console.log('✅ 开始加载更多...');
       await loadSmartFeed(true);
     } catch (error) {
       console.error('❌ 加载更多失败:', error);
@@ -1029,13 +972,6 @@ export default function NewsContent({
   // 页面加载完成后的状态检查
   useEffect(() => {
     if (!loading && newsList.length > 0) {
-      console.log('🏁 初始加载完成状态检查:', {
-        newsCount: newsList.length,
-        hasMore,
-        cursor: cursorRef.current,
-        loadingMore,
-        loading
-      });
     }
   }, [loading, newsList.length, hasMore, loadingMore]);
 
@@ -1065,33 +1001,13 @@ export default function NewsContent({
         const shouldTriggerLoad = distanceFromBottom <= 1500 && hasMore && !loadingMore && !loading;
         
         if (shouldTriggerLoad) {
-          console.log('📜 滚动触发加载:', {
-            scrollTop,
-            windowHeight,
-            documentHeight,
-            distanceFromBottom,
-            hasMore,
-            loadingMore,
-            loading,
-            cursor: cursorRef.current,
-            newsCount: newsList.length
-          });
           // 直接调用loadMoreArticles，避免依赖问题
           loadMoreArticles();
         } else if (distanceFromBottom <= 1500) {
           // 记录为什么没有触发加载
-          console.log('❌ 滚动到底部但不加载:', {
-            distanceFromBottom,
-            hasMore,
-            loadingMore,
-            loading,
-            cursor: cursorRef.current,
-            reason: !hasMore ? '没有更多数据' : loadingMore ? '正在加载中' : loading ? '初始加载中' : '未知原因'
-          });
           
           // 强制检查：如果hasMore为true但没有cursor，说明状态不一致
           if (hasMore && !cursorRef.current) {
-            console.log('🚨 状态不一致：hasMore=true但cursor为空，强制修正');
             setHasMore(false);
           }
         }
@@ -1120,7 +1036,6 @@ export default function NewsContent({
 
   // 🎯 新架构：频道切换时重置滚动状态
   useEffect(() => {
-    console.log('🔄 Resetting feed state for channel:', currentChannelSlug);
     setCursor(null);
     setHasMore(true);
     // 🔥 清理已看过的文章ID，确保新频道内容不受影响

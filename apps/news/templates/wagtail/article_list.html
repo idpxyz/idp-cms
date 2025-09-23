@@ -1,0 +1,346 @@
+{% extends "wagtailadmin/base.html" %}
+{% load wagtailadmin_tags wagtailcore_tags %}
+
+{% block content %}
+{% csrf_token %}
+<div class="nice-padding">
+    <header class="merged">
+        <div class="row">
+            <div class="left">
+                <h1 class="icon icon-doc-full-inverse">{{ page_title }}</h1>
+                <p class="help">{{ filter_desc }}</p>
+                {% if search %}
+                    <p class="help-info">搜索关键词: "{{ search }}" | 共找到 {{ total_count }} 篇文章</p>
+                {% else %}
+                    <p class="help-info">共 {{ total_count }} 篇文章</p>
+                {% endif %}
+            </div>
+            <div class="right">
+                <!-- 快速切换筛选 -->
+                <div class="button-group">
+                    <a href="/admin/articles/list/" class="button {% if filter_type == 'all' %}button-primary{% endif %}">全部</a>
+                    <a href="/admin/articles/list/hero/" class="button {% if filter_type == 'hero' %}button-primary{% endif %}">Hero轮播</a>
+                    <a href="/admin/articles/list/normal/" class="button {% if filter_type == 'normal' %}button-primary{% endif %}">普通文章</a>
+                    <a href="/admin/articles/list/featured/" class="button {% if filter_type == 'featured' %}button-primary{% endif %}">置顶推荐</a>
+                    <a href="/admin/articles/drafts/" class="button {% if filter_type == 'draft' %}button-primary{% endif %}">草稿</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- 搜索框 -->
+    <div class="row" style="margin-bottom: 20px;">
+        <div class="col6">
+            <form method="GET" class="search-form">
+                <div class="field">
+                    <input type="text" name="search" value="{{ search }}" placeholder="搜索文章标题或摘要..." class="input">
+                    {% if articles.paginator.page_range|length > 1 %}
+                        <input type="hidden" name="page" value="{{ articles.number }}">
+                    {% endif %}
+                </div>
+                <button type="submit" class="button button-primary">搜索</button>
+                {% if search %}
+                    <a href="?{% if filter_type != 'all' %}filter={{ filter_type }}&{% endif %}" class="button">清除</a>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+
+    <!-- 文章列表 -->
+    {% if articles %}
+        <div class="listing">
+            <table class="listing">
+                <thead>
+                    <tr>
+                        <th width="5%">状态</th>
+                        <th width="50%">标题</th>
+                        <th width="15%">栏目</th>
+                        <th width="15%">发布时间</th>
+                        <th width="15%">操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for article in articles %}
+                    <tr>
+                        <td>
+                            <div class="status-tags">
+                                {% if not article.live %}
+                                    <span class="status-tag draft">草稿</span>
+                                {% else %}
+                                    {% if article.is_hero %}
+                                        <span class="status-tag primary">Hero</span>
+                                    {% endif %}
+                                    {% if article.is_featured %}
+                                        <span class="status-tag warning">置顶</span>
+                                    {% endif %}
+                                    {% if not article.is_hero and not article.is_featured %}
+                                        <span class="status-tag">普通</span>
+                                    {% endif %}
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td class="title">
+                            <div class="title-wrapper">
+                                <h3>
+                                    <a href="{% url 'wagtailadmin_pages:edit' article.id %}">{{ article.title }}</a>
+                                </h3>
+                                {% if article.excerpt %}
+                                    <p class="meta">{{ article.excerpt|truncatewords:20 }}</p>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td>
+                            {% if article.channel %}
+                                <span class="channel-name">{{ article.channel.name }}</span>
+                            {% else %}
+                                <span class="meta">未分类</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <time datetime="{{ article.first_published_at|date:'c' }}">
+                                {{ article.first_published_at|date:"Y-m-d H:i" }}
+                            </time>
+                        </td>
+                        <td>
+                            <div class="actions">
+                                <a href="{% url 'wagtailadmin_pages:edit' article.id %}" class="button button-small">编辑</a>
+                                
+                                {% if article.live %}
+                                    <!-- 已发布文章的状态切换 -->
+                                    <!-- Hero状态切换 -->
+                                    <button type="button" 
+                                            class="button button-small toggle-hero-btn" 
+                                            data-article-id="{{ article.id }}"
+                                            data-current-hero="{{ article.is_hero|yesno:'true,false' }}">
+                                        {% if article.is_hero %}
+                                            取消Hero
+                                        {% else %}
+                                            设为Hero
+                                        {% endif %}
+                                    </button>
+                                    
+                                    <!-- 置顶状态切换 -->
+                                    <button type="button" 
+                                            class="button button-small toggle-featured-btn" 
+                                            data-article-id="{{ article.id }}"
+                                            data-current-featured="{{ article.is_featured|yesno:'true,false' }}">
+                                        {% if article.is_featured %}
+                                            取消置顶
+                                        {% else %}
+                                            设为置顶
+                                        {% endif %}
+                                    </button>
+                                {% else %}
+                                    <!-- 草稿文章的操作 -->
+                                    <span class="button button-small button-secondary disabled">未发布</span>
+                                    <small class="meta">发布后可设置状态</small>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 分页 -->
+        {% if articles.paginator.page_range|length > 1 %}
+            <div class="pagination">
+                <p class="pagination-info">
+                    第 {{ articles.start_index }} - {{ articles.end_index }} 条，共 {{ articles.paginator.count }} 条
+                </p>
+                
+                <nav class="pagination-nav">
+                    {% if articles.has_previous %}
+                        <a href="?page=1{% if search %}&search={{ search }}{% endif %}" class="first" title="首页">首页</a>
+                        <a href="?page={{ articles.previous_page_number }}{% if search %}&search={{ search }}{% endif %}" class="prev">上一页</a>
+                    {% endif %}
+                    
+                    <!-- 智能分页显示 -->
+                    {% for page_item in smart_page_range %}
+                        {% if page_item == '...' %}
+                            <span class="ellipsis">...</span>
+                        {% elif page_item == articles.number %}
+                            <span class="current">{{ page_item }}</span>
+                        {% else %}
+                            <a href="?page={{ page_item }}{% if search %}&search={{ search }}{% endif %}">{{ page_item }}</a>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if articles.has_next %}
+                        <a href="?page={{ articles.next_page_number }}{% if search %}&search={{ search }}{% endif %}" class="next">下一页</a>
+                        <a href="?page={{ articles.paginator.num_pages }}{% if search %}&search={{ search }}{% endif %}" class="last" title="末页">末页</a>
+                    {% endif %}
+                </nav>
+            </div>
+        {% endif %}
+
+    {% else %}
+        <div class="help-block help-warning">
+            {% if search %}
+                <p>没有找到符合搜索条件的文章。</p>
+                <a href="?" class="button">显示所有文章</a>
+            {% else %}
+                <p>暂无文章。</p>
+            {% endif %}
+        </div>
+    {% endif %}
+</div>
+
+<style>
+    .status-tags {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+    .status-tag {
+        padding: 2px 6px;
+        border-radius: 3px;
+        font-size: 11px;
+        font-weight: bold;
+        text-align: center;
+        background: #e6e6e6;
+        color: #333;
+    }
+    .status-tag.primary {
+        background: #007cba;
+        color: white;
+    }
+    .status-tag.warning {
+        background: #f39c12;
+        color: white;
+    }
+    .status-tag.draft {
+        background: #6c757d;
+        color: white;
+    }
+    .title-wrapper h3 {
+        margin: 0 0 4px 0;
+        font-size: 14px;
+    }
+    .title-wrapper h3 a {
+        text-decoration: none;
+        color: #007cba;
+    }
+    .title-wrapper h3 a:hover {
+        text-decoration: underline;
+    }
+    .title-wrapper .meta {
+        margin: 0;
+        font-size: 12px;
+        color: #666;
+    }
+    .channel-name {
+        padding: 2px 8px;
+        background: #f0f0f0;
+        border-radius: 3px;
+        font-size: 12px;
+    }
+    .actions {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+    .actions .button {
+        margin: 0;
+        padding: 4px 8px;
+        font-size: 11px;
+    }
+    .search-form {
+        display: flex;
+        gap: 10px;
+        align-items: end;
+    }
+    .search-form .field {
+        flex: 1;
+        margin: 0;
+    }
+    .pagination {
+        margin-top: 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .pagination-nav {
+        display: flex;
+        gap: 5px;
+        align-items: center;
+    }
+    .pagination-nav a, .pagination-nav .current {
+        padding: 8px 12px;
+        text-decoration: none;
+        border: 1px solid #ddd;
+        border-radius: 3px;
+    }
+    .pagination-nav .current {
+        background: #007cba;
+        color: white;
+        border-color: #007cba;
+    }
+    .pagination-nav a:hover {
+        background: #f0f0f0;
+    }
+    .pagination-nav .ellipsis {
+        padding: 8px 12px;
+        color: #666;
+        border: 1px solid transparent;
+    }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Hero状态切换
+    document.querySelectorAll('.toggle-hero-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            const articleId = this.dataset.articleId;
+            const currentHero = this.dataset.currentHero === 'true';
+            
+            fetch(`/admin/articles/toggle-hero/${articleId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload(); // 简单重新加载页面以更新状态
+                } else {
+                    alert('操作失败: ' + data.error);
+                }
+            })
+            .catch(error => {
+                alert('网络错误: ' + error);
+            });
+        });
+    });
+    
+    // 置顶状态切换
+    document.querySelectorAll('.toggle-featured-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            const articleId = this.dataset.articleId;
+            
+            fetch(`/admin/articles/toggle-featured/${articleId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert('操作失败: ' + data.error);
+                }
+            })
+            .catch(error => {
+                alert('网络错误: ' + error);
+            });
+        });
+    });
+});
+</script>
+{% endblock %}

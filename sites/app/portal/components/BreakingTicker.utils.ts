@@ -9,12 +9,10 @@ import { buildBackendApiUrl } from '@/lib/utils/api-url';
  */
 export async function getBreakingNews(limit: number = 8): Promise<BreakingNewsItem[]> {
   try {
-    console.log('🚨 Breaking News: 获取最新快讯数据...');
     
     // 首先尝试获取 breaking news (最近6小时内的紧急新闻) - 注意尾部斜杠
     const headlinesPath = `/api/headlines/?size=${limit * 2}&hours=6&diversity=high&site=aivoya.com`;
     const headlinesUrl = buildBackendApiUrl(headlinesPath);
-    console.log(`🔍 Breaking News: Fetching URL: ${headlinesUrl}`);
     
     const response = await fetch(headlinesUrl, {
       next: { revalidate: 30 }, // 快讯数据30秒缓存
@@ -26,7 +24,6 @@ export async function getBreakingNews(limit: number = 8): Promise<BreakingNewsIt
 
     if (response.ok) {
       const data = await response.json();
-      console.log(`🚨 获取到 ${data.items?.length || 0} 条快讯候选`);
       
       if (data.items && data.items.length > 0) {
         // 优先筛选最新的、有紧急标记的新闻
@@ -41,7 +38,6 @@ export async function getBreakingNews(limit: number = 8): Promise<BreakingNewsIt
         // 转换数据格式，直接使用后端返回的频道信息
         const breakingItems = filteredItems.map((item: any) => transformToBreakingItem(item));
         
-        console.log(`🚨 转换后快讯内容: ${breakingItems.length} 条`);
         if (breakingItems.length > 0) {
           return breakingItems;
         }
@@ -53,7 +49,6 @@ export async function getBreakingNews(limit: number = 8): Promise<BreakingNewsIt
 
   try {
     // 备选方案：使用首页频道的最新内容
-    console.log('⚠️ Breaking News: Headlines API失败，回退到首页频道...');
     const newsResponse = await getNews('首页', 1, limit * 2);
     
     if (newsResponse.data && newsResponse.data.length > 0) {
@@ -79,7 +74,6 @@ export async function getBreakingNews(limit: number = 8): Promise<BreakingNewsIt
         is_urgent: item.is_featured || item.is_breaking || false,
       }));
       
-      console.log(`✅ Breaking News: 首页频道获取到 ${recentNews.length} 条数据`);
       if (recentNews.length > 0) {
         return recentNews;
       }
@@ -89,7 +83,6 @@ export async function getBreakingNews(limit: number = 8): Promise<BreakingNewsIt
   }
 
   // 最后兜底：使用模拟数据
-  console.log('🚫 Breaking News: 所有API均失败，使用模拟数据');
   return generateMockBreakingNews(limit);
 }
 

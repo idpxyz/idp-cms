@@ -40,6 +40,9 @@ def batch_sync_article_weights(self, article_ids=None, limit=1000):
         
         for article in articles:
             try:
+                # 🎯 在权重同步前，刷新文章实例以获取最新状态
+                article.refresh_from_db()
+                
                 if data_sync_service.sync_article_weight(article):
                     updated_count += 1
                 else:
@@ -151,9 +154,12 @@ def comprehensive_data_consistency_check():
                 # 如果发现严重不一致，触发自动修复
                 consistency = result.get('consistency', {})
                 if not consistency.get('is_consistent', True):
-                    logger.warning(f"站点 {site} 数据不一致，触发自动修复")
-                    # 异步触发修复任务，避免阻塞
-                    sync_articles_to_opensearch_batch.delay(limit=50)
+                    logger.warning(f"站点 {site} 数据不一致，延迟触发自动修复")
+                    # 🎯 延迟触发修复任务，避免数据竞争（延迟5分钟）
+                    sync_articles_to_opensearch_batch.apply_async(
+                        kwargs={'limit': 50}, 
+                        countdown=300  # 5分钟后执行
+                    )
                     
             except Exception as e:
                 logger.error(f"检查站点 {site} 一致性失败: {e}")

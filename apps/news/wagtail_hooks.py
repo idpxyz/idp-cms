@@ -369,6 +369,198 @@ def register_cache_management_urls():
 # 如需删除钩子，可改用 Django 的 post_delete 连接 ArticlePage 模型
 
 
+# ========== 独立的文章管理系统 ==========
+
+from django.shortcuts import render, redirect, get_object_or_404
+from django.http import JsonResponse
+from django.contrib.admin.views.decorators import staff_member_required
+from django.urls import path
+from django.core.paginator import Paginator
+from django.db.models import Q
+from wagtail.admin.menu import MenuItem
+from django.views.decorators.http import require_http_methods
+from django.contrib import messages
+
+
+@staff_member_required
+def article_management_overview(request):
+    """文章管理概览页面"""
+    from .models.article import ArticlePage
+    
+    # 获取统计数据
+    stats = {
+        'total': ArticlePage.objects.filter(live=True).count(),
+        'hero': ArticlePage.objects.filter(live=True, is_hero=True).count(),
+        'featured': ArticlePage.objects.filter(live=True, is_featured=True).count(),
+        'draft': ArticlePage.objects.filter(live=False).count(),
+    }
+    
+    # 最近的Hero文章
+    recent_hero = ArticlePage.objects.filter(
+        live=True, is_hero=True
+    ).select_related('cover', 'channel').order_by('-first_published_at')[:5]
+    
+    # 最近的普通文章
+    recent_normal = ArticlePage.objects.filter(
+        live=True, is_hero=False
+    ).select_related('cover', 'channel').order_by('-first_published_at')[:8]
+    
+    context = {
+        'stats': stats,
+        'recent_hero': recent_hero,
+        'recent_normal': recent_normal,
+    }
+    
+    return render(request, 'wagtail/article_management.html', context)
+
+
+@staff_member_required
+def article_list_view(request, filter_type='all'):
+    """独立的文章列表页面"""
+    from .models.article import ArticlePage
+    
+    # 基础查询
+    articles = ArticlePage.objects.filter(live=True).select_related('cover', 'channel').prefetch_related('tags')
+    
+    # 根据过滤类型应用过滤
+    if filter_type == 'hero':
+        articles = articles.filter(is_hero=True)
+        page_title = 'Hero轮播文章'
+        filter_desc = '首页Hero轮播展示的文章'
+    elif filter_type == 'normal':
+        articles = articles.filter(is_hero=False)
+        page_title = '普通文章'
+        filter_desc = '非Hero轮播的普通文章'
+    elif filter_type == 'featured':
+        articles = articles.filter(is_featured=True)
+        page_title = '置顶推荐文章'
+        filter_desc = '标记为置顶推荐的文章'
+    elif filter_type == 'draft':
+        # 草稿文章：未发布的文章
+        articles = ArticlePage.objects.filter(live=False).select_related('cover', 'channel').prefetch_related('tags')
+        page_title = '草稿文章'
+        filter_desc = '尚未发布的文章草稿'
+    else:
+        page_title = '所有已发布文章'
+        filter_desc = '所有已发布的文章'
+    
+    # 搜索功能
+    search = request.GET.get('search', '')
+    if search:
+        articles = articles.filter(
+            Q(title__icontains=search) | 
+            Q(excerpt__icontains=search)
+        )
+    
+    # 分页
+    paginator = Paginator(articles.order_by('-first_published_at'), 20)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    # 生成智能分页范围
+    def get_smart_page_range(current_page, total_pages):
+        """生成智能分页范围，避免页码过多"""
+        if total_pages <= 7:
+            return list(range(1, total_pages + 1))
+        
+        if current_page <= 4:
+            # 当前页在前4页
+            return list(range(1, 6)) + ['...', total_pages]
+        elif current_page >= total_pages - 3:
+            # 当前页在后4页
+            return [1, '...'] + list(range(total_pages - 4, total_pages + 1))
+        else:
+            # 当前页在中间
+            return [1, '...'] + list(range(current_page - 2, current_page + 3)) + ['...', total_pages]
+    
+    smart_page_range = get_smart_page_range(page_obj.number, paginator.num_pages) if paginator.num_pages > 1 else []
+    
+    context = {
+        'articles': page_obj,
+        'filter_type': filter_type,
+        'page_title': page_title,
+        'filter_desc': filter_desc,
+        'search': search,
+        'total_count': articles.count(),
+        'smart_page_range': smart_page_range,
+    }
+    
+    return render(request, 'wagtail/article_list.html', context)
+
+
+@staff_member_required
+@require_http_methods(["POST"])
+def toggle_hero_status(request, article_id):
+    """切换文章的Hero状态"""
+    from .models.article import ArticlePage
+    
+    try:
+        article = get_object_or_404(ArticlePage, id=article_id)
+        article.is_hero = not article.is_hero
+        article.save()
+        
+        status = "Hero轮播" if article.is_hero else "普通文章"
+        messages.success(request, f'文章《{article.title}》已设置为{status}')
+        
+        return JsonResponse({
+            'success': True, 
+            'is_hero': article.is_hero,
+            'message': f'已设置为{status}'
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+
+@staff_member_required
+@require_http_methods(["POST"])
+def toggle_featured_status(request, article_id):
+    """切换文章的置顶状态"""
+    from .models.article import ArticlePage
+    
+    try:
+        article = get_object_or_404(ArticlePage, id=article_id)
+        article.is_featured = not article.is_featured
+        article.save()
+        
+        status = "置顶推荐" if article.is_featured else "普通显示"
+        messages.success(request, f'文章《{article.title}》已设置为{status}')
+        
+        return JsonResponse({
+            'success': True, 
+            'is_featured': article.is_featured,
+            'message': f'已设置为{status}'
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+
+@hooks.register('register_admin_urls')
+def register_article_management_urls():
+    """注册独立的文章管理URL"""
+    return [
+        path('articles/', article_management_overview, name='article-management-overview'),
+        path('articles/list/<str:filter_type>/', article_list_view, name='article-list'),
+        path('articles/list/', article_list_view, {'filter_type': 'all'}, name='article-list-all'),
+        path('articles/drafts/', article_list_view, {'filter_type': 'draft'}, name='article-list-drafts'),
+        path('articles/toggle-hero/<int:article_id>/', toggle_hero_status, name='toggle-hero'),
+        path('articles/toggle-featured/<int:article_id>/', toggle_featured_status, name='toggle-featured'),
+    ]
+
+
+@hooks.register('construct_main_menu')
+def add_article_management_menu(request, menu_items, **kwargs):
+    """添加文章管理菜单"""
+    
+    menu_items.append(
+        MenuItem(
+            '文章管理',
+            '/admin/articles/',
+            icon_name='doc-full-inverse',
+            order=150
+        )
+    )
+
+
 
 
 def _inject_suggestions_into_form(form, suggestions):

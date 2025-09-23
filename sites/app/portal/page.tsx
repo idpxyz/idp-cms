@@ -49,7 +49,6 @@ async function getChannels() {
 
     if (response.ok) {
       const data = await response.json();
-      console.log('Successfully fetched channels from backend:', data.channels?.length || 0);
       
       // 确保首页频道在最前面，并将数字ID转换为字符串slug以保持一致性
       const channels = data.channels || [];
@@ -64,7 +63,6 @@ async function getChannels() {
       return [homepageChannel, ...otherChannels];
     } else {
       if (response.status === 429) {
-        console.log('Backend API rate limited, using fallback channels');
       } else {
         console.warn('Failed to fetch channels from backend, status:', response.status);
       }
@@ -74,7 +72,6 @@ async function getChannels() {
   }
 
   // API调用失败时只返回首页频道，避免硬编码数据库频道
-  console.log('API failed, returning minimal fallback with homepage channel only');
   return [
     { id: "recommend", name: "首页", slug: "recommend", order: -1 },
   ];
@@ -105,7 +102,10 @@ export default async function PortalPage({ searchParams }: { searchParams?: Prom
   
   // 🚀 并行获取 Hero 轮播数据和头条新闻数据
   const [heroItems, topStoriesData] = await Promise.all([
-    getHeroItems(5),
+    getHeroItems(5).catch(error => {
+      console.error("Failed to fetch hero items:", error);
+      return []; // 获取失败时返回空数组，不影响页面渲染
+    }),
     getTopStories(9, { 
       hours: 168, // 🔧 临时扩大到7天，确保有足够数据用于测试
       diversity: 'high'

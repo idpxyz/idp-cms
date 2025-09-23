@@ -66,7 +66,6 @@ const ChannelStrip: React.FC<ChannelStripProps> = ({
       const cachedData = channelStripCache.get<ChannelStripItem[]>(cacheKey);
       
       if (cachedData) {
-        console.log(`📦 Using cached data for ${channelSlug} (${cachedData.length} articles)`);
         setArticles(cachedData);
         setIsLoading(false);
         return;
@@ -86,7 +85,6 @@ const ChannelStrip: React.FC<ChannelStripProps> = ({
         // 3. 存入缓存
         channelStripCache.set(cacheKey, articlesData);
         setArticles(articlesData);
-        console.log(`⚡ Loaded & cached ${articlesData.length} articles for ${channelSlug}`);
       } catch (err) {
         console.error(`Error loading articles for channel ${channelSlug}:`, err);
         setError('加载失败，请稍后重试');

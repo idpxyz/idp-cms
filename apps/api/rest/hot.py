@@ -124,12 +124,17 @@ def hot(request):
     index = index_name_for(site)
     # 提高 ES 候选量，缓解多样性与去重后的空集风险
     elastic_size = max(size*20, 600)
+    
+    # 🎯 Hot API应该排除Hero文章，避免与Hero轮播重复
+    non_hero_filter = {"term": {"is_hero": False}}
+    
     body = build_query(
         "recommend_default",
         site=site,
         channels=["hot"],
         hours=hours,
         size=elastic_size,
+        extra_filters=[non_hero_filter]  # 排除Hero文章
     )
 
     candidates = []
@@ -159,6 +164,8 @@ def hot(request):
             qs = qs.filter(first_published_at__gte=since)
         except Exception:
             pass
+        # 🎯 数据库回退时也要排除Hero文章
+        qs = qs.filter(is_hero=False)
         pages = list(qs.order_by('-first_published_at')[:elastic_size])
         for p in pages:
             candidates.append({

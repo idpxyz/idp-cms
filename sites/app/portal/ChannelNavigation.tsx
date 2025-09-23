@@ -170,7 +170,6 @@ function ChannelNavigation({
         error,
         getCurrentChannel,
         testChannelSwitch: (channelSlug: string) => {
-          console.log('🧪 Testing channel switch to:', channelSlug);
           switchChannel(channelSlug);
         }
       };
@@ -345,14 +344,12 @@ function ChannelNavigation({
 
   // 🎯 智能频道点击处理 - 支持动态重排
   const handleChannelClick = useCallback((channelSlug: string, isFromMoreMenu: boolean = false) => {
-    console.log('🔘 Channel clicked:', channelSlug, isFromMoreMenu ? '(from more menu)' : '(from visible)');
     
     // 关闭 MegaMenu
     closeMegaMenu();
     
     // 如果点击的是当前频道，滚动到顶部
     if (currentChannelSlug === channelSlug) {
-      console.log('📜 Same channel clicked, scrolling to top');
       window.scrollTo({ top: 0, behavior: 'smooth' });
       setIsDropdownOpen(false);
       return;

@@ -340,10 +340,10 @@ CELERY_BEAT_SCHEDULE = {
         'schedule': 86400.0,  # 每天清理一次旧数据
     },
 
-    # DB↔OpenSearch 一致性巡检
+    # DB↔OpenSearch 一致性巡检 - 降低频率减少数据竞争
     'db-opensearch-consistency': {
         'task': 'apps.searchapp.tasks.check_db_opensearch_consistency',
-        'schedule': 600.0,  # 每10分钟检查一次
+        'schedule': 1800.0,  # 每30分钟检查一次（原10分钟过于频繁）
     },
     # 现代缓存系统不需要预计算任务，删除旧的聚合缓存任务
     # compute_hot 任务也已删除，现代缓存系统实时处理
@@ -360,7 +360,7 @@ CELERY_BEAT_SCHEDULE = {
     },
     'comprehensive-consistency-check': {
         'task': 'apps.core.tasks.data_sync.comprehensive_data_consistency_check',
-        'schedule': 1800.0,  # 每30分钟做一次全面检查
+        'schedule': 3600.0,  # 每60分钟做一次全面检查（原30分钟过于频繁）
     },
     'cleanup-behavior-data': {
         'task': 'apps.core.tasks.data_sync.cleanup_old_behavior_data',
