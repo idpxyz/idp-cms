@@ -164,7 +164,7 @@ export default async function PortalPage({ searchParams }: { searchParams?: Prom
               showViewMore={true}
               viewMoreLink={`/portal?channel=${channel.slug}`}
               articleLimit={8}
-              className="border-b border-gray-100 pb-8"
+              className=""
             />
           </Section>
         ))}
