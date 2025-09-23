@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { useAuth } from '@/lib/context/AuthContext';
 import { getTopStories } from './TopStoriesGrid.utils';
 import { getTopStoryPlaceholderImage, getSideNewsPlaceholderImage } from '@/lib/utils/placeholderImages';
+import { formatTimeForSSR } from '@/lib/utils/date';
 
 export interface TopStoryItem {
   id: string;
@@ -146,24 +147,7 @@ export default function TopStoriesGrid({
     setCurrentMainIndex(index);
   };
   
-  // 格式化时间
-  const formatTime = (timeString: string) => {
-    const date = new Date(timeString);
-    const now = new Date();
-    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
-    
-    if (diffInHours < 1) {
-      const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
-      return `${diffInMinutes}分钟前`;
-    } else if (diffInHours < 24) {
-      return `${diffInHours}小时前`;
-    } else {
-      return date.toLocaleDateString('zh-CN', {
-        month: 'short',
-        day: 'numeric'
-      });
-    }
-  };
+  // 使用统一的SSR安全时间格式化函数
 
   // 格式化数字
   const formatNumber = (num: number) => {
@@ -320,7 +304,7 @@ export default function TopStoriesGrid({
                         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
-                        <span>{formatTime(currentMainItem.publish_time)}</span>
+                        <span>{formatTimeForSSR(currentMainItem.publish_time)}</span>
                       </div>
                       {currentMainItem.author && (
                         <span>作者: {currentMainItem.author}</span>
@@ -413,7 +397,7 @@ export default function TopStoriesGrid({
                               {item.channel.name}
                             </span>
                           )}
-                          <span>{formatTime(item.publish_time)}</span>
+                          <span>{formatTimeForSSR(item.publish_time)}</span>
                         </div>
                         {item.view_count && (
                           <span>{formatNumber(item.view_count)}</span>

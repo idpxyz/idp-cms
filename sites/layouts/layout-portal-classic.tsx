@@ -165,8 +165,9 @@ export default function PortalClassicLayout({
               <div className="w-8 h-8 bg-red-500 rounded flex items-center justify-center">
                 <span className="text-white font-bold text-sm">党</span>
               </div>
-              <div>
-                <h1 className="text-xl font-bold text-gray-900">党报头条</h1>
+              <div className="flex flex-col items-center">
+                <h1 className="text-xl font-bold text-gray-900 leading-tight">党报头条</h1>
+                <span className="text-xs text-gray-500 font-medium">倾听人民的声音</span>
               </div>
             </a>
 

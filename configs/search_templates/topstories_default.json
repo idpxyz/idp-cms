@@ -1,0 +1,64 @@
+{
+  "size": 200,
+  "query": {
+    "function_score": {
+      "query": {
+        "bool": {
+          "filter": [
+            {
+              "term": {
+                "site": "__SITE__"
+              }
+            },
+            {
+              "range": {
+                "publish_time": {
+                  "gte": "now-__HOURS__h"
+                }
+              }
+            }
+          ],
+          "must_not": [
+            {
+              "terms": {
+                "article_id.keyword": "__SEEN_IDS__"
+              }
+            },
+            {
+              "term": {
+                "is_hero": true
+              }
+            }
+          ],
+          "should": "__CHANNELS_CONDITION__"
+        }
+      },
+      "functions": [
+        {
+          "exp": {
+            "publish_time": {
+              "origin": "now",
+              "scale": "6h",
+              "decay": 0.5
+            }
+          }
+        },
+        {
+          "field_value_factor": {
+            "field": "ctr_1h",
+            "factor": 2,
+            "missing": 1
+          }
+        },
+        {
+          "field_value_factor": {
+            "field": "quality_score",
+            "factor": 1
+          }
+        }
+      ],
+      "score_mode": "sum",
+      "boost_mode": "multiply"
+    }
+  }
+}

@@ -107,9 +107,9 @@ export default async function PortalPage({ searchParams }: { searchParams?: Prom
   const [heroItems, topStoriesData] = await Promise.all([
     getHeroItems(5),
     getTopStories(9, { 
-      hours: 24, 
-      diversity: 'high', 
-      excludeClusterIds: [] 
+      hours: 168, // 🔧 临时扩大到7天，确保有足够数据用于测试
+      diversity: 'high'
+      // 🎯 不再需要excludeClusterIds，后端OpenSearch自动处理Hero去重
     }).catch(error => {
       console.error("Failed to fetch top stories:", error);
       return []; // 获取失败时返回空数组，不影响页面渲染

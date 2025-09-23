@@ -8,7 +8,7 @@ from wagtail.admin.panels import (
 from wagtail.images.widgets import AdminImageChooser
 from wagtail.admin.widgets import AdminDateTimeInput
 from taggit.models import TaggedItemBase
-from modelcluster.fields import ParentalKey
+from modelcluster.fields import ParentalKey, ParentalManyToManyField
 from modelcluster.contrib.taggit import ClusterTaggableManager
 from ..rich_text_features import get_news_editor_features, get_advanced_news_editor_features
 from wagtail.images import get_image_model
@@ -50,8 +50,8 @@ class ArticlePage(Page):
     符合专业新闻网站标准，支持多站点聚合策略
     """
     
-    # 使用自定义表单类来改进图片选择器体验
-    base_form_class = ArticlePageForm
+    # 使用默认表单（与 ParentalManyToManyField 更兼容）
+    # base_form_class = ArticlePageForm
     
     # === 基础内容 ===
     excerpt = models.TextField(blank=True, verbose_name="文章摘要", 
@@ -79,7 +79,7 @@ class ArticlePage(Page):
         verbose_name="频道",
         help_text="⚠️ 请只选择当前站点关联的频道（如上海站点请勿选择北京本地等其他站点专属频道）"
     )
-    categories = models.ManyToManyField(
+    categories = ParentalManyToManyField(
         'core.Category',
         blank=True,
         related_name='articles',
@@ -94,7 +94,7 @@ class ArticlePage(Page):
         verbose_name="地区",
         help_text="⚠️ 请只选择当前站点关联的地区"
     )
-    topics = models.ManyToManyField(
+    topics = ParentalManyToManyField(
         'news.Topic',
         blank=True,
         related_name='articles',

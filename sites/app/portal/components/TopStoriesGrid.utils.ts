@@ -2,6 +2,22 @@ import { fetchTrendingFeed } from '@/lib/api/feed';
 import { getNews } from '@/lib/api/news';
 import { TopStoryItem } from './TopStoriesGrid';
 
+/**
+ * 获取API URL - 兼容服务端渲染和客户端
+ */
+function getApiUrl(path: string): string {
+  // 检测运行环境
+  if (typeof window === 'undefined') {
+    // 服务端环境：使用后端API的内部地址
+    const baseUrl = process.env.DJANGO_API_URL || 'http://authoring:8000';
+    return `${baseUrl}${path}`;
+  } else {
+    // 客户端环境：使用前端可访问的API地址
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
+    return `${baseUrl}${path}`;
+  }
+}
+
 // 现代化前端缓存系统
 interface ModernCacheItem {
   data: any;
@@ -135,10 +151,10 @@ function getRequestHeaders(userId?: string): HeadersInit {
 export async function getTopStories(
   limit: number = 9,
   options?: {
-    excludeClusterIds?: string[];
     hours?: number;
     diversity?: 'high' | 'med' | 'low';
-    userId?: string; // 新增：用户ID，用于个性化去重
+    userId?: string; // 用户ID，用于个性化去重
+    // 🎯 不再需要excludeClusterIds，后端OpenSearch自动处理Hero去重
   }
 ): Promise<TopStoryItem[]> {
   try {
@@ -149,11 +165,14 @@ export async function getTopStories(
       size: limit.toString(),
       hours: String(options?.hours ?? 24),
       diversity: String(options?.diversity ?? 'high'),
-      site: 'aivoya.com'
+      site: 'aivoya.com', // 🔧 恢复站点参数，后端可能需要这个参数
+      mode: 'topstories' // 🎯 使用TopStories模式，后端自动排除Hero内容
     });
-    (options?.excludeClusterIds || []).forEach(id => params.append('exclude_cluster_ids', id));
+    // 🎯 不再需要excludeClusterIds，后端OpenSearch自动处理
+    // (options?.excludeClusterIds || []).forEach(id => params.append('exclude_cluster_ids', id));
     
-    const apiUrl = `/api/headlines?${params.toString()}`;
+    // 🔧 使用统一的API URL构建方法
+    const apiUrl = getApiUrl(`/api/headlines?${params.toString()}`);
     const cacheKey = `headlines_v3_${apiUrl.replace(/[^a-zA-Z0-9]/g, '_')}`;
     
     // 检查现代前端缓存
@@ -201,10 +220,12 @@ export async function getTopStories(
       size: limit.toString(),
       hours: String(options?.hours ?? 168), // 7天
       diversity: String(options?.diversity ?? 'med'),
-      site: 'aivoya.com'
+      site: 'aivoya.com', // 🔧 恢复站点参数
+      mode: 'topstories' // 🎯 重试时也使用TopStories模式
     });
-    (options?.excludeClusterIds || []).forEach(id => retryParams.append('exclude_cluster_ids', id));
-    const retryUrl = `/api/headlines?${retryParams.toString()}`;
+    // 🎯 不再需要excludeClusterIds，后端OpenSearch自动处理
+    // (options?.excludeClusterIds || []).forEach(id => retryParams.append('exclude_cluster_ids', id));
+    const retryUrl = getApiUrl(`/api/headlines?${retryParams.toString()}`);
     console.log(`🔁 TopStories: 无数据，改用宽松参数重试: ${retryUrl}`);
     const retryRes = await fetch(retryUrl, {
       headers: getRequestHeaders(options?.userId),

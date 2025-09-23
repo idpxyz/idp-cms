@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { formatTimeForSSR } from '@/lib/utils/date';
 // 使用内联 SVG 图标替代 lucide-react
 
 export interface BreakingNewsItem {
@@ -40,17 +41,7 @@ export default function BreakingTicker({
   const contentRef = useRef<HTMLDivElement>(null);
   const animationRef = useRef<number>();
 
-  // 格式化时间
-  const formatTime = (timeString: string) => {
-    const date = new Date(timeString);
-    const now = new Date();
-    const diffMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
-    
-    if (diffMinutes < 1) return '刚刚';
-    if (diffMinutes < 60) return `${diffMinutes}分钟前`;
-    if (diffMinutes < 1440) return `${Math.floor(diffMinutes / 60)}小时前`;
-    return date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' });
-  };
+  // 使用统一的SSR安全时间格式化函数
 
   // 滚动动画
   useEffect(() => {
@@ -151,7 +142,7 @@ export default function BreakingTicker({
                         <polyline points="12,6 12,12 16,14"/>
                       </svg>
                       <span className="text-red-100 news-meta-small">
-                        {formatTime(item.publish_time)}
+                        {formatTimeForSSR(item.publish_time)}
                       </span>
                     </div>
                   )}
@@ -189,7 +180,7 @@ export default function BreakingTicker({
                         <polyline points="12,6 12,12 16,14"/>
                       </svg>
                       <span className="text-red-100 news-meta-small">
-                        {formatTime(item.publish_time)}
+                        {formatTimeForSSR(item.publish_time)}
                       </span>
                     </div>
                   )}

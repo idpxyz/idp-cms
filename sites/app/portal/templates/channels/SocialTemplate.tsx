@@ -11,265 +11,364 @@ interface ChannelTemplateProps {
 }
 
 /**
- * 🏛️ 社会频道专业模板
- * 专业报道 · 深度分析 · 权威发声
+ * 📰 社会频道专业新闻模板
+ * 专业新闻布局 · 头条聚焦 · 深度报道
  */
 const SocialTemplate: React.FC<ChannelTemplateProps> = ({ 
   channel, 
   channels, 
   tags 
 }) => {
-  // 动态数据模拟（实际应从API获取）
-  const liveData = {
-    todayEvents: 23,
-    activeReports: 156,
-    publicResponse: 89,
-    solutionRate: 94
-  };
-
   return (
     <PageContainer>
-      {/* 🎯 专业化头部设计 */}
-      <Section space="lg">
-        <div className="relative bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20 border border-slate-200/60 rounded-3xl overflow-hidden">
-          {/* 几何装饰背景 */}
-          <div className="absolute inset-0">
-            <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-bl from-blue-100/20 via-transparent to-transparent rounded-full -translate-y-48 translate-x-48"></div>
-            <div className="absolute bottom-0 left-0 w-80 h-80 bg-gradient-to-tr from-slate-100/30 via-transparent to-transparent rounded-full translate-y-40 -translate-x-40"></div>
-            {/* 专业网格图案 */}
-            <div className="absolute inset-0 opacity-[0.02]" style={{
-              backgroundImage: `radial-gradient(circle at 1px 1px, #1e293b 1px, transparent 0)`,
-              backgroundSize: '24px 24px'
-            }}></div>
-          </div>
-          
-          <div className="relative z-10 p-8 lg:p-12">
-            {/* 专业标识区域 */}
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8">
-              <div className="flex items-center space-x-6 mb-6 lg:mb-0">
-                <div className="w-20 h-20 bg-gradient-to-br from-slate-700 via-slate-600 to-slate-800 rounded-2xl flex items-center justify-center shadow-2xl shadow-slate-800/20 border border-slate-600/20">
-                  <span className="text-white text-3xl">🏛️</span>
-                </div>
-                <div>
-                  <div className="flex items-center space-x-3 mb-3">
-                    <h1 className="template-title text-slate-900">
-                      {channel.name}
-                    </h1>
-                    <div className="px-3 py-1 bg-red-100 text-red-700 template-badge rounded-full border border-red-200">
-                      实时更新
-                    </div>
-                  </div>
-                  <p className="text-slate-600 template-subtitle mb-2">
-                    权威报道 · 深度分析 · 民生关注
-                  </p>
-                  <div className="flex items-center space-x-4 news-meta text-slate-500">
-                    <span className="flex items-center space-x-1">
-                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                      <span>24小时在线</span>
-                    </span>
-                    <span>|</span>
-                    <span>专业记者团队</span>
-                    <span>|</span>
-                    <span>权威信息源</span>
-                  </div>
-                </div>
-              </div>
-              
-              {/* 实时数据概览 */}
-              <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 border border-slate-200/60 shadow-lg">
-                <h3 className="template-card-title text-slate-600 mb-4 text-center">今日数据</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="text-center">
-                    <div className="template-stat-number text-blue-600">{liveData.todayEvents}</div>
-                    <div className="template-stat-label text-slate-500">重要事件</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="template-stat-number text-green-600">{liveData.solutionRate}%</div>
-                    <div className="template-stat-label text-slate-500">问题解决率</div>
-                  </div>
-                </div>
-              </div>
+      {/* 🎯 频道标题栏 */}
+      <Section space="sm">
+        <div className="border-b border-gray-200 pb-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <h1 className="page-title text-gray-900">{channel.name}</h1>
+              <span className="template-badge bg-red-100 text-red-700 px-3 py-1 rounded-full">实时更新</span>
             </div>
-
-            {/* 专业描述 */}
-            <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-6 border border-slate-200/40 mb-8">
-              <p className="text-slate-700 template-description max-w-4xl">
-                {channel.description || "以专业的新闻视角，深度关注社会民生议题。我们致力于提供准确、及时、有深度的社会新闻报道，促进社会问题的理性讨论与有效解决。"}
-              </p>
-            </div>
-
-            {/* 专业功能模块 */}
-            <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">
-              <div className="bg-white/70 backdrop-blur-sm p-4 rounded-xl border border-slate-200/50 hover:bg-white/90 hover:shadow-lg transition-all duration-300 cursor-pointer group">
-                <div className="text-2xl mb-3 group-hover:scale-110 transition-transform">📊</div>
-                <h3 className="template-card-title text-slate-900 mb-1">数据分析</h3>
-                <p className="template-card-text text-slate-600">社会趋势洞察</p>
-              </div>
-              
-              <div className="bg-white/70 backdrop-blur-sm p-4 rounded-xl border border-slate-200/50 hover:bg-white/90 hover:shadow-lg transition-all duration-300 cursor-pointer group">
-                <div className="text-2xl mb-3 group-hover:scale-110 transition-transform">🔍</div>
-                <h3 className="template-card-title text-slate-900 mb-1">深度调研</h3>
-                <p className="template-card-text text-slate-600">专题调查报告</p>
-              </div>
-              
-              <div className="bg-white/70 backdrop-blur-sm p-4 rounded-xl border border-slate-200/50 hover:bg-white/90 hover:shadow-lg transition-all duration-300 cursor-pointer group">
-                <div className="text-2xl mb-3 group-hover:scale-110 transition-transform">⚖️</div>
-                <h3 className="template-card-title text-slate-900 mb-1">法治观察</h3>
-                <p className="template-card-text text-slate-600">法律政策解读</p>
-              </div>
-              
-              <div className="bg-white/70 backdrop-blur-sm p-4 rounded-xl border border-slate-200/50 hover:bg-white/90 hover:shadow-lg transition-all duration-300 cursor-pointer group">
-                <div className="text-2xl mb-3 group-hover:scale-110 transition-transform">🏥</div>
-                <h3 className="font-semibold text-slate-900 text-sm mb-1">民生服务</h3>
-                <p className="text-xs text-slate-600">公共服务信息</p>
-              </div>
-              
-              <div className="bg-white/70 backdrop-blur-sm p-4 rounded-xl border border-slate-200/50 hover:bg-white/90 hover:shadow-lg transition-all duration-300 cursor-pointer group">
-                <div className="text-2xl mb-3 group-hover:scale-110 transition-transform">💬</div>
-                <h3 className="font-semibold text-slate-900 text-sm mb-1">舆情监测</h3>
-                <p className="text-xs text-slate-600">社会热点追踪</p>
-              </div>
-              
-              <div className="bg-white/70 backdrop-blur-sm p-4 rounded-xl border border-slate-200/50 hover:bg-white/90 hover:shadow-lg transition-all duration-300 cursor-pointer group">
-                <div className="text-2xl mb-3 group-hover:scale-110 transition-transform">📋</div>
-                <h3 className="font-semibold text-slate-900 text-sm mb-1">举报中心</h3>
-                <p className="text-xs text-slate-600">问题反馈平台</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </Section>
-
-      {/* 📈 专业数据仪表板 */}
-      <Section space="lg">
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-xl shadow-slate-200/30 overflow-hidden">
-          <div className="bg-gradient-to-r from-slate-800 to-slate-700 p-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
-                  <span className="text-white text-sm font-bold">📈</span>
-                </div>
-                <h2 className="text-xl font-bold text-white">社会影响力数据中心</h2>
-              </div>
-              <div className="text-slate-300 text-sm">实时更新</div>
+            <div className="flex items-center space-x-4 news-meta text-gray-500">
+              <span>今日更新 1,247 条</span>
+              <span>|</span>
+              <span>关注 56 万人</span>
             </div>
           </div>
           
-          <div className="p-8">
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
-              <div className="text-center group hover:bg-slate-50 p-4 rounded-xl transition-colors">
-                <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-500/25 group-hover:scale-105 transition-transform">
-                  <span className="text-white text-xl">👥</span>
-                </div>
-                <div className="text-3xl font-bold text-slate-900 mb-1">2.8万</div>
-                <div className="text-sm text-slate-600 mb-2">今日关注人数</div>
-                <div className="flex items-center justify-center space-x-1 text-xs">
-                  <span className="text-green-600">↗ +18%</span>
-                  <span className="text-slate-400">vs 昨日</span>
-                </div>
-              </div>
-              
-              <div className="text-center group hover:bg-slate-50 p-4 rounded-xl transition-colors">
-                <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-green-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-green-500/25 group-hover:scale-105 transition-transform">
-                  <span className="text-white text-xl">✅</span>
-                </div>
-                <div className="text-3xl font-bold text-slate-900 mb-1">{liveData.solutionRate}%</div>
-                <div className="text-sm text-slate-600 mb-2">问题解决率</div>
-                <div className="flex items-center justify-center space-x-1 text-xs">
-                  <span className="text-green-600">↗ +3%</span>
-                  <span className="text-slate-400">本月提升</span>
-                </div>
-              </div>
-              
-              <div className="text-center group hover:bg-slate-50 p-4 rounded-xl transition-colors">
-                <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-purple-500/25 group-hover:scale-105 transition-transform">
-                  <span className="text-white text-xl">⚡</span>
-                </div>
-                <div className="text-3xl font-bold text-slate-900 mb-1">4.2小时</div>
-                <div className="text-sm text-slate-600 mb-2">平均响应时间</div>
-                <div className="flex items-center justify-center space-x-1 text-xs">
-                  <span className="text-green-600">↗ -22%</span>
-                  <span className="text-slate-400">效率提升</span>
+          {/* 分类导航 */}
+          <div className="flex items-center space-x-6 mt-4">
+            <a href="/portal?channel=society&category=头条" className="news-meta font-medium text-red-600 border-b-2 border-red-600 pb-1">头条</a>
+            <a href="/portal?channel=society&category=民生" className="news-meta text-gray-600 hover:text-gray-900 pb-1">民生</a>
+            <a href="/portal?channel=society&category=法治" className="news-meta text-gray-600 hover:text-gray-900 pb-1">法治</a>
+            <a href="/portal?channel=society&category=教育" className="news-meta text-gray-600 hover:text-gray-900 pb-1">教育</a>
+            <a href="/portal?channel=society&category=就业" className="news-meta text-gray-600 hover:text-gray-900 pb-1">就业</a>
+            <a href="/portal?channel=society&category=医疗" className="news-meta text-gray-600 hover:text-gray-900 pb-1">医疗</a>
+            <a href="/portal?channel=society&category=环保" className="news-meta text-gray-600 hover:text-gray-900 pb-1">环保</a>
+          </div>
+        </div>
+      </Section>
+
+      {/* 📺 头条新闻区域 (Hero Section) */}
+      <Section space="md">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* 主要头条 */}
+          <div className="lg:col-span-2">
+            <div className="relative bg-white rounded-lg overflow-hidden shadow-sm border border-gray-200">
+              <div className="aspect-video bg-gray-100 relative">
+                <img 
+                  src="https://picsum.photos/800/450?random=1" 
+                  alt="头条新闻"
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute top-4 left-4">
+                  <span className="bg-red-600 text-white px-3 py-1 rounded-full news-meta-small font-medium">头条</span>
                 </div>
               </div>
-              
-              <div className="text-center group hover:bg-slate-50 p-4 rounded-xl transition-colors">
-                <div className="w-16 h-16 bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-orange-500/25 group-hover:scale-105 transition-transform">
-                  <span className="text-white text-xl">🎯</span>
-                </div>
-                <div className="text-3xl font-bold text-slate-900 mb-1">8.6分</div>
-                <div className="text-sm text-slate-600 mb-2">用户满意度</div>
-                <div className="flex items-center justify-center space-x-1 text-xs">
-                  <span className="text-green-600">↗ +0.3</span>
-                  <span className="text-slate-400">持续改善</span>
+              <div className="p-6">
+                <h2 className="news-title-large text-gray-900 mb-3 leading-tight">
+                  老旧小区改造进入攻坚阶段：多地创新模式破解资金难题
+                </h2>
+                <p className="news-excerpt text-gray-600 mb-4">
+                  记者调研发现，各地在推进老旧小区改造过程中，通过政府引导、市场运作、居民参与等多种方式，有效解决了资金筹措、施工协调、后续管理等关键问题...
+                </p>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-4 news-meta text-gray-500">
+                    <span>社会民生</span>
+                    <span>2小时前</span>
+                    <span>阅读 2.8万</span>
+                  </div>
+                  <button className="text-red-600 hover:text-red-700 news-meta font-medium">阅读全文 →</button>
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* 重要新闻列表 */}
+          <div className="space-y-4">
+            <h3 className="section-title text-gray-900 border-b border-gray-200 pb-2">重要新闻</h3>
             
-            {/* 专业图表区域 */}
-            <div className="mt-8 pt-8 border-t border-slate-200">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div className="bg-slate-50 rounded-xl p-6">
-                  <h3 className="font-semibold text-slate-900 mb-4 flex items-center">
-                    <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
-                    热点事件分布
-                  </h3>
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-slate-600">民生保障</span>
-                      <div className="flex items-center space-x-2">
-                        <div className="w-20 h-2 bg-slate-200 rounded-full overflow-hidden">
-                          <div className="w-16 h-full bg-blue-500 rounded-full"></div>
-                        </div>
-                        <span className="text-sm font-medium text-slate-900">80%</span>
-                      </div>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-slate-600">法治建设</span>
-                      <div className="flex items-center space-x-2">
-                        <div className="w-20 h-2 bg-slate-200 rounded-full overflow-hidden">
-                          <div className="w-12 h-full bg-green-500 rounded-full"></div>
-                        </div>
-                        <span className="text-sm font-medium text-slate-900">60%</span>
-                      </div>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-slate-600">社区治理</span>
-                      <div className="flex items-center space-x-2">
-                        <div className="w-20 h-2 bg-slate-200 rounded-full overflow-hidden">
-                          <div className="w-14 h-full bg-purple-500 rounded-full"></div>
-                        </div>
-                        <span className="text-sm font-medium text-slate-900">70%</span>
-                      </div>
+            <div className="space-y-4">
+              <article className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                <div className="flex space-x-4">
+                  <img 
+                    src="https://picsum.photos/120/80?random=2" 
+                    alt="新闻图片"
+                    className="w-20 h-14 object-cover rounded flex-shrink-0"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <h4 className="news-title-small text-gray-900 mb-2 line-clamp-2">
+                      校园食品安全监管再升级 多部门联合执法
+                    </h4>
+                    <div className="flex items-center space-x-2 news-meta-small text-gray-500">
+                      <span>教育</span>
+                      <span>•</span>
+                      <span>4小时前</span>
                     </div>
                   </div>
                 </div>
-                
-                <div className="bg-slate-50 rounded-xl p-6">
-                  <h3 className="font-semibold text-slate-900 mb-4 flex items-center">
-                    <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
-                    解决进度跟踪
-                  </h3>
-                  <div className="space-y-4">
-                    <div className="bg-white rounded-lg p-4 border border-slate-200">
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-sm font-medium text-slate-900">社区基础设施</span>
-                        <span className="text-xs text-green-600 bg-green-100 px-2 py-1 rounded-full">已完成</span>
-                      </div>
-                      <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
-                        <div className="w-full h-full bg-green-500 rounded-full"></div>
-                      </div>
+              </article>
+
+              <article className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                <div className="flex space-x-4">
+                  <img 
+                    src="https://picsum.photos/120/80?random=3" 
+                    alt="新闻图片"
+                    className="w-20 h-14 object-cover rounded flex-shrink-0"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <h4 className="news-title-small text-gray-900 mb-2 line-clamp-2">
+                      新就业形态劳动者权益保障政策出台
+                    </h4>
+                    <div className="flex items-center space-x-2 news-meta-small text-gray-500">
+                      <span>就业</span>
+                      <span>•</span>
+                      <span>6小时前</span>
                     </div>
-                    <div className="bg-white rounded-lg p-4 border border-slate-200">
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-sm font-medium text-slate-900">教育资源配置</span>
-                        <span className="text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded-full">进行中</span>
-                      </div>
-                      <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
-                        <div className="w-3/4 h-full bg-blue-500 rounded-full"></div>
+                  </div>
+                </div>
+              </article>
+
+              <article className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                <div className="flex space-x-4">
+                  <img 
+                    src="https://picsum.photos/120/80?random=4" 
+                    alt="新闻图片"
+                    className="w-20 h-14 object-cover rounded flex-shrink-0"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <h4 className="news-title-small text-gray-900 mb-2 line-clamp-2">
+                      医保新政惠及千万患者 报销比例再提升
+                    </h4>
+                    <div className="flex items-center space-x-2 news-meta-small text-gray-500">
+                      <span>医疗</span>
+                      <span>•</span>
+                      <span>8小时前</span>
+                    </div>
+                  </div>
+                </div>
+              </article>
+
+              <article className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                <div className="flex space-x-4">
+                  <img 
+                    src="https://picsum.photos/120/80?random=5" 
+                    alt="新闻图片"
+                    className="w-20 h-14 object-cover rounded flex-shrink-0"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <h4 className="news-title-small text-gray-900 mb-2 line-clamp-2">
+                      环保督察组进驻多省 严查污染治理
+                    </h4>
+                    <div className="flex items-center space-x-2 news-meta-small text-gray-500">
+                      <span>环保</span>
+                      <span>•</span>
+                      <span>10小时前</span>
+                    </div>
+                  </div>
+                </div>
+              </article>
+            </div>
+
+            <a href="/portal?channel=society" className="block text-center py-3 text-red-600 hover:text-red-700 news-meta font-medium border-t border-gray-200">
+              查看更多新闻 →
+            </a>
+          </div>
+        </div>
+      </Section>
+
+      {/* 📊 主要内容区域 */}
+      <Section space="md">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {/* 主要新闻列表 */}
+          <div className="lg:col-span-3 space-y-6">
+            {/* 深度报道 */}
+            <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+              <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
+                <h2 className="section-title text-gray-900">深度报道</h2>
+              </div>
+              <div className="p-6">
+                <ChannelStrip
+                  channelId={channel.id}
+                  channelName={channel.name}
+                  channelSlug={channel.slug}
+                  showCategories={false}
+                  showViewMore={false}
+                  articleLimit={6}
+                  className="mb-0"
+                />
+              </div>
+            </div>
+
+            {/* 最新动态 */}
+            <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+              <div className="bg-gray-50 px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                <h2 className="section-title text-gray-900">最新动态</h2>
+                <span className="news-meta-small text-gray-500">每5分钟更新</span>
+              </div>
+              <div className="divide-y divide-gray-200">
+                <article className="p-6 hover:bg-gray-50 transition-colors">
+                  <div className="flex space-x-4">
+                    <img 
+                      src="https://picsum.photos/100/70?random=6" 
+                      alt="新闻图片"
+                      className="w-24 h-16 object-cover rounded flex-shrink-0"
+                    />
+                    <div className="flex-1">
+                      <h3 className="news-title-medium text-gray-900 mb-2 leading-tight">
+                        全国多地启动冬季供暖保障工作 确保民众温暖过冬
+                      </h3>
+                      <p className="news-excerpt text-gray-600 mb-3">
+                        随着气温逐渐降低，全国多个城市已提前启动冬季供暖保障工作，通过加强设备检修、储备充足燃料等措施...
+                      </p>
+                      <div className="flex items-center space-x-4 news-meta-small text-gray-500">
+                        <span>民生</span>
+                        <span>•</span>
+                        <span>刚刚</span>
+                        <span>•</span>
+                        <span>阅读 1.2万</span>
                       </div>
                     </div>
                   </div>
+                </article>
+
+                <article className="p-6 hover:bg-gray-50 transition-colors">
+                  <div className="flex space-x-4">
+                    <img 
+                      src="https://picsum.photos/100/70?random=7" 
+                      alt="新闻图片"
+                      className="w-24 h-16 object-cover rounded flex-shrink-0"
+                    />
+                    <div className="flex-1">
+                      <h3 className="news-title-medium text-gray-900 mb-2 leading-tight">
+                        高校毕业生就业创业扶持政策再升级 多项补贴标准提高
+                      </h3>
+                      <p className="news-excerpt text-gray-600 mb-3">
+                        教育部联合人社部发布新一轮高校毕业生就业创业扶持政策，在原有基础上进一步提高补贴标准...
+                      </p>
+                      <div className="flex items-center space-x-4 news-meta-small text-gray-500">
+                        <span>就业</span>
+                        <span>•</span>
+                        <span>15分钟前</span>
+                        <span>•</span>
+                        <span>阅读 8.5千</span>
+                      </div>
+                    </div>
+                  </div>
+                </article>
+
+                <article className="p-6 hover:bg-gray-50 transition-colors">
+                  <div className="flex space-x-4">
+                    <img 
+                      src="https://picsum.photos/100/70?random=8" 
+                      alt="新闻图片"
+                      className="w-24 h-16 object-cover rounded flex-shrink-0"
+                    />
+                    <div className="flex-1">
+                      <h3 className="news-title-medium text-gray-900 mb-2 leading-tight">
+                        基本医保参保率稳定在95%以上 覆盖面持续扩大
+                      </h3>
+                      <p className="news-excerpt text-gray-600 mb-3">
+                        国家医保局最新数据显示，全国基本医疗保险参保率已稳定在95%以上，覆盖人数超过13.6亿人...
+                      </p>
+                      <div className="flex items-center space-x-4 news-meta-small text-gray-500">
+                        <span>医疗</span>
+                        <span>•</span>
+                        <span>30分钟前</span>
+                        <span>•</span>
+                        <span>阅读 6.8千</span>
+                      </div>
+                    </div>
+                  </div>
+                </article>
+              </div>
+              <div className="p-4 bg-gray-50 text-center">
+                <a href="/portal?channel=society" className="text-red-600 hover:text-red-700 news-meta font-medium">
+                  加载更多新闻 →
+                </a>
+              </div>
+            </div>
+          </div>
+
+          {/* 侧边栏 */}
+          <div className="space-y-6">
+            {/* 热点排行 */}
+            <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+              <div className="bg-red-600 px-4 py-3">
+                <h3 className="template-card-title text-white">热点排行</h3>
+              </div>
+              <div className="p-4 space-y-3">
+                <div className="flex items-center space-x-3">
+                  <span className="w-6 h-6 bg-red-500 text-white rounded text-xs font-bold flex items-center justify-center">1</span>
+                  <a href="#" className="news-meta-small text-gray-900 hover:text-red-600 line-clamp-2 flex-1">
+                    老旧小区改造进入攻坚阶段
+                  </a>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <span className="w-6 h-6 bg-orange-500 text-white rounded text-xs font-bold flex items-center justify-center">2</span>
+                  <a href="#" className="news-meta-small text-gray-900 hover:text-red-600 line-clamp-2 flex-1">
+                    校园食品安全监管再升级
+                  </a>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <span className="w-6 h-6 bg-yellow-500 text-white rounded text-xs font-bold flex items-center justify-center">3</span>
+                  <a href="#" className="news-meta-small text-gray-900 hover:text-red-600 line-clamp-2 flex-1">
+                    网约车司机权益保障政策
+                  </a>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <span className="w-6 h-6 bg-gray-400 text-white rounded text-xs font-bold flex items-center justify-center">4</span>
+                  <a href="#" className="news-meta-small text-gray-900 hover:text-red-600 line-clamp-2 flex-1">
+                    养老服务体系建设提速
+                  </a>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <span className="w-6 h-6 bg-gray-400 text-white rounded text-xs font-bold flex items-center justify-center">5</span>
+                  <a href="#" className="news-meta-small text-gray-900 hover:text-red-600 line-clamp-2 flex-1">
+                    环境污染治理成效显著
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            {/* 数据统计 */}
+            <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+              <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
+                <h3 className="template-card-title text-gray-900">今日数据</h3>
+              </div>
+              <div className="p-4 space-y-4">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-red-600">1,247</div>
+                  <div className="news-meta-small text-gray-500">新闻发布</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-blue-600">56万</div>
+                  <div className="news-meta-small text-gray-500">读者关注</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-green-600">328</div>
+                  <div className="news-meta-small text-gray-500">深度报道</div>
+                </div>
+              </div>
+            </div>
+
+            {/* 专题推荐 */}
+            <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+              <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
+                <h3 className="template-card-title text-gray-900">专题推荐</h3>
+              </div>
+              <div className="p-4 space-y-4">
+                <div className="bg-gradient-to-r from-red-50 to-orange-50 p-3 rounded">
+                  <h4 className="news-meta font-medium text-gray-900 mb-1">民生保障专题</h4>
+                  <p className="text-xs text-gray-600 line-clamp-2">聚焦住房、就业、医疗等民生热点</p>
+                </div>
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-3 rounded">
+                  <h4 className="news-meta font-medium text-gray-900 mb-1">教育改革专题</h4>
+                  <p className="text-xs text-gray-600 line-clamp-2">关注教育政策变化和校园动态</p>
+                </div>
+                <div className="bg-gradient-to-r from-green-50 to-teal-50 p-3 rounded">
+                  <h4 className="news-meta font-medium text-gray-900 mb-1">法治建设专题</h4>
+                  <p className="text-xs text-gray-600 line-clamp-2">追踪重大案件和法律法规</p>
                 </div>
               </div>
             </div>
@@ -277,155 +376,6 @@ const SocialTemplate: React.FC<ChannelTemplateProps> = ({
         </div>
       </Section>
 
-      {/* 📰 专业内容展示区 */}
-      <Section space="lg">
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-xl shadow-slate-200/30 overflow-hidden">
-          <div className="bg-gradient-to-r from-slate-800 to-slate-700 p-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
-                  <span className="text-white text-sm font-bold">📰</span>
-                </div>
-                <h2 className="text-xl font-bold text-white">{channel.name}权威报道</h2>
-              </div>
-              <div className="flex items-center space-x-4">
-                <div className="text-slate-300 text-sm">24小时滚动更新</div>
-                <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
-              </div>
-            </div>
-          </div>
-          
-          <div className="p-8">
-            <ChannelStrip
-              channelId={channel.id}
-              channelName={channel.name}
-              channelSlug={channel.slug}
-              showCategories={true}
-              showViewMore={false}
-              articleLimit={12}
-              className="mb-0"
-            />
-          </div>
-        </div>
-      </Section>
-
-      {/* 🏛️ 专业服务平台 */}
-      <Section space="lg">
-        <div className="bg-gradient-to-br from-slate-50 to-blue-50/30 rounded-2xl border border-slate-200/60 overflow-hidden">
-          <div className="p-8">
-            <div className="text-center mb-8">
-              <h2 className="text-2xl font-bold text-slate-900 mb-3 flex items-center justify-center">
-                <span className="w-8 h-8 bg-slate-700 rounded-lg flex items-center justify-center text-white text-sm mr-3">🏛️</span>
-                专业服务平台
-              </h2>
-              <p className="text-slate-600 max-w-2xl mx-auto">
-                提供权威、专业、高效的社会服务，促进政府与民众的有效沟通
-              </p>
-            </div>
-            
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              {/* 问题反馈中心 */}
-              <div className="bg-white rounded-xl p-6 border border-slate-200 shadow-lg hover:shadow-xl transition-shadow">
-                <div className="w-12 h-12 bg-gradient-to-br from-red-500 to-red-600 rounded-xl flex items-center justify-center mb-4">
-                  <span className="text-white text-xl">📋</span>
-                </div>
-                <h3 className="font-bold text-slate-900 mb-3">问题反馈中心</h3>
-                <p className="text-slate-600 text-sm mb-4 leading-relaxed">
-                  专业受理社会问题举报，建立透明高效的反馈机制，确保每个声音都被听到
-                </p>
-                <div className="space-y-2 mb-4">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-500">本月处理</span>
-                    <span className="font-semibold text-slate-900">247件</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-500">平均用时</span>
-                    <span className="font-semibold text-green-600">3.2天</span>
-                  </div>
-                </div>
-                <button className="w-full bg-red-500 text-white py-3 rounded-lg hover:bg-red-600 transition-colors font-medium">
-                  提交反馈
-                </button>
-              </div>
-
-              {/* 法律咨询服务 */}
-              <div className="bg-white rounded-xl p-6 border border-slate-200 shadow-lg hover:shadow-xl transition-shadow">
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center mb-4">
-                  <span className="text-white text-xl">⚖️</span>
-                </div>
-                <h3 className="font-bold text-slate-900 mb-3">法律咨询服务</h3>
-                <p className="text-slate-600 text-sm mb-4 leading-relaxed">
-                  专业律师团队提供免费法律咨询，维护公民合法权益，促进依法治国
-                </p>
-                <div className="space-y-2 mb-4">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-500">在线律师</span>
-                    <span className="font-semibold text-slate-900">12位</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-500">满意度</span>
-                    <span className="font-semibold text-green-600">96.8%</span>
-                  </div>
-                </div>
-                <button className="w-full bg-blue-500 text-white py-3 rounded-lg hover:bg-blue-600 transition-colors font-medium">
-                  免费咨询
-                </button>
-              </div>
-
-              {/* 政策解读服务 */}
-              <div className="bg-white rounded-xl p-6 border border-slate-200 shadow-lg hover:shadow-xl transition-shadow">
-                <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center mb-4">
-                  <span className="text-white text-xl">📜</span>
-                </div>
-                <h3 className="font-bold text-slate-900 mb-3">政策解读服务</h3>
-                <p className="text-slate-600 text-sm mb-4 leading-relaxed">
-                  权威专家深度解读最新政策，帮助公众准确理解政府政策意图和实施要点
-                </p>
-                <div className="space-y-2 mb-4">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-500">解读文章</span>
-                    <span className="font-semibold text-slate-900">128篇</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-500">专家团队</span>
-                    <span className="font-semibold text-green-600">8位</span>
-                  </div>
-                </div>
-                <button className="w-full bg-green-500 text-white py-3 rounded-lg hover:bg-green-600 transition-colors font-medium">
-                  查看解读
-                </button>
-              </div>
-            </div>
-            
-            {/* 24小时服务承诺 */}
-            <div className="mt-8 bg-slate-800 rounded-xl p-6 text-center">
-              <div className="flex items-center justify-center space-x-3 mb-4">
-                <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
-                  <span className="text-white text-sm">✓</span>
-                </div>
-                <h3 className="text-xl font-bold text-white">24小时专业服务承诺</h3>
-              </div>
-              <p className="text-slate-300 mb-4">
-                我们承诺24小时内响应您的需求，专业团队随时为您提供权威、准确的服务
-              </p>
-              <div className="flex items-center justify-center space-x-8 text-sm">
-                <div className="text-center">
-                  <div className="text-green-400 font-bold text-lg">≤ 1小时</div>
-                  <div className="text-slate-400">紧急事件响应</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-blue-400 font-bold text-lg">≤ 24小时</div>
-                  <div className="text-slate-400">一般问题处理</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-purple-400 font-bold text-lg">100%</div>
-                  <div className="text-slate-400">问题跟踪覆盖</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </Section>
 
       {/* 智能推荐 */}
       <Section space="md">

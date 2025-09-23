@@ -95,6 +95,10 @@ class ArticleIndexer:
             "pop_1h": 0.0, "pop_24h": 0.0, "ctr_1h": 0.0, "ctr_24h": 0.0,
             "quality_score": 1.0,
             "lang": lang_code,
+            # 🎯 添加Hero标记和其他重要字段用于过滤
+            "is_hero": bool(getattr(page, "is_hero", False)),
+            "is_featured": bool(getattr(page, "is_featured", False)),
+            "weight": float(getattr(page, "weight", 0)),
         }
         
         # 🔥 热度标记：动态计算并添加虚拟频道标签

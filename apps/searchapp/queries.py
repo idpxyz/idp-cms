@@ -61,8 +61,17 @@ def build_query(name:str, **params)->dict:
     channels = params.get("channels", [])
     if isinstance(channels, str):
         channels = [channels]
+    
+    # Handle special __CHANNELS_CONDITION__ placeholder for topstories
     if not channels:
-        channels = ["hot", "trending"]
+        # No channel restriction - remove the should clause entirely
+        replace_in_dict(obj, "__CHANNELS_CONDITION__", [])
+        channels = ["hot", "trending"]  # fallback for regular __CHANNELS__ placeholder
+    else:
+        # Has channel restriction - use normal should clause
+        channel_condition = [{"terms": {"channel": channels}}]
+        replace_in_dict(obj, "__CHANNELS_CONDITION__", channel_condition)
+    
     replace_in_dict(obj, "__CHANNELS__", channels)
     
     # Handle seen_ids - skip must_not condition if empty

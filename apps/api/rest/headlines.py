@@ -179,10 +179,23 @@ def headlines(request):
     index = index_name_for(site)
     # 提高 ES 候选量，缓解多样性与去重后的空集风险
     elastic_size = max(size * 40, 400)
+    
+    # 🎯 根据模式选择查询模板
+    mode = request.query_params.get("mode", "").lower()
+    query_template = "topstories_default" if mode == "topstories" else "recommend_default"
+    
+    # 🎯 TopStories模式不限制频道，获取所有频道的优质内容
+    if mode == "topstories":
+        # TopStories模式：如果没有指定频道，则不限制频道（传递None或空列表让查询模板处理）
+        query_channels = req_channels if req_channels else []
+    else:
+        # 普通模式：使用默认的热门频道
+        query_channels = req_channels if req_channels else ["hot", "trending"]
+    
     body = build_query(
-        "recommend_default",
+        query_template,
         site=site,
-        channels=(req_channels if req_channels else ["hot", "trending"]),
+        channels=query_channels,
         hours=hours,
         seen_ids=cached_seen,
         size=elastic_size,
