@@ -17,37 +17,42 @@ import "@/styles/tokens.css";
 interface PortalClassicLayoutProps {
   children: React.ReactNode;
   siteSettings: SiteSettings;
+  initialBreakingNews?: any[]; // 预获取的快讯数据
 }
 
 export default function PortalClassicLayout({
   children,
   siteSettings,
+  initialBreakingNews = [],
 }: PortalClassicLayoutProps) {
   // 移动端搜索状态
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const searchRef = useRef<HTMLDivElement>(null);
   
-  // 快讯数据状态
-  const [breakingNews, setBreakingNews] = useState<any[]>([]);
+  // 快讯数据状态 - 使用预获取的数据作为初始值
+  const [breakingNews, setBreakingNews] = useState<any[]>(initialBreakingNews);
   
   // 认证模态框状态
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authModalMode, setAuthModalMode] = useState<'login' | 'register'>('login');
 
-  // 获取快讯数据
+  // 如果没有预获取数据，则在客户端获取
   useEffect(() => {
-    async function fetchBreakingNews() {
-      try {
-        const news = await getBreakingNews(8);
-        setBreakingNews(news);
-      } catch (error) {
-        console.error('Failed to fetch breaking news:', error);
-        setBreakingNews([]);
-      }
+    // 只有在没有预获取数据时才进行客户端请求
+    if (initialBreakingNews.length === 0) {
+      const fetchBreakingNews = async () => {
+        try {
+          const news = await getBreakingNews(8);
+          setBreakingNews(news);
+        } catch (error) {
+          console.error('Failed to fetch breaking news:', error);
+          setBreakingNews([]);
+        }
+      };
+      fetchBreakingNews();
     }
-    fetchBreakingNews();
-  }, []);
+  }, [initialBreakingNews.length]);
 
   // 点击外部关闭搜索框
   useEffect(() => {

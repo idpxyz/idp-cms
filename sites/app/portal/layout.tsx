@@ -7,6 +7,7 @@ import { ChannelProvider } from "./ChannelContext";
 import { CategoryProvider } from "./CategoryContext";
 import ChannelNavigation from "./ChannelNavigation";
 import { endpoints } from "@/lib/config/endpoints";
+import { getBreakingNews } from "./components/BreakingTicker.utils";
 
 export const metadata: Metadata = {
   title: "党报头条 - 倾听人民的声音",
@@ -74,8 +75,8 @@ async function getChannels() {
 }
 
 export default async function PortalLayout({ children }: PortalLayoutProps) {
-  // 并行获取站点配置和频道数据
-  const [siteSettings, initialChannels] = await Promise.all([
+  // 并行获取站点配置、频道数据和快讯数据
+  const [siteSettings, initialChannels, breakingNewsData] = await Promise.all([
     getSiteSettings(getMainSite().hostname, {
       // ❗️ 增加超时时间以应对开发环境中的服务器端请求拥塞
       timeout: 30000,
@@ -84,13 +85,21 @@ export default async function PortalLayout({ children }: PortalLayoutProps) {
       console.error("Failed to load site settings:", error);
       throw new Error(`无法加载站点配置: ${error instanceof Error ? error.message : '未知错误'}`);
     }),
-    getChannels()
+    getChannels(),
+    // 🚀 服务端预获取快讯数据，避免客户端延迟显示
+    getBreakingNews(8).catch(error => {
+      console.error("Failed to fetch breaking news:", error);
+      return []; // 快讯获取失败时返回空数组，不影响页面渲染
+    })
   ]);
 
   return (
     <ChannelProvider initialChannels={initialChannels || undefined}>
       <CategoryProvider>
-        <PortalClassicLayout siteSettings={siteSettings}>
+        <PortalClassicLayout 
+          siteSettings={siteSettings}
+          initialBreakingNews={breakingNewsData}
+        >
           {/* 频道导航栏 - 在Layout级别，所有页面共享 */}
           <ChannelNavigation />
           {children}
