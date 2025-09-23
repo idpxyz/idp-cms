@@ -145,12 +145,12 @@ export default function BreakingTicker({
                   </Link>
                   
                   {showTimestamp && (
-                    <div className="flex items-center space-x-1 text-red-200">
+                    <div className="flex items-center space-x-1 text-white">
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <circle cx="12" cy="12" r="10"/>
                         <polyline points="12,6 12,12 16,14"/>
                       </svg>
-                      <span className="news-meta-small">
+                      <span className="text-white news-meta-small">
                         {formatTime(item.publish_time)}
                       </span>
                     </div>
@@ -183,12 +183,12 @@ export default function BreakingTicker({
                   </Link>
                   
                   {showTimestamp && (
-                    <div className="flex items-center space-x-1 text-red-200">
+                    <div className="flex items-center space-x-1 text-white">
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <circle cx="12" cy="12" r="10"/>
                         <polyline points="12,6 12,12 16,14"/>
                       </svg>
-                      <span className="news-meta-small">
+                      <span className="text-white news-meta-small">
                         {formatTime(item.publish_time)}
                       </span>
                     </div>
