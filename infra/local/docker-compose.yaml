@@ -197,7 +197,7 @@ services:
       - ../../.env.features
     environment:
       # ★ SSR 在容器内访问后端（服务名 authoring）
-      DJANGO_API_URL: ${DJANGO_API_URL:-http://authoring:8000}
+      DJANGO_API_URL: http://authoring:8000
       FEED_API_URL: ${FEED_API_URL:-http://authoring:8000}
       # ★ CSR 在浏览器访问后端；Cursor 端口转发时默认走 localhost
       NEXT_PUBLIC_FEED_API_URL: ${NEXT_PUBLIC_FEED_API_URL:-http://localhost:8000}
@@ -235,6 +235,7 @@ services:
       - NODE_ENV=development
       - NEXT_PUBLIC_API_BASE=/cms/api/v1
       - CMS_ORIGIN=http://authoring:8000
+      - DJANGO_API_URL=http://authoring:8000
       - NEXT_PUBLIC_SITE_URL=http://sites:3000
       - NEXT_PUBLIC_API_URL=http://localhost:8000
     depends_on:
