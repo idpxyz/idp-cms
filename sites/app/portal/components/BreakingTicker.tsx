@@ -139,7 +139,7 @@ export default function BreakingTicker({
                     href={`/portal/article/${item.slug}`}
                     className="hover:underline text-white transition-opacity hover:opacity-80"
                   >
-                    <span className="news-meta font-medium">
+                    <span className="text-white news-meta font-medium">
                       {item.title}
                     </span>
                   </Link>
@@ -177,7 +177,7 @@ export default function BreakingTicker({
                     href={`/portal/article/${item.slug}`}
                     className="hover:underline text-white transition-opacity hover:opacity-80"
                   >
-                    <span className="news-meta font-medium">
+                    <span className="text-white news-meta font-medium">
                       {item.title}
                     </span>
                   </Link>
