@@ -104,9 +104,6 @@ export default async function PortalPage({ searchParams }: { searchParams?: Prom
   
   // 获取 Hero 轮播数据 (TopStories 改为客户端获取)
   const heroItems = await getHeroItems(5);
-  
-  // 🚀 服务端预获取快讯数据，避免客户端延迟加载
-  const breakingNewsData = await getBreakingNews(8);
 
 
   return (
@@ -123,9 +120,9 @@ export default async function PortalPage({ searchParams }: { searchParams?: Prom
             autoPlayInterval={6000}
             showDots={true}
             showArrows={true}
-            heightMode="compact"
+            heightMode="standard"
             hasRightRail={false}
-            maxHeightVh={25}
+            maxHeightVh={45}
             className="mb-6"
           />
         </PageContainer>
