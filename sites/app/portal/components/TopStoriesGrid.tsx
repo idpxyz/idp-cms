@@ -259,8 +259,8 @@ export default function TopStoriesGrid({
         )}
       </div>
 
-      {/* 网格布局 - 响应式优化 */}
-      <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-5 gap-6 lg:gap-8">
+      {/* 网格布局 - 科学的高度同步 */}
+      <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-5 gap-6 lg:gap-8 lg:items-stretch">
         {/* 主要新闻 - 左侧大图轮播 */}
         {currentMainItem && (
           <div className="lg:col-span-3">
@@ -377,9 +377,11 @@ export default function TopStoriesGrid({
 
         {/* 侧边新闻列表 - 右侧（桌面）/ 下方（移动） */}
         {sideItems.length > 0 && (
-          <div className="lg:col-span-2 space-y-5 mt-6 lg:mt-0">
+          <div className="lg:col-span-2 mt-6 lg:mt-0 flex flex-col h-full">
+            {/* 右侧容器 - 均匀分布新闻项 */}
+            <div className="flex flex-col h-full justify-between lg:justify-start lg:space-y-4">
             {sideItems.map((item, index) => (
-              <article key={item.id} className="group cursor-pointer">
+              <article key={item.id} className="group cursor-pointer lg:flex-1">
                 <Link href={`/portal/article/${item.slug}`} className="block">
                   <div className="flex space-x-4">
                     {/* 优化后的图片 - 增大尺寸 */}
@@ -422,6 +424,7 @@ export default function TopStoriesGrid({
                 </Link>
               </article>
             ))}
+            </div>
           </div>
         )}
       </div>
