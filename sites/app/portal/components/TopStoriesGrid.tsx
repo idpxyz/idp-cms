@@ -245,11 +245,11 @@ export default function TopStoriesGrid({
     <section className={`bg-white ${className}`}>
       {/* 标题栏 */}
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-gray-900">{title}</h2>
+        <h2 className="page-title">{title}</h2>
         {showViewMore && (
           <Link 
             href={viewMoreLink}
-            className="text-red-600 hover:text-red-700 text-sm font-medium flex items-center space-x-1 transition-colors"
+            className="text-red-600 hover:text-red-700 link-text flex items-center space-x-1 transition-colors"
           >
             <span>查看更多</span>
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -286,12 +286,12 @@ export default function TopStoriesGrid({
                   {/* 标签和编辑推荐标识 */}
                   <div className="absolute top-3 left-3 flex items-center space-x-2">
                     {currentMainItem.is_editor_pick && (
-                      <span className="bg-red-500 text-white px-2 py-1 text-xs font-bold rounded">
+                      <span className="bg-red-500 text-white px-2 py-1 news-meta-small font-bold rounded">
                         编辑推荐
                       </span>
                     )}
                     {currentMainItem.channel && (
-                      <span className="bg-black bg-opacity-60 text-white px-2 py-1 text-xs rounded">
+                      <span className="bg-black bg-opacity-60 text-white px-2 py-1 news-meta-small rounded">
                         {currentMainItem.channel.name}
                       </span>
                     )}
@@ -301,19 +301,19 @@ export default function TopStoriesGrid({
                 {/* 文章信息 */}
                 <div className="space-y-2">
                   {/* 标题 */}
-                  <h3 className="text-xl font-bold text-gray-900 line-clamp-2 group-hover:text-red-600 transition-colors">
+                  <h3 className="news-title-medium line-clamp-2 group-hover:text-red-600 transition-colors">
                     {currentMainItem.title}
                   </h3>
                   
                   {/* 简介 - 固定两行高度避免抖动 */}
                   <div className="h-10 mb-2">
-                    <p className="text-gray-600 line-clamp-2 text-sm leading-5">
+                    <p className="news-excerpt line-clamp-2">
                       {currentMainItem.excerpt || ''}
                     </p>
                   </div>
 
                   {/* 元信息 */}
-                  <div className="flex items-center justify-between text-xs text-gray-500">
+                  <div className="flex items-center justify-between news-meta-small">
                     {/* 左侧：时间、作者、阅读时间 */}
                     <div className="flex items-center space-x-3">
                       <div className="flex items-center space-x-1">
@@ -399,12 +399,12 @@ export default function TopStoriesGrid({
                     {/* 文章信息 */}
                     <div className="flex-1 min-w-0">
                       {/* 标题 */}
-                      <h4 className="text-sm font-medium text-gray-900 line-clamp-2 group-hover:text-red-600 transition-colors mb-1">
+                      <h4 className="news-title-small line-clamp-2 group-hover:text-red-600 transition-colors mb-1">
                         {item.title}
                       </h4>
                       
                       {/* 元信息 */}
-                      <div className="flex items-center justify-between text-xs text-gray-500">
+                      <div className="flex items-center justify-between news-meta-small">
                         <div className="flex items-center space-x-2">
                           {item.channel && (
                             <span className="text-red-600 font-medium group-hover:text-red-700">

@@ -158,7 +158,7 @@ export default function HeroCarousel({
         </div>
         {hasRightRail && actualHeightMode !== 'takeover' && (
           <aside className="hidden lg:block lg:col-span-1 pl-6">
-            <div className="text-gray-400 text-sm">侧边栏区域</div>
+            <div className="text-gray-400 news-meta">侧边栏区域</div>
           </aside>
         )}
       </div>
@@ -376,52 +376,52 @@ export default function HeroCarousel({
                   {/* 标签区域 */}
                   <div className="flex flex-wrap items-center gap-2 mb-4">
                     {item.is_breaking && (
-                      <span className="bg-red-600 text-white px-3 py-1 rounded text-sm font-bold animate-pulse">
+                      <span className="bg-red-600 text-white px-3 py-1 rounded button-text font-bold animate-pulse">
                         突发
                       </span>
                     )}
                     {item.is_live && (
-                      <span className="bg-red-500 text-white px-3 py-1 rounded text-sm font-bold flex items-center">
+                      <span className="bg-red-500 text-white px-3 py-1 rounded button-text font-bold flex items-center">
                         <span className="w-2 h-2 bg-white rounded-full mr-1 animate-pulse"></span>
                         直播
                       </span>
                     )}
                     {item.channel && (
-                      <span className="bg-blue-600 text-white px-3 py-1 rounded text-sm font-medium">
+                      <span className="bg-blue-600 text-white px-3 py-1 rounded button-text">
                         {item.channel.name}
                       </span>
                     )}
                     {item.topic && (
-                      <span className="bg-purple-600 text-white px-3 py-1 rounded text-sm font-medium">
+                      <span className="bg-purple-600 text-white px-3 py-1 rounded button-text">
                         {item.topic.name}
                       </span>
                     )}
                   </div>
 
                   {/* 标题 - 根据模式调整大小 - 响应式优化 */}
-                  <h2 className={`text-white font-bold mb-2 md:mb-3 line-clamp-2 md:line-clamp-3 group-hover:text-blue-200 transition-colors ${
+                  <h2 className={`mb-2 md:mb-3 line-clamp-2 md:line-clamp-3 group-hover:text-blue-200 transition-colors ${
                     actualHeightMode === 'takeover' 
-                      ? 'text-2xl md:text-3xl lg:text-4xl xl:text-5xl' 
+                      ? 'hero-title-takeover' 
                       : actualHeightMode === 'compact'
-                      ? 'text-lg md:text-xl lg:text-2xl xl:text-3xl'
-                      : 'text-xl md:text-2xl lg:text-3xl xl:text-4xl'
+                      ? 'hero-title-compact'
+                      : 'hero-title-normal'
                   }`}>
                     {item.title}
                   </h2>
 
                   {/* 摘要 - compact 模式下隐藏 */}
                   {item.excerpt && actualHeightMode !== 'compact' && (
-                    <p className={`text-gray-200 mb-4 line-clamp-2 max-w-3xl ${
+                    <p className={`mb-4 line-clamp-2 max-w-3xl ${
                       actualHeightMode === 'takeover' 
-                        ? 'text-lg md:text-xl' 
-                        : 'text-base md:text-lg'
+                        ? 'hero-excerpt-large' 
+                        : 'hero-excerpt-normal'
                     }`}>
                       {item.excerpt}
                     </p>
                   )}
 
                   {/* 元信息 */}
-                  <div className="flex items-center text-gray-300 text-sm">
+                  <div className="flex items-center hero-meta">
                     {item.source && <span className="mr-4">{item.source}</span>}
                     {item.author && <span className="mr-4">作者：{item.author}</span>}
                     {item.publish_time && <span>{formatDateTime(item.publish_time)}</span>}
@@ -514,20 +514,20 @@ export default function HeroCarousel({
                   <span className="w-2 h-2 bg-red-500 rounded-full mr-2 animate-pulse"></span>
                   正在直播
                 </h3>
-                <p className="text-red-700 text-sm">点击查看实时直播内容</p>
+                <p className="text-red-700 news-meta">点击查看实时直播内容</p>
               </div>
             )}
             
             {/* 专题入口 */}
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <h3 className="font-semibold text-blue-800 mb-2">热门专题</h3>
-              <p className="text-blue-700 text-sm">浏览相关专题内容</p>
+              <p className="text-blue-700 news-meta">浏览相关专题内容</p>
             </div>
             
             {/* Most Read 占位 */}
             <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
               <h3 className="font-semibold text-gray-800 mb-2">最多阅读</h3>
-              <p className="text-gray-600 text-sm">热门文章列表</p>
+              <p className="text-gray-600 news-meta">热门文章列表</p>
             </div>
           </div>
         </aside>

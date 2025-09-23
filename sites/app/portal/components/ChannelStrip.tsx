@@ -135,12 +135,12 @@ const ChannelStrip: React.FC<ChannelStripProps> = ({
           </div>
           
           {/* 频道名称 */}
-          <h2 className="text-xl font-bold text-gray-900">
+          <h2 className="section-title">
             {channelName}
           </h2>
           
           {/* 更新时间 */}
-          <span className="text-sm text-gray-500">
+          <span className="news-meta">
             实时更新
           </span>
         </div>
@@ -151,7 +151,7 @@ const ChannelStrip: React.FC<ChannelStripProps> = ({
             href={viewMoreLink || `/portal?channel=${channelSlug}`}
             className="flex items-center space-x-1 text-red-600 hover:text-red-700 transition-colors"
           >
-            <span className="text-sm font-medium">查看更多</span>
+            <span className="button-text">查看更多</span>
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
@@ -182,7 +182,7 @@ const ChannelStrip: React.FC<ChannelStripProps> = ({
             {/* 全部分类 */}
             <button
               onClick={() => handleCategoryClick('')}
-              className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-all ${
+              className={`flex-shrink-0 px-4 py-2 rounded-full button-text transition-all ${
                 selectedCategory === ''
                   ? 'bg-red-500 text-white shadow-md'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -196,7 +196,7 @@ const ChannelStrip: React.FC<ChannelStripProps> = ({
               <button
                 key={category.id}
                 onClick={() => handleCategoryClick(category.slug)}
-                className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                className={`flex-shrink-0 px-4 py-2 rounded-full button-text transition-all ${
                   selectedCategory === category.slug
                     ? 'bg-red-500 text-white shadow-md'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -204,7 +204,7 @@ const ChannelStrip: React.FC<ChannelStripProps> = ({
               >
                 {category.name}
                 {category.count !== undefined && (
-                  <span className="ml-1 text-xs opacity-75">
+                  <span className="ml-1 news-meta-small opacity-75">
                     ({formatNumber(category.count)})
                   </span>
                 )}
@@ -252,7 +252,7 @@ const ChannelStrip: React.FC<ChannelStripProps> = ({
                 // 触发重新加载
                 setSelectedCategory(selectedCategory);
               }}
-              className="text-red-600 hover:text-red-700 text-sm"
+              className="text-red-600 hover:text-red-700 button-text"
             >
               重试
             </button>
@@ -300,19 +300,19 @@ const ChannelStrip: React.FC<ChannelStripProps> = ({
                 {/* 文章内容 - 响应式间距 */}
                 <div className="p-2 md:p-3">
                   {/* 标题 - 响应式字体 */}
-                  <h3 className="font-medium text-gray-900 line-clamp-2 group-hover:text-red-600 transition-colors mb-1 md:mb-2 text-xs md:text-sm leading-4 md:leading-5">
+                  <h3 className="news-title-small line-clamp-2 group-hover:text-red-600 transition-colors mb-1 md:mb-2">
                     {article.title}
                   </h3>
 
                   {/* 简介 - 在移动端隐藏以节省空间 */}
                   {article.excerpt && (
-                    <p className="text-gray-600 text-xs line-clamp-2 mb-1 md:mb-2 leading-3 md:leading-4 hidden sm:block">
+                    <p className="news-excerpt line-clamp-2 mb-1 md:mb-2 hidden sm:block">
                       {article.excerpt}
                     </p>
                   )}
 
                   {/* 元信息 - 响应式显示 */}
-                  <div className="flex items-center justify-between text-xs text-gray-500">
+                  <div className="flex items-center justify-between news-meta-small">
                     <div className="flex items-center space-x-1 md:space-x-2">
                       <span className="truncate">{article.source}</span>
                       <span className="hidden md:inline">•</span>
@@ -341,7 +341,7 @@ const ChannelStrip: React.FC<ChannelStripProps> = ({
         {!isLoading && !error && articles.length === 0 && (
           <div className="text-center py-8 text-gray-500">
             <div className="mb-2">暂无相关文章</div>
-            <div className="text-sm">请稍后再试或选择其他分类</div>
+            <div className="news-meta">请稍后再试或选择其他分类</div>
           </div>
         )}
       </div>
