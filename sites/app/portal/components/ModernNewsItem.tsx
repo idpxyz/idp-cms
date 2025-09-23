@@ -26,28 +26,7 @@ const ModernNewsItem: React.FC<ModernNewsItemProps> = ({
   return (
     <article className="group bg-white hover:bg-gray-50 transition-colors duration-200 border-b border-gray-100 last:border-b-0">
       <div className="flex items-start space-x-4 p-4">
-        {/* 左侧图片 */}
-        {news.image_url && (
-          <div className="flex-shrink-0">
-            <div className="relative w-24 h-16 sm:w-32 sm:h-20 bg-gray-200 rounded-lg overflow-hidden">
-              <Image
-                src={news.image_url}
-                alt={news.title}
-                fill
-                className="object-cover group-hover:scale-105 transition-transform duration-300"
-                sizes="(max-width: 640px) 96px, 128px"
-              />
-              {/* 阅读时间标签 */}
-              {news.reading_time && (
-                <div className="absolute bottom-1 right-1 bg-black/70 text-white text-xs px-1.5 py-0.5 rounded">
-                  {news.reading_time}min
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* 右侧内容 */}
+        {/* 左侧内容区域 */}
         <div className="flex-1 min-w-0">
           {/* 新闻来源 */}
           <div className="flex items-center space-x-2 mb-2">
@@ -129,6 +108,27 @@ const ModernNewsItem: React.FC<ModernNewsItemProps> = ({
             </div>
           )}
         </div>
+
+        {/* 右侧图片 */}
+        {news.image_url && (
+          <div className="flex-shrink-0">
+            <div className="relative w-24 h-16 sm:w-28 sm:h-18 bg-gray-200 rounded-lg overflow-hidden">
+              <Image
+                src={news.image_url}
+                alt={news.title}
+                fill
+                className="object-cover group-hover:scale-105 transition-transform duration-300"
+                sizes="(max-width: 640px) 96px, 112px"
+              />
+              {/* 阅读时间标签 */}
+              {news.reading_time && (
+                <div className="absolute bottom-1 right-1 bg-black/70 text-white text-xs px-1.5 py-0.5 rounded">
+                  {news.reading_time}min
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </article>
   );
