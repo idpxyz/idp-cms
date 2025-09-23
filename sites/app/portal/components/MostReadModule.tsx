@@ -61,7 +61,7 @@ export default function MostReadModule({ onArticleClick, limit = 8, excludeClust
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-      <h3 className="text-lg font-bold text-gray-900 mb-4">最热阅读</h3>
+      <h3 className="section-title mb-4">最热阅读</h3>
       {showLoading ? (
         <div className="space-y-3">
           {[...Array(6)].map((_, i) => (
@@ -75,7 +75,7 @@ export default function MostReadModule({ onArticleClick, limit = 8, excludeClust
               <li key={`mostread-${article.id}-${index}`} className="">
                 <a
                   href={article.slug ? `/portal/article/${article.slug}` : (article.id ? `/portal/article/${article.id}` : (article.url || "/portal"))}
-                  className="text-sm text-gray-800 hover:text-red-500 transition-colors line-clamp-2"
+                  className="news-meta text-gray-800 hover:text-red-500 transition-colors line-clamp-2"
                   onClick={() => onArticleClick?.(article.slug || article.id)}
                 >
                   {article.title}
@@ -88,7 +88,7 @@ export default function MostReadModule({ onArticleClick, limit = 8, excludeClust
               <button
                 onClick={() => load(true)}
                 disabled={loadingMore}
-                className="text-sm px-3 py-1.5 rounded border border-gray-300 hover:border-red-300 hover:text-red-500 disabled:opacity-50"
+                className="button-text px-3 py-1.5 rounded border border-gray-300 hover:border-red-300 hover:text-red-500 disabled:opacity-50"
               >
                 {loadingMore ? '加载中…' : '加载更多'}
               </button>
@@ -96,7 +96,7 @@ export default function MostReadModule({ onArticleClick, limit = 8, excludeClust
           )}
         </>
       ) : (
-        <p className="text-gray-500 text-sm">暂无热门内容</p>
+        <p className="text-gray-500 news-meta">暂无热门内容</p>
       )}
     </div>
   );

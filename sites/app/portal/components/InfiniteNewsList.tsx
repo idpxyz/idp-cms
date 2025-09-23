@@ -121,9 +121,9 @@ const InfiniteNewsList: React.FC<InfiniteNewsListProps> = ({
 
         {/* 文章内容 */}
         <div className="flex-1 p-4">
-          <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
+          <div className="flex items-center gap-2 news-meta mb-2">
             {article.channel && (
-              <span className="bg-blue-100 text-blue-600 px-2 py-1 rounded text-xs">
+              <span className="bg-blue-100 text-blue-600 px-2 py-1 rounded news-meta-small">
                 {article.channel.name}
               </span>
             )}
@@ -133,7 +133,7 @@ const InfiniteNewsList: React.FC<InfiniteNewsListProps> = ({
             <span>•</span>
             <span>{formatDate(article.publish_time || article.publish_at)}</span>
             {article.is_featured && (
-              <span className="bg-red-100 text-red-600 px-2 py-1 rounded text-xs">
+              <span className="bg-red-100 text-red-600 px-2 py-1 rounded news-meta-small">
                 精选
               </span>
             )}
@@ -148,7 +148,7 @@ const InfiniteNewsList: React.FC<InfiniteNewsListProps> = ({
             </h3>
             
             {article.excerpt && (
-              <p className="text-gray-600 text-sm mb-2 line-clamp-2">
+              <p className="news-excerpt mb-2 line-clamp-2">
                 {article.excerpt}
               </p>
             )}
@@ -169,7 +169,7 @@ const InfiniteNewsList: React.FC<InfiniteNewsListProps> = ({
           )}
 
           {/* 文章指标 */}
-          <div className="flex items-center gap-4 mt-2 text-xs text-gray-400">
+          <div className="flex items-center gap-4 mt-2 news-meta-small text-gray-400">
             {article.quality_score && (
               <span>质量分: {article.quality_score.toFixed(1)}</span>
             )}
@@ -191,7 +191,7 @@ const InfiniteNewsList: React.FC<InfiniteNewsListProps> = ({
       <div className="mb-6">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            <h2 className="page-title mb-2">
               {useSmartStrategy ? '智能推荐' : '最新资讯'}
             </h2>
             <p className="text-gray-600">
@@ -263,7 +263,7 @@ const InfiniteNewsList: React.FC<InfiniteNewsListProps> = ({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3v3m0 0v3m0-3h3m-3 0h-3" />
             </svg>
           </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">暂无新闻内容</h3>
+            <h3 className="section-title mb-2">暂无新闻内容</h3>
           <p className="text-gray-500">请稍后再来查看最新资讯</p>
         </div>
       )}

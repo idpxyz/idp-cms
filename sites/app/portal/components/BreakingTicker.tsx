@@ -113,7 +113,7 @@ export default function BreakingTicker({
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
               <path d="M12 2L13.09 8.26L22 9L13.09 9.74L12 16L10.91 9.74L2 9L10.91 8.26L12 2Z" />
             </svg>
-            <span className="font-bold text-sm uppercase tracking-wide">
+            <span className="font-bold button-text uppercase tracking-wide">
               快讯
             </span>
           </div>
@@ -139,7 +139,7 @@ export default function BreakingTicker({
                     href={`/portal/article/${item.slug}`}
                     className="hover:underline text-white transition-opacity hover:opacity-80"
                   >
-                    <span className="text-sm font-medium">
+                    <span className="news-meta font-medium">
                       {item.title}
                     </span>
                   </Link>
@@ -150,14 +150,14 @@ export default function BreakingTicker({
                         <circle cx="12" cy="12" r="10"/>
                         <polyline points="12,6 12,12 16,14"/>
                       </svg>
-                      <span className="text-xs">
+                      <span className="news-meta-small">
                         {formatTime(item.publish_time)}
                       </span>
                     </div>
                   )}
                   
                   {item.channel && (
-                    <span className="text-xs bg-red-700 px-2 py-0.5 rounded text-red-100">
+                    <span className="news-meta-small bg-red-700 px-2 py-0.5 rounded text-red-100">
                       {item.channel.name}
                     </span>
                   )}
@@ -177,7 +177,7 @@ export default function BreakingTicker({
                     href={`/portal/article/${item.slug}`}
                     className="hover:underline text-white transition-opacity hover:opacity-80"
                   >
-                    <span className="text-sm font-medium">
+                    <span className="news-meta font-medium">
                       {item.title}
                     </span>
                   </Link>
@@ -188,14 +188,14 @@ export default function BreakingTicker({
                         <circle cx="12" cy="12" r="10"/>
                         <polyline points="12,6 12,12 16,14"/>
                       </svg>
-                      <span className="text-xs">
+                      <span className="news-meta-small">
                         {formatTime(item.publish_time)}
                       </span>
                     </div>
                   )}
                   
                   {item.channel && (
-                    <span className="text-xs bg-red-700 px-2 py-0.5 rounded text-red-100">
+                    <span className="news-meta-small bg-red-700 px-2 py-0.5 rounded text-red-100">
                       {item.channel.name}
                     </span>
                   )}
