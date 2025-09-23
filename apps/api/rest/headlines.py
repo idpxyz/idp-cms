@@ -67,7 +67,12 @@ def _compute_headline_score(item: dict) -> float:
         
         # 频道多样性因子：确保不同频道有相对均等的机会
         channel = item.get("channel", "default")
-        channel_hash = int(hashlib.md5(channel.encode()).hexdigest(), 16) % 10000
+        # 🔧 处理channel可能是字典的情况
+        if isinstance(channel, dict):
+            channel_slug = channel.get("slug", "default")
+        else:
+            channel_slug = str(channel) if channel else "default"
+        channel_hash = int(hashlib.md5(channel_slug.encode()).hexdigest(), 16) % 10000
         diversity_boost = 0.8 + (channel_hash / 10000) * 0.4  # 0.8-1.2范围，更大变化
         
         # 时间衰减更温和：7天内的文章都有机会成为头条
@@ -361,7 +366,12 @@ def headlines(request):
         out = []
         for it in items:
             src = (it.get("source") or "").strip().lower()
-            ch = (it.get("channel") or "").strip().lower()
+            # 🔧 处理channel可能是字典的情况
+            channel = it.get("channel") or ""
+            if isinstance(channel, dict):
+                ch = (channel.get("slug") or "").strip().lower()
+            else:
+                ch = str(channel).strip().lower()
             topic = (it.get("topic") or it.get("cluster_slug") or "").strip().lower()
             allow = True
             if diversity in ("med", "high") and src and src in seen_source:
@@ -396,9 +406,18 @@ def headlines(request):
 
     # 简易 MMR：在已选集合上惩罚与已选的语义/类别相似（这里用频道与主题近似）
     def _similarity(a: dict, b: dict) -> float:
-        sa = ((a.get("channel") or "") + "|" + (a.get("topic") or a.get("cluster_slug") or "")).lower()
-        sb = ((b.get("channel") or "") + "|" + (b.get("topic") or b.get("cluster_slug") or "")).lower()
-        return 1.0 if sa == sb else (0.5 if (a.get("channel") or "").lower() == (b.get("channel") or "").lower() else 0.0)
+        # 🔧 处理channel可能是字典的情况
+        def get_channel_slug(item):
+            channel = item.get("channel") or ""
+            if isinstance(channel, dict):
+                return channel.get("slug") or ""
+            return str(channel)
+        
+        ch_a = get_channel_slug(a).lower()
+        ch_b = get_channel_slug(b).lower()
+        sa = (ch_a + "|" + (a.get("topic") or a.get("cluster_slug") or "")).lower()
+        sb = (ch_b + "|" + (b.get("topic") or b.get("cluster_slug") or "")).lower()
+        return 1.0 if sa == sb else (0.5 if ch_a == ch_b else 0.0)
 
     lam = 0.7 if diversity == "high" else 0.5  # 多样性权重
     selected = []
@@ -425,7 +444,12 @@ def headlines(request):
         by_channel = {}
         relaxed = []
         for it in [x for x in clustered if x.get("cluster_slug") not in set(exclude_clusters)]:
-            ch = (it.get("channel") or "").strip().lower()
+            # 🔧 处理channel可能是字典的情况
+            channel = it.get("channel") or ""
+            if isinstance(channel, dict):
+                ch = (channel.get("slug") or "").strip().lower()
+            else:
+                ch = str(channel).strip().lower()
             cnt = by_channel.get(ch, 0)
             if cnt < max_per_channel:
                 relaxed.append(it)
