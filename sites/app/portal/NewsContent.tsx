@@ -26,6 +26,7 @@ import {
 import { useMultipleIntersectionObserver } from "@/lib/hooks/useIntersectionObserver";
 import { formatDateTime } from "@/lib/utils/date";
 import { useChannels } from "./ChannelContext";
+import ModernNewsItem from "./components/ModernNewsItem";
 
 // 自定义样式
 const customStyles = `
@@ -507,13 +508,8 @@ export default function NewsContent({
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [currentChannelSlug]);
 
-  // 🎯 今日头条应该显示全站热门内容，不受当前频道限制
-  useEffect(() => {
-    setTopModules(prev => prev.map(m => m.key === 'today-headlines'
-      ? { ...m, props: { ...(m.props || {}), lang: (typeof navigator !== 'undefined' ? (navigator.language || 'zh-CN').toLowerCase() : 'zh-CN') } }  // 🔥 移除channel参数
-      : m
-    ));
-  }, [currentChannelSlug]);
+  // 🎯 模块配置优化 - 今日头条已移至首页顶部，无需特殊处理
+  // useEffect 已移除：不再需要special handling for today-headlines
 
   // 保留 clusters 监听逻辑
   useEffect(() => {
@@ -1134,13 +1130,16 @@ export default function NewsContent({
   // 加载模块配置（映射到本地模块键）
   useEffect(() => {
     const mapToLocalKey = (key: string): string | null => {
-      const m: Record<string, string> = {
-        hero: "quick-ticker",
+      const m: Record<string, string | null> = {
+        hero: null, // 头条新闻已在首页顶部，禁用hero模块避免编辑推荐重复
         rank: "most-read",
-        "local-news": "region-switcher",
-        "top-news": "today-headlines",
+        ranking: "most-read", // 站点设置中的ranking映射
+        "local-news": null, // 不需要地区切换
+        "local-events": null, // 本地事件模块禁用
+        "top-news": "editors-choice", // 避免重复头条，改为编辑推荐
         "editors-choice": "editors-choice",
         "top-split-headlines": "top-split-headlines",
+        ads: null, // 广告模块禁用
       };
       return m[key] || null;
     };
@@ -1168,31 +1167,31 @@ export default function NewsContent({
           .filter(m => !!m.local)
           .map(m => ({ key: m.local as string, props: mapProps(m.local as string, m.src) }));
 
-        // 若顶部已有 today-headlines，则侧栏不再重复渲染该模块
+        // 避免模块重复：检查顶部已有的模块，侧栏不再重复显示
         const topKeys = new Set(mappedTop.map(i => i.key));
-        if (topKeys.has("today-headlines")) {
-          mappedSidebar = mappedSidebar.filter(i => i.key !== "today-headlines");
-        }
+        mappedSidebar = mappedSidebar.filter(i => !topKeys.has(i.key));
 
         // 保证侧栏关键模块存在：若缺失则追加；避免重复
         const sidebarKeys = new Set(mappedSidebar.map(i => i.key));
         if (!sidebarKeys.has("most-read")) {
           mappedSidebar.unshift({ key: "most-read", props: {} });
         }
-        if (!sidebarKeys.has("region-switcher")) {
-          mappedSidebar.push({ key: "region-switcher", props: {} });
-        }
+        // 移除region-switcher - 不需要地区切换功能
 
-        // 兜底：若接口完全无模块，则使用默认顺序
-        setTopModules(mappedTop.length ? mappedTop : [{ key: "quick-ticker" }]);
+        // 兜底：若接口完全无模块，则使用默认顺序（头条新闻已在首页顶部显示）
+        // 过滤掉重复的头条相关模块，顶部不再显示编辑推荐（避免与侧边栏重复）
+        const filteredTop = mappedTop.filter(m => 
+          !['today-headlines', 'top-split-headlines'].includes(m.key)
+        );
+        setTopModules(filteredTop.length ? filteredTop : []);
         setSidebarModules(mappedSidebar.length ? mappedSidebar : [
           { key: "most-read" },
-          { key: "region-switcher" },
         ]);
       } catch (e) {
         console.warn('Load frontend modules failed, using fallback.', e);
-        setTopModules([{ key: "quick-ticker" }]);
-        setSidebarModules([{ key: "most-read" }, { key: "region-switcher" }]);
+        // 顶部不设置默认模块，避免与侧边栏重复
+        setTopModules([]);
+        setSidebarModules([{ key: "most-read" }]);
       }
     };
 
@@ -1200,15 +1199,10 @@ export default function NewsContent({
     function mapProps(localKey: string, src: any) {
       // 允许通过 ?duration / ?limit 等下发，也可走 src.custom 字段
       const props: any = {};
-      if (localKey === "quick-ticker") {
-        if (src?.custom?.duration) props.duration = String(src.custom.duration);
-      }
       if (localKey === "most-read") {
         if (src?.custom?.limit) props.limit = Number(src.custom.limit);
       }
-      if (localKey === "today-headlines") {
-        if (src?.custom?.count) props.count = Math.max(1, Math.min(Number(src.custom.count), 4));
-      }
+      // today-headlines 相关props处理已移除 - 模块已迁移至首页顶部
       if (localKey === "editors-choice") {
         if (src?.custom?.limit) props.limit = Math.max(1, Math.min(Number(src.custom.limit), 6));
       }
@@ -1328,15 +1322,18 @@ export default function NewsContent({
                   </div>
                 ))}
                 
-                {/* 其余文章作为普通新闻列表 */}
-                {newsList.slice(2).map((news, index) => (
-                  <NewsItem 
-                    key={`news-${news.id}-${index}`}
-                    news={news}
-                    onArticleClick={handleArticleClick}
-                    index={index + 2}
-                  />
-                ))}
+                {/* 其余文章使用现代化列表样式 */}
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                  {newsList.slice(2).map((news, index) => (
+                    <ModernNewsItem 
+                      key={`modern-news-${news.id}-${index}`}
+                      news={news}
+                      onArticleClick={handleArticleClick}
+                      index={index + 2}
+                      showInteractions={true}
+                    />
+                  ))}
+                </div>
               </div>
             ) : (
               // 空状态显示
