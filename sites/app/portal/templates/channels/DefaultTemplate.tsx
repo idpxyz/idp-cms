@@ -24,11 +24,11 @@ const DefaultTemplate: React.FC<ChannelTemplateProps> = ({
       {/* 简洁的头部 */}
       <Section space="lg">
         <div className="bg-white rounded-xl p-6 border border-gray-200">
-          <h1 className="text-3xl font-bold text-gray-900 mb-4">
+          <h1 className="page-title mb-4">
             {channel.name}
           </h1>
           {channel.description && (
-            <p className="text-gray-600 text-lg">
+            <p className="text-gray-600 template-subtitle">
               {channel.description}
             </p>
           )}

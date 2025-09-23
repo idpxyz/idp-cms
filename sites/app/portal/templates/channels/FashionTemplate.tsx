@@ -58,14 +58,14 @@ const FashionTemplate: React.FC<ChannelTemplateProps> = ({
                       <h1 className="text-5xl lg:text-6xl font-light text-gray-900 tracking-wide">
                         {channel.name}
                       </h1>
-                      <div className="px-4 py-2 bg-gradient-to-r from-pink-100 to-purple-100 text-purple-700 text-sm font-medium rounded-full border border-purple-200/50">
+                      <div className="px-4 py-2 bg-gradient-to-r from-pink-100 to-purple-100 text-purple-700 template-badge rounded-full border border-purple-200/50">
                         EXCLUSIVE
                       </div>
                     </div>
-                    <p className="text-purple-600 font-medium text-xl lg:text-2xl mb-3 tracking-wide">
+                    <p className="text-purple-600 template-subtitle mb-3 tracking-wide">
                       Style · Beauty · Lifestyle
                     </p>
-                    <div className="flex items-center space-x-6 text-sm text-gray-500">
+                    <div className="flex items-center space-x-6 news-meta text-gray-500">
                       <span className="flex items-center space-x-2">
                         <div className="w-2 h-2 bg-pink-500 rounded-full animate-pulse"></div>
                         <span>全球时装周同步</span>
@@ -79,7 +79,7 @@ const FashionTemplate: React.FC<ChannelTemplateProps> = ({
                 </div>
                 
                 <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 border border-white/40 max-w-3xl">
-                  <p className="text-gray-700 text-lg leading-relaxed">
+                  <p className="text-gray-700 template-description">
                     {channel.description || "探索时尚前沿，品味生活美学。从国际时装周到街头潮流，从奢华品牌到平价好物，为您呈现最具品味的时尚资讯与生活方式指南。"}
                   </p>
                 </div>
@@ -87,23 +87,23 @@ const FashionTemplate: React.FC<ChannelTemplateProps> = ({
               
               {/* 时尚数据面板 */}
               <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 border border-white/50 shadow-2xl shadow-purple-500/10 min-w-[280px]">
-                <h3 className="text-lg font-semibold text-gray-800 mb-6 text-center">时尚影响力</h3>
+                <h3 className="section-title text-gray-800 mb-6 text-center">时尚影响力</h3>
                 <div className="space-y-6">
                   <div className="text-center">
-                    <div className="text-3xl font-light text-pink-600 mb-1">{fashionData.weeklyViews}</div>
-                    <div className="text-sm text-gray-500">周阅读量</div>
+                    <div className="template-stat-number font-light text-pink-600 mb-1">{fashionData.weeklyViews}</div>
+                    <div className="news-meta text-gray-500">周阅读量</div>
                     <div className="w-full h-1 bg-gray-200 rounded-full mt-2 overflow-hidden">
                       <div className="w-4/5 h-full bg-gradient-to-r from-pink-500 to-purple-500 rounded-full"></div>
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="text-center">
-                      <div className="text-2xl font-light text-purple-600">{fashionData.trendingTopics}</div>
-                      <div className="text-xs text-gray-500">热门话题</div>
+                      <div className="template-stat-number font-light text-purple-600">{fashionData.trendingTopics}</div>
+                      <div className="template-stat-label text-gray-500">热门话题</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-2xl font-light text-rose-600">{fashionData.fashionWeeks}</div>
-                      <div className="text-xs text-gray-500">时装周</div>
+                      <div className="template-stat-number font-light text-rose-600">{fashionData.fashionWeeks}</div>
+                      <div className="template-stat-label text-gray-500">时装周</div>
                     </div>
                   </div>
                 </div>
@@ -114,8 +114,8 @@ const FashionTemplate: React.FC<ChannelTemplateProps> = ({
             <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">
               <div className="bg-white/70 backdrop-blur-sm p-5 rounded-2xl border border-white/40 hover:bg-white/90 hover:shadow-xl transition-all duration-300 cursor-pointer group">
                 <div className="text-3xl mb-3 group-hover:scale-110 transition-transform">👗</div>
-                <h3 className="font-semibold text-gray-900 text-sm mb-1">时装周</h3>
-                <p className="text-xs text-gray-600">全球秀场直击</p>
+                <h3 className="template-card-title text-gray-900 mb-1">时装周</h3>
+                <p className="template-card-text text-gray-600">全球秀场直击</p>
               </div>
               
               <div className="bg-white/70 backdrop-blur-sm p-5 rounded-2xl border border-white/40 hover:bg-white/90 hover:shadow-xl transition-all duration-300 cursor-pointer group">

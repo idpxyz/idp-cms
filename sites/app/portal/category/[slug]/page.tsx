@@ -140,12 +140,12 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
       <PageContainer padding="md">
         {/* 面包屑导航 */}
         <Section space="sm">
-          <nav className="flex items-center space-x-2 text-sm text-gray-500 mb-4">
+          <nav className="flex items-center space-x-2 news-meta mb-4">
             {breadcrumb.map((item, index) => (
               <React.Fragment key={index}>
                 {index > 0 && <span>/</span>}
                 {index === breadcrumb.length - 1 ? (
-                  <span className="text-gray-900 font-medium">{item.name}</span>
+                  <span className="text-gray-900 news-meta font-medium">{item.name}</span>
                 ) : (
                   <a href={item.href} className="hover:text-gray-700">
                     {item.name}

@@ -124,7 +124,7 @@ export default function HistoryContent() {
     return (
       <div className="flex items-center justify-center py-12">
         <div className="text-center">
-          <h2 className="text-xl font-bold text-gray-900 mb-2">需要登录</h2>
+          <h2 className="section-title mb-2">需要登录</h2>
           <p className="text-gray-600">请先登录以查看您的阅读历史</p>
         </div>
       </div>
@@ -140,7 +140,7 @@ export default function HistoryContent() {
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">阅读历史</h1>
+            <h1 className="page-title mb-2">阅读历史</h1>
             <p className="text-gray-600">您的个人阅读足迹 ({totalItems} 篇文章)</p>
           </div>
           

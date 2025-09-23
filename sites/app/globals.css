@@ -112,6 +112,39 @@
     @apply text-sm text-gray-300;
   }
 
+  /* 频道模板专用字体类 */
+  .template-title {
+    @apply text-4xl lg:text-5xl font-bold tracking-tight;
+  }
+  
+  .template-subtitle {
+    @apply text-lg lg:text-xl font-medium;
+  }
+  
+  .template-description {
+    @apply text-lg leading-relaxed;
+  }
+  
+  .template-badge {
+    @apply text-xs font-medium;
+  }
+  
+  .template-card-title {
+    @apply text-sm font-semibold;
+  }
+  
+  .template-card-text {
+    @apply text-xs;
+  }
+  
+  .template-stat-number {
+    @apply text-2xl font-bold;
+  }
+  
+  .template-stat-label {
+    @apply text-xs;
+  }
+
   /* 品牌按钮 */
   .btn-brand {
     @apply px-4 py-2 rounded-md font-medium transition-colors duration-200;

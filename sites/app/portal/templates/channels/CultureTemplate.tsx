@@ -38,14 +38,14 @@ const CultureTemplate: React.FC<ChannelTemplateProps> = ({
                 <h1 className="text-4xl font-bold text-gray-900 mb-2">
                   {channel.name}艺术
                 </h1>
-                <p className="text-purple-600 font-medium text-lg">
+                <p className="text-purple-600 template-subtitle">
                   传承文明 · 弘扬文化 · 艺术人生
                 </p>
               </div>
             </div>
 
             {/* 特色描述 */}
-            <p className="text-gray-700 text-lg leading-relaxed mb-8 max-w-3xl">
+            <p className="text-gray-700 template-description mb-8 max-w-3xl">
               {channel.description || "探索文化之美，传承文明之光。从传统到现代，从经典到创新，我们用心呈现文化的魅力与深度。"}
             </p>
 
@@ -54,13 +54,13 @@ const CultureTemplate: React.FC<ChannelTemplateProps> = ({
               <div className="bg-white/60 backdrop-blur-sm p-4 rounded-xl border border-purple-200 hover:bg-white/80 transition-all cursor-pointer group">
                 <div className="text-2xl mb-2 group-hover:scale-110 transition-transform">🏛️</div>
                 <h3 className="font-semibold text-gray-900 mb-1">历史文化</h3>
-                <p className="text-sm text-gray-600">传统文化传承</p>
+                <p className="news-meta text-gray-600">传统文化传承</p>
               </div>
               
               <div className="bg-white/60 backdrop-blur-sm p-4 rounded-xl border border-purple-200 hover:bg-white/80 transition-all cursor-pointer group">
                 <div className="text-2xl mb-2 group-hover:scale-110 transition-transform">🎨</div>
                 <h3 className="font-semibold text-gray-900 mb-1">艺术展览</h3>
-                <p className="text-sm text-gray-600">当代艺术作品</p>
+                <p className="news-meta text-gray-600">当代艺术作品</p>
               </div>
               
               <div className="bg-white/60 backdrop-blur-sm p-4 rounded-xl border border-purple-200 hover:bg-white/80 transition-all cursor-pointer group">

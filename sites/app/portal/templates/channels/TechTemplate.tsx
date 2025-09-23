@@ -38,14 +38,14 @@ const TechTemplate: React.FC<ChannelTemplateProps> = ({
                 <h1 className="text-4xl font-bold text-gray-900 mb-2">
                   {channel.name}前沿
                 </h1>
-                <p className="text-blue-600 font-medium text-lg">
+                <p className="text-blue-600 template-subtitle">
                   创新驱动 · 科技前沿 · 数字未来
                 </p>
               </div>
             </div>
 
             {/* 特色描述 */}
-            <p className="text-gray-700 text-lg leading-relaxed mb-8 max-w-3xl">
+            <p className="text-gray-700 template-description mb-8 max-w-3xl">
               {channel.description || "探索科技前沿，追踪创新动向。从人工智能到量子计算，从5G到元宇宙，我们为您带来最新的科技资讯和深度分析。"}
             </p>
 
@@ -54,13 +54,13 @@ const TechTemplate: React.FC<ChannelTemplateProps> = ({
               <div className="bg-white/60 backdrop-blur-sm p-4 rounded-xl border border-blue-200 hover:bg-white/80 transition-all cursor-pointer group">
                 <div className="text-2xl mb-2 group-hover:scale-110 transition-transform">🤖</div>
                 <h3 className="font-semibold text-gray-900 mb-1">人工智能</h3>
-                <p className="text-sm text-gray-600">AI技术发展</p>
+                <p className="news-meta text-gray-600">AI技术发展</p>
               </div>
               
               <div className="bg-white/60 backdrop-blur-sm p-4 rounded-xl border border-blue-200 hover:bg-white/80 transition-all cursor-pointer group">
                 <div className="text-2xl mb-2 group-hover:scale-110 transition-transform">📱</div>
                 <h3 className="font-semibold text-gray-900 mb-1">移动科技</h3>
-                <p className="text-sm text-gray-600">智能设备创新</p>
+                <p className="news-meta text-gray-600">智能设备创新</p>
               </div>
               
               <div className="bg-white/60 backdrop-blur-sm p-4 rounded-xl border border-blue-200 hover:bg-white/80 transition-all cursor-pointer group">

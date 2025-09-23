@@ -52,17 +52,17 @@ const SocialTemplate: React.FC<ChannelTemplateProps> = ({
                 </div>
                 <div>
                   <div className="flex items-center space-x-3 mb-3">
-                    <h1 className="text-4xl lg:text-5xl font-bold text-slate-900 tracking-tight">
+                    <h1 className="template-title text-slate-900">
                       {channel.name}
                     </h1>
-                    <div className="px-3 py-1 bg-red-100 text-red-700 text-xs font-medium rounded-full border border-red-200">
+                    <div className="px-3 py-1 bg-red-100 text-red-700 template-badge rounded-full border border-red-200">
                       实时更新
                     </div>
                   </div>
-                  <p className="text-slate-600 font-medium text-lg lg:text-xl mb-2">
+                  <p className="text-slate-600 template-subtitle mb-2">
                     权威报道 · 深度分析 · 民生关注
                   </p>
-                  <div className="flex items-center space-x-4 text-sm text-slate-500">
+                  <div className="flex items-center space-x-4 news-meta text-slate-500">
                     <span className="flex items-center space-x-1">
                       <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                       <span>24小时在线</span>
@@ -77,15 +77,15 @@ const SocialTemplate: React.FC<ChannelTemplateProps> = ({
               
               {/* 实时数据概览 */}
               <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 border border-slate-200/60 shadow-lg">
-                <h3 className="text-sm font-semibold text-slate-600 mb-4 text-center">今日数据</h3>
+                <h3 className="template-card-title text-slate-600 mb-4 text-center">今日数据</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-blue-600">{liveData.todayEvents}</div>
-                    <div className="text-xs text-slate-500">重要事件</div>
+                    <div className="template-stat-number text-blue-600">{liveData.todayEvents}</div>
+                    <div className="template-stat-label text-slate-500">重要事件</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-green-600">{liveData.solutionRate}%</div>
-                    <div className="text-xs text-slate-500">问题解决率</div>
+                    <div className="template-stat-number text-green-600">{liveData.solutionRate}%</div>
+                    <div className="template-stat-label text-slate-500">问题解决率</div>
                   </div>
                 </div>
               </div>
@@ -93,7 +93,7 @@ const SocialTemplate: React.FC<ChannelTemplateProps> = ({
 
             {/* 专业描述 */}
             <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-6 border border-slate-200/40 mb-8">
-              <p className="text-slate-700 text-lg leading-relaxed max-w-4xl">
+              <p className="text-slate-700 template-description max-w-4xl">
                 {channel.description || "以专业的新闻视角，深度关注社会民生议题。我们致力于提供准确、及时、有深度的社会新闻报道，促进社会问题的理性讨论与有效解决。"}
               </p>
             </div>
@@ -102,20 +102,20 @@ const SocialTemplate: React.FC<ChannelTemplateProps> = ({
             <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">
               <div className="bg-white/70 backdrop-blur-sm p-4 rounded-xl border border-slate-200/50 hover:bg-white/90 hover:shadow-lg transition-all duration-300 cursor-pointer group">
                 <div className="text-2xl mb-3 group-hover:scale-110 transition-transform">📊</div>
-                <h3 className="font-semibold text-slate-900 text-sm mb-1">数据分析</h3>
-                <p className="text-xs text-slate-600">社会趋势洞察</p>
+                <h3 className="template-card-title text-slate-900 mb-1">数据分析</h3>
+                <p className="template-card-text text-slate-600">社会趋势洞察</p>
               </div>
               
               <div className="bg-white/70 backdrop-blur-sm p-4 rounded-xl border border-slate-200/50 hover:bg-white/90 hover:shadow-lg transition-all duration-300 cursor-pointer group">
                 <div className="text-2xl mb-3 group-hover:scale-110 transition-transform">🔍</div>
-                <h3 className="font-semibold text-slate-900 text-sm mb-1">深度调研</h3>
-                <p className="text-xs text-slate-600">专题调查报告</p>
+                <h3 className="template-card-title text-slate-900 mb-1">深度调研</h3>
+                <p className="template-card-text text-slate-600">专题调查报告</p>
               </div>
               
               <div className="bg-white/70 backdrop-blur-sm p-4 rounded-xl border border-slate-200/50 hover:bg-white/90 hover:shadow-lg transition-all duration-300 cursor-pointer group">
                 <div className="text-2xl mb-3 group-hover:scale-110 transition-transform">⚖️</div>
-                <h3 className="font-semibold text-slate-900 text-sm mb-1">法治观察</h3>
-                <p className="text-xs text-slate-600">法律政策解读</p>
+                <h3 className="template-card-title text-slate-900 mb-1">法治观察</h3>
+                <p className="template-card-text text-slate-600">法律政策解读</p>
               </div>
               
               <div className="bg-white/70 backdrop-blur-sm p-4 rounded-xl border border-slate-200/50 hover:bg-white/90 hover:shadow-lg transition-all duration-300 cursor-pointer group">
