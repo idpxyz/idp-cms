@@ -2,50 +2,6 @@ import { fetchTrendingFeed } from '@/lib/api/feed';
 import { getNews } from '@/lib/api/news';
 import { BreakingNewsItem } from './BreakingTicker';
 
-// 频道信息缓存
-let channelsCache: any[] | null = null;
-let cacheExpiry = 0;
-
-/**
- * 获取所有频道信息
- */
-async function getChannels(): Promise<any[]> {
-  const now = Date.now();
-  
-  // 如果缓存有效，直接返回
-  if (channelsCache && now < cacheExpiry) {
-    return channelsCache;
-  }
-  
-  try {
-    const response = await fetch('/api/channels', {
-      next: { revalidate: 300 }, // 5分钟缓存
-    });
-    
-    if (response.ok) {
-      const data = await response.json();
-      channelsCache = data.channels || [];
-      cacheExpiry = now + 5 * 60 * 1000; // 5分钟后过期
-      return channelsCache || [];
-    }
-  } catch (error) {
-    console.warn('获取频道信息失败:', error);
-  }
-  
-  return [];
-}
-
-/**
- * 根据slug获取频道的中文名称
- */
-async function getChannelName(slug: string): Promise<string> {
-  if (!slug) return '';
-  
-  const channels = await getChannels();
-  const channel = channels.find(ch => ch.slug === slug || ch.id === slug);
-  
-  return channel?.name || slug;
-}
 
 /**
  * 获取快讯数据
@@ -81,10 +37,8 @@ export async function getBreakingNews(limit: number = 8): Promise<BreakingNewsIt
           })
           .slice(0, limit);
         
-        // 异步转换数据，包括获取频道中文名称
-        const breakingItems = await Promise.all(
-          filteredItems.map((item: any) => transformToBreakingItem(item))
-        );
+        // 转换数据格式，直接使用后端返回的频道信息
+        const breakingItems = filteredItems.map((item: any) => transformToBreakingItem(item));
         
         console.log(`🚨 转换后快讯内容: ${breakingItems.length} 条`);
         if (breakingItems.length > 0) {
@@ -110,37 +64,19 @@ export async function getBreakingNews(limit: number = 8): Promise<BreakingNewsIt
         })
         .slice(0, limit);
       
-      // 异步获取频道名称
-      const recentNews = await Promise.all(
-        filteredNews.map(async (item: any) => {
-          let channelInfo = undefined;
-          
-          if (item.channel) {
-            const slug = item.channel.slug || item.channel.id?.toString() || '';
-            let name = item.channel.name || '';
-            
-            // 如果名称是英文或为空，从数据库获取
-            if (!name || !/[\u4e00-\u9fa5]/.test(name)) {
-              name = await getChannelName(slug);
-            }
-            
-            channelInfo = {
-              id: slug,
-              name: name,
-              slug: slug
-            };
-          }
-          
-          return {
-            id: item.id.toString(),
-            title: item.title,
-            slug: item.slug,
-            publish_time: item.publish_at || item.first_published_at,
-            channel: channelInfo,
-            is_urgent: item.is_featured || item.is_breaking || false,
-          };
-        })
-      );
+      // 转换数据格式，直接使用API返回的频道信息
+      const recentNews = filteredNews.map((item: any) => ({
+        id: item.id.toString(),
+        title: item.title,
+        slug: item.slug,
+        publish_time: item.publish_at || item.first_published_at,
+        channel: item.channel ? {
+          id: item.channel.slug || item.channel.id?.toString() || '',
+          name: item.channel.name || '首页',
+          slug: item.channel.slug || item.channel.id?.toString() || ''
+        } : undefined,
+        is_urgent: item.is_featured || item.is_breaking || false,
+      }));
       
       console.log(`✅ Breaking News: 首页频道获取到 ${recentNews.length} 条数据`);
       if (recentNews.length > 0) {
@@ -159,42 +95,21 @@ export async function getBreakingNews(limit: number = 8): Promise<BreakingNewsIt
 /**
  * 转换 Headlines API 数据为 BreakingNewsItem 格式
  */
-async function transformToBreakingItem(item: any): Promise<BreakingNewsItem> {
-  let channelInfo = undefined;
-  
-  if (item.channel) {
-    if (typeof item.channel === 'string') {
-      // 如果频道是字符串，从数据库获取正确的名称
-      const channelName = await getChannelName(item.channel);
-      channelInfo = {
-        id: item.channel,
-        name: channelName,
-        slug: item.channel
-      };
-    } else {
-      // 如果频道是对象，优先使用现有的中文名称，否则从数据库获取
-      const slug = item.channel.slug || item.channel.id?.toString() || '';
-      let name = item.channel.name || '';
-      
-      // 如果名称是英文或为空，从数据库获取
-      if (!name || !/[\u4e00-\u9fa5]/.test(name)) {
-        name = await getChannelName(slug);
-      }
-      
-      channelInfo = {
-        id: slug,
-        name: name,
-        slug: slug
-      };
-    }
-  }
-  
+function transformToBreakingItem(item: any): BreakingNewsItem {
   return {
     id: item.id || item.article_id || 'unknown',
     title: item.title || '未知标题',
     slug: item.slug || `article-${item.id}`,
     publish_time: item.publish_time || item.publish_at || new Date().toISOString(),
-    channel: channelInfo,
+    channel: item.channel && typeof item.channel === 'object' ? {
+      id: item.channel.id || item.channel.slug || '',
+      name: item.channel.name || '首页',
+      slug: item.channel.slug || item.channel.id || ''
+    } : (typeof item.channel === 'string' ? {
+      id: item.channel,
+      name: item.channel === 'recommend' ? '首页' : item.channel,
+      slug: item.channel
+    } : undefined),
     is_urgent: item.is_breaking || item.is_urgent || item.is_featured || false,
   };
 }

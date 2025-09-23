@@ -289,7 +289,15 @@ def headlines(request):
                 "slug": p.slug,
                 "publish_time": p.first_published_at.isoformat() if getattr(p, 'first_published_at', None) else None,
                 "publish_at": p.first_published_at.isoformat() if getattr(p, 'first_published_at', None) else None,
-                "channel": getattr(p.channel, 'slug', 'recommend') if p.channel else 'recommend',
+                "channel": {
+                    "id": str(p.channel.id) if p.channel else 'recommend',
+                    "name": p.channel.name if p.channel else '首页',
+                    "slug": p.channel.slug if p.channel else 'recommend'
+                } if p.channel else {
+                    "id": 'recommend',
+                    "name": '首页', 
+                    "slug": 'recommend'
+                },
                 "topic": getattr(p, 'topic_slug', ''),
                 "author": getattr(p, 'author_name', ''),
                 "image_url": cover_url,  # 添加图片URL
