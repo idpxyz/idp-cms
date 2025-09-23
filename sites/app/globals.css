@@ -9,11 +9,84 @@
     --brand-secondary: #6b7280;
     --brand-radius: 0.5rem;
     --brand-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    --brand-font: 'Inter', system-ui, sans-serif;
+    --brand-font: 'Inter', 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+  }
+
+  /* 🔤 全局字体优化 */
+  html {
+    font-size: 16px; /* 基础字体大小从默认提升 */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    font-family: var(--brand-font);
+    font-size: 1rem;
+    line-height: 1.6;
+    letter-spacing: 0.01em;
+  }
+
+  /* 🎯 提升阅读体验的字体设置 */
+  h1, h2, h3, h4, h5, h6 {
+    font-weight: 600;
+    line-height: 1.3;
+    letter-spacing: -0.01em;
+  }
+
+  p, article, .article-content {
+    line-height: 1.7;
+    letter-spacing: 0.02em;
   }
 }
 
 @layer components {
+  /* 🔤 统一字体系统 - 在这里修改字体大小即可影响全站 */
+  
+  /* 新闻标题字体类 */
+  .news-title-large {
+    @apply text-xl sm:text-2xl font-bold text-gray-900 leading-tight;
+  }
+  
+  .news-title-medium {
+    @apply text-lg sm:text-xl font-semibold text-gray-900 leading-snug;
+  }
+  
+  .news-title-small {
+    @apply text-base sm:text-lg font-semibold text-gray-900 leading-snug;
+  }
+  
+  /* 新闻内容字体类 */
+  .news-excerpt {
+    @apply text-base text-gray-600 leading-relaxed;
+  }
+  
+  .news-meta {
+    @apply text-sm text-gray-500 font-medium;
+  }
+  
+  .news-meta-small {
+    @apply text-xs sm:text-sm text-gray-500;
+  }
+  
+  /* 页面标题字体类 */
+  .page-title {
+    @apply text-2xl sm:text-3xl font-bold text-gray-900 leading-tight;
+  }
+  
+  .section-title {
+    @apply text-xl font-bold text-gray-900 leading-tight;
+  }
+  
+  /* 交互元素字体类 */
+  .button-text {
+    @apply text-sm font-medium;
+  }
+  
+  .link-text {
+    @apply text-base font-medium hover:text-red-600 transition-colors;
+  }
+
   /* 品牌按钮 */
   .btn-brand {
     @apply px-4 py-2 rounded-md font-medium transition-colors duration-200;

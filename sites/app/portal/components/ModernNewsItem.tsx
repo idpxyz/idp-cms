@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { formatDateTime } from '@/lib/utils/date';
@@ -20,8 +20,12 @@ const ModernNewsItem: React.FC<ModernNewsItemProps> = ({
   index,
   showInteractions = true 
 }) => {
+  const [imageError, setImageError] = useState(false);
   const articleUrl = news.slug ? `/portal/article/${news.slug}` : 
                     (news.id ? `/portal/article/${news.id}` : (news.url || "/portal"));
+  
+  // 生成基于文章ID的随机Picsum图片
+  const picsumImageUrl = `https://picsum.photos/seed/${news.id || news.slug || Math.random()}/400/240?random=1`;
 
   return (
     <article className="group bg-white hover:bg-gray-50 transition-colors duration-200 border-b border-gray-100 last:border-b-0">
@@ -31,19 +35,19 @@ const ModernNewsItem: React.FC<ModernNewsItemProps> = ({
           {/* 新闻来源 */}
           <div className="flex items-center space-x-2 mb-2">
             {news.channel?.name && (
-              <span className="inline-flex items-center text-xs font-medium text-gray-600">
+              <span className="inline-flex items-center news-meta">
                 <span className="w-2 h-2 bg-red-500 rounded-full mr-1.5"></span>
                 {news.channel.name}
               </span>
             )}
-            <span className="text-xs text-gray-400">·</span>
-            <time className="text-xs text-gray-500">
+            <span className="news-meta-small text-gray-400">·</span>
+            <time className="news-meta">
               {formatDateTime(news.publish_time || news.publish_at)}
             </time>
           </div>
 
           {/* 标题 */}
-          <h3 className="text-base sm:text-lg font-semibold text-gray-900 line-clamp-2 mb-2 group-hover:text-red-600 transition-colors">
+          <h3 className="news-title-medium line-clamp-2 mb-2 group-hover:text-red-600 transition-colors">
             <Link
               href={articleUrl}
               onClick={() => onArticleClick(news.slug || news.id)}
@@ -55,7 +59,7 @@ const ModernNewsItem: React.FC<ModernNewsItemProps> = ({
 
           {/* 摘要 - 仅在较大屏幕显示 */}
           {news.excerpt && (
-            <p className="hidden sm:block text-sm text-gray-600 line-clamp-2 mb-3">
+            <p className="hidden sm:block news-excerpt line-clamp-2 mb-3">
               {news.excerpt}
             </p>
           )}
@@ -63,7 +67,7 @@ const ModernNewsItem: React.FC<ModernNewsItemProps> = ({
           {/* 底部互动区域 */}
           {showInteractions && (
             <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4 text-xs text-gray-500">
+              <div className="flex items-center space-x-4 news-meta-small">
                 {/* 点赞数 */}
                 <button className="flex items-center space-x-1 hover:text-red-500 transition-colors">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -110,25 +114,45 @@ const ModernNewsItem: React.FC<ModernNewsItemProps> = ({
         </div>
 
         {/* 右侧图片 */}
-        {news.image_url && (
-          <div className="flex-shrink-0">
-            <div className="relative w-24 h-16 sm:w-28 sm:h-18 bg-gray-200 rounded-lg overflow-hidden">
-              <Image
-                src={news.image_url}
-                alt={news.title}
-                fill
-                className="object-cover group-hover:scale-105 transition-transform duration-300"
-                sizes="(max-width: 640px) 96px, 112px"
-              />
-              {/* 阅读时间标签 */}
-              {news.reading_time && (
-                <div className="absolute bottom-1 right-1 bg-black/70 text-white text-xs px-1.5 py-0.5 rounded">
-                  {news.reading_time}min
-                </div>
-              )}
-            </div>
+        <div className="flex-shrink-0">
+          <div className="relative w-32 h-20 sm:w-36 sm:h-24 bg-gray-200 rounded-lg overflow-hidden">
+            <Image
+              src={(news.image_url && !imageError) ? news.image_url : picsumImageUrl}
+              alt={news.title}
+              fill
+              className="object-cover group-hover:scale-105 transition-transform duration-300"
+              sizes="(max-width: 640px) 128px, 144px"
+              onError={() => {
+                if (news.image_url && !imageError) {
+                  console.log('🖼️ Original image failed, using Picsum:', news.image_url);
+                  setImageError(true);
+                } else {
+                  console.log('🖼️ Picsum image failed:', picsumImageUrl);
+                }
+              }}
+              onLoad={() => {
+                if (news.image_url && !imageError) {
+                  console.log('✅ Original image loaded:', news.image_url);
+                } else {
+                  console.log('✅ Picsum image loaded:', picsumImageUrl);
+                }
+              }}
+            />
+            
+            {/* 图片来源标识 */}
+            {(!news.image_url || imageError) && process.env.NODE_ENV === 'development' && (
+              <div className="absolute top-1 right-1 bg-blue-500 text-white text-xs px-1 py-0.5 rounded opacity-75">
+                Picsum
+              </div>
+            )}
+            {/* 阅读时间标签 */}
+            {news.reading_time && (
+              <div className="absolute bottom-1 right-1 bg-black/70 text-white text-xs px-1.5 py-0.5 rounded">
+                {news.reading_time}min
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
     </article>
   );

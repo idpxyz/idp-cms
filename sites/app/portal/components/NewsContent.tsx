@@ -136,7 +136,7 @@ const NewsItem = ({
                         </div>
                       )}
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-medium text-gray-900 mb-2 line-clamp-2">
+                        <h3 className="news-title-small mb-2 line-clamp-2">
                           <a
                             href={news.slug ? `/portal/article/${news.slug}` : (news.id ? `/portal/article/${news.id}` : (news.url || "/portal"))}
                             className="hover:text-red-500 transition-colors"
@@ -177,7 +177,7 @@ const TodayHeadlines = ({
   onArticleClick: (slug: string) => void;
 }) => (
   <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-    <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
+    <h3 className="section-title mb-4 flex items-center">
       <span className="w-2 h-2 bg-red-500 rounded-full mr-2"></span>
       今日头条
     </h3>
@@ -207,7 +207,7 @@ const TodayHeadlines = ({
                 </div>
               </div>
             )}
-            <h4 className="font-medium text-gray-900 line-clamp-2 mb-2">
+            <h4 className="news-title-small line-clamp-2 mb-2">
               <a
                 href={`/portal/article/${headline.slug}`}
                 className="hover:text-red-500 transition-colors"
@@ -216,7 +216,7 @@ const TodayHeadlines = ({
                 {headline.title}
               </a>
             </h4>
-            <div className="text-xs text-gray-500 flex justify-between">
+            <div className="news-meta flex justify-between">
               <span>{headline.source || headline.author}</span>
               <span>{formatDateTime(headline.publish_time || headline.publish_at)}</span>
             </div>
@@ -1288,7 +1288,7 @@ export default function NewsContent({
                       </div>
                     )}
                     <div className="p-6">
-                      <h3 className="text-xl font-bold text-gray-900 mb-3 line-clamp-2">
+                      <h3 className="news-title-large mb-3 line-clamp-2">
                         <a
                           href={news.slug ? `/portal/article/${news.slug}` : (news.id ? `/portal/article/${news.id}` : (news.url || "/portal"))}
                           className="hover:text-red-500 transition-colors"
@@ -1297,7 +1297,7 @@ export default function NewsContent({
                           {news.title}
                         </a>
                       </h3>
-                      <p className="text-gray-600 mb-4 line-clamp-3">
+                      <p className="news-excerpt mb-4 line-clamp-3">
                         {news.excerpt || '暂无摘要'}
                       </p>
                       <div className="flex items-center justify-between text-sm text-gray-500">
