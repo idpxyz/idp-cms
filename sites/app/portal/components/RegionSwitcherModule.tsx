@@ -11,13 +11,13 @@ export default function RegionSwitcherModule() {
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-      <h3 className="text-lg font-bold text-gray-900 mb-4">切换地区</h3>
+      <h3 className="section-title mb-4">切换地区</h3>
       <div className="grid grid-cols-2 gap-3">
         {regions.map((r) => (
           <a
             key={r.slug}
             href={`/${r.slug}`}
-            className="text-sm px-3 py-2 rounded border border-gray-200 hover:border-red-300 hover:text-red-500 transition-colors text-center"
+            className="news-meta px-3 py-2 rounded border border-gray-200 hover:border-red-300 hover:text-red-500 transition-colors text-center"
           >
             {r.name}
           </a>

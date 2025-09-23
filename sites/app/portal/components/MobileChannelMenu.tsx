@@ -135,7 +135,7 @@ const MobileChannelMenu: React.FC<MobileChannelMenuProps> = ({
       >
         {/* 头部 */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gray-50">
-          <h2 className="text-lg font-bold text-gray-900">频道导航</h2>
+          <h2 className="section-title">频道导航</h2>
           <button
             onClick={onClose}
             className="p-2 hover:bg-gray-200 rounded-full transition-colors"
@@ -151,7 +151,7 @@ const MobileChannelMenu: React.FC<MobileChannelMenuProps> = ({
         <div className="flex-1 overflow-y-auto">
           {/* 频道列表 */}
           <div className="p-4">
-            <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-3">
+            <h3 className="news-meta font-medium text-gray-500 uppercase tracking-wide mb-3">
               频道
             </h3>
             
@@ -202,7 +202,7 @@ const MobileChannelMenu: React.FC<MobileChannelMenuProps> = ({
                           {/* 分类列表 */}
                           {categories.length > 0 && (
                             <div>
-                              <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
+                              <h4 className="news-meta-small font-medium text-gray-500 uppercase tracking-wide mb-2">
                                 分类
                               </h4>
                               <div className="space-y-1">
@@ -211,12 +211,12 @@ const MobileChannelMenu: React.FC<MobileChannelMenuProps> = ({
                                     key={category.id}
                                     href={`/portal/channel/${channel.slug}/category/${category.slug}`}
                                     onClick={onClose}
-                                    className="block p-2 text-sm text-gray-600 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                                    className="block p-2 news-meta text-gray-600 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
                                   >
                                     <div className="flex items-center justify-between">
                                       <span>{category.name}</span>
                                       {category.article_count && (
-                                        <span className="text-xs text-gray-400">
+                                        <span className="news-meta-small text-gray-400">
                                           {category.article_count > 1000 
                                             ? `${Math.floor(category.article_count / 1000)}k` 
                                             : category.article_count}
@@ -231,7 +231,7 @@ const MobileChannelMenu: React.FC<MobileChannelMenuProps> = ({
                                 <Link
                                   href={`/portal/channel/${channel.slug}/categories`}
                                   onClick={onClose}
-                                  className="block mt-2 p-2 text-sm text-red-600 hover:bg-red-50 rounded text-center"
+                                  className="block mt-2 p-2 news-meta text-red-600 hover:bg-red-50 rounded text-center"
                                 >
                                   查看全部分类 →
                                 </Link>
@@ -242,7 +242,7 @@ const MobileChannelMenu: React.FC<MobileChannelMenuProps> = ({
                           {/* 热门文章 */}
                           {hotArticles.length > 0 && (
                             <div>
-                              <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
+                              <h4 className="news-meta-small font-medium text-gray-500 uppercase tracking-wide mb-2">
                                 热门文章
                               </h4>
                               <div className="space-y-2">
@@ -260,10 +260,10 @@ const MobileChannelMenu: React.FC<MobileChannelMenuProps> = ({
                                         {index + 1}
                                       </span>
                                       <div className="flex-1 min-w-0">
-                                        <p className="text-sm text-gray-900 line-clamp-2 leading-tight">
+                                        <p className="news-meta text-gray-900 line-clamp-2 leading-tight">
                                           {article.title}
                                         </p>
-                                        <p className="text-xs text-gray-500 mt-1">
+                                        <p className="news-meta-small text-gray-500 mt-1">
                                           {article.view_count && `${article.view_count > 1000 
                                             ? `${Math.floor(article.view_count / 1000)}k` 
                                             : article.view_count} 阅读`}
@@ -277,7 +277,7 @@ const MobileChannelMenu: React.FC<MobileChannelMenuProps> = ({
                               <Link
                                 href={`/portal/channel/${channel.slug}/hot`}
                                 onClick={onClose}
-                                className="block mt-2 p-2 text-sm text-red-600 hover:bg-red-50 rounded text-center"
+                                className="block mt-2 p-2 news-meta text-red-600 hover:bg-red-50 rounded text-center"
                               >
                                 查看更多热门 →
                               </Link>

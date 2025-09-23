@@ -142,7 +142,7 @@ const MegaMenu: React.FC<MegaMenuProps> = ({
               };
               fetchData();
             }}
-            className="text-red-600 hover:text-red-700 text-sm"
+            className="text-red-600 hover:text-red-700 button-text"
           >
             重试
           </button>
@@ -157,12 +157,12 @@ const MegaMenu: React.FC<MegaMenuProps> = ({
             {/* 左侧：分类 Chips */}
             <div className="lg:col-span-2">
               <div className="flex items-center justify-between mb-3 lg:mb-4">
-                <h3 className="text-base lg:text-lg font-bold text-gray-900">
+                <h3 className="news-title-small font-bold text-gray-900">
                   {channelName} 分类
                 </h3>
                 <Link
                   href={`/portal/channel/${channelSlug}/categories`}
-                  className="text-xs lg:text-sm text-red-600 hover:text-red-700 flex items-center space-x-1"
+                  className="news-meta-small text-red-600 hover:text-red-700 flex items-center space-x-1"
                   onClick={onClose}
                 >
                   <span>全部分类</span>
@@ -183,17 +183,17 @@ const MegaMenu: React.FC<MegaMenuProps> = ({
                     role="menuitem"
                   >
                     <div className="flex items-center justify-between mb-1 lg:mb-2">
-                      <h4 className="text-sm lg:text-base font-medium text-gray-900 group-hover:text-red-600 transition-colors">
+                      <h4 className="news-meta font-medium text-gray-900 group-hover:text-red-600 transition-colors">
                         {category.name}
                       </h4>
                       {category.article_count !== undefined && (
-                        <span className="text-xs text-gray-500 bg-white px-1.5 lg:px-2 py-0.5 lg:py-1 rounded-full">
+                        <span className="news-meta-small text-gray-500 bg-white px-1.5 lg:px-2 py-0.5 lg:py-1 rounded-full">
                           {formatCount(category.article_count)}
                         </span>
                       )}
                     </div>
                     {category.description && (
-                      <p className="text-xs text-gray-600 line-clamp-2 hidden lg:block">
+                      <p className="news-meta-small text-gray-600 line-clamp-2 hidden lg:block">
                         {category.description}
                       </p>
                     )}
@@ -205,12 +205,12 @@ const MegaMenu: React.FC<MegaMenuProps> = ({
             {/* 右侧：本频道最热 Top-5 */}
             <div className="lg:col-span-1">
               <div className="flex items-center justify-between mb-3 lg:mb-4">
-                <h3 className="text-base lg:text-lg font-bold text-gray-900">
+                <h3 className="news-title-small font-bold text-gray-900">
                   本频道最热
                 </h3>
                 <Link
                   href={`/portal/channel/${channelSlug}/hot`}
-                  className="text-xs lg:text-sm text-red-600 hover:text-red-700"
+                  className="news-meta-small text-red-600 hover:text-red-700"
                   onClick={onClose}
                 >
                   更多
@@ -231,7 +231,7 @@ const MegaMenu: React.FC<MegaMenuProps> = ({
                       {/* 排名 */}
                       <div className="flex-shrink-0 w-5 lg:w-6 h-5 lg:h-6 flex items-center justify-center">
                         <span 
-                          className={`text-xs lg:text-sm font-bold ${
+                          className={`news-meta-small font-bold ${
                             index < 3 
                               ? 'text-red-600' 
                               : 'text-gray-500'
@@ -254,30 +254,30 @@ const MegaMenu: React.FC<MegaMenuProps> = ({
                           />
                         ) : (
                           <div className="w-full h-full bg-gradient-to-r from-gray-300 to-gray-400 flex items-center justify-center">
-                            <span className="text-gray-600 text-xs">暂无图</span>
+                            <span className="text-gray-600 news-meta-small">暂无图</span>
                           </div>
                         )}
                       </div>
 
                       {/* 内容 */}
                       <div className="flex-1 min-w-0">
-                        <h4 className="text-xs lg:text-sm font-medium text-gray-900 line-clamp-2 group-hover:text-red-600 transition-colors mb-1">
+                        <h4 className="news-meta-small font-medium text-gray-900 line-clamp-2 group-hover:text-red-600 transition-colors mb-1">
                           {article.title}
                         </h4>
                         
-                        <div className="flex items-center justify-between text-xs text-gray-500">
-                          <span className="text-xs">{formatTimeAgo(article.publish_time)}</span>
+                        <div className="flex items-center justify-between news-meta-small text-gray-500">
+                          <span className="news-meta-small">{formatTimeAgo(article.publish_time)}</span>
                           <div className="flex items-center space-x-1 lg:space-x-2">
                             <span className="hidden lg:inline">{formatCount(article.view_count)}阅读</span>
                             {(article.is_breaking || article.is_live) && (
                               <div className="flex space-x-0.5 lg:space-x-1">
                                 {article.is_breaking && (
-                                  <span className="bg-red-500 text-white text-xs px-1 py-0.5 rounded">
+                                  <span className="bg-red-500 text-white news-meta-small px-1 py-0.5 rounded">
                                     突发
                                   </span>
                                 )}
                                 {article.is_live && (
-                                  <span className="bg-red-600 text-white text-xs px-1 py-0.5 rounded">
+                                  <span className="bg-red-600 text-white news-meta-small px-1 py-0.5 rounded">
                                     直播
                                   </span>
                                 )}
@@ -299,21 +299,21 @@ const MegaMenu: React.FC<MegaMenuProps> = ({
               <div className="flex space-x-6">
                 <Link
                   href={`/portal/channel/${channelSlug}`}
-                  className="text-sm text-gray-600 hover:text-red-600 transition-colors"
+                  className="news-meta text-gray-600 hover:text-red-600 transition-colors"
                   onClick={onClose}
                 >
                   进入{channelName}频道
                 </Link>
                 <Link
                   href={`/portal/channel/${channelSlug}/latest`}
-                  className="text-sm text-gray-600 hover:text-red-600 transition-colors"
+                  className="news-meta text-gray-600 hover:text-red-600 transition-colors"
                   onClick={onClose}
                 >
                   最新文章
                 </Link>
                 <Link
                   href={`/portal/channel/${channelSlug}/featured`}
-                  className="text-sm text-gray-600 hover:text-red-600 transition-colors"
+                  className="news-meta text-gray-600 hover:text-red-600 transition-colors"
                   onClick={onClose}
                 >
                   精选内容

@@ -25,7 +25,7 @@ export default function HotTopicsModule() {
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-      <h3 className="text-lg font-bold text-gray-900 mb-4">热门话题</h3>
+      <h3 className="section-title mb-4">热门话题</h3>
       {loading ? (
         <div className="space-y-3">
           {[...Array(5)].map((_, i) => (
@@ -37,21 +37,21 @@ export default function HotTopicsModule() {
           {topics.map((topic: any, index: number) => (
             <div key={`topic-${topic.slug || topic.id || index}`} className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <span className="text-sm font-medium text-red-500">{index + 1}</span>
+                <span className="news-meta font-medium text-red-500">{index + 1}</span>
                 {topic.slug ? (
-                  <a href={`/portal/topic/${topic.slug}`} className="text-sm text-gray-700 hover:text-red-500 transition-colors">
+                  <a href={`/portal/topic/${topic.slug}`} className="news-meta text-gray-700 hover:text-red-500 transition-colors">
                     {topic.title}
                   </a>
                 ) : (
-                  <span className="text-sm text-gray-700">{topic.title}</span>
+                  <span className="news-meta text-gray-700">{topic.title}</span>
                 )}
               </div>
-              <span className="text-xs text-gray-400">🔥 {Math.round(topic.heat ?? Math.max(20, Math.min(90, (topic.article_count || 0) * 10)))}</span>
+              <span className="news-meta-small text-gray-400">🔥 {Math.round(topic.heat ?? Math.max(20, Math.min(90, (topic.article_count || 0) * 10)))}</span>
             </div>
           ))}
         </div>
       ) : (
-        <p className="text-gray-500 text-sm">暂无热门话题</p>
+        <p className="text-gray-500 news-meta">暂无热门话题</p>
       )}
     </div>
   );
