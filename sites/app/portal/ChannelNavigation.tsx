@@ -375,7 +375,7 @@ function ChannelNavigation({
   // 🎯 修复水合不匹配：在客户端未加载前显示占位符
   if (!isClient) {
     return (
-      <section className="bg-white sticky z-30" style={{ top: "var(--sticky-offset)" }}>
+      <section className="bg-white border-b border-gray-200 sticky z-30" style={{ top: "var(--sticky-offset)" }}>
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex items-center space-x-4 py-3 md:py-3.5">
             <div className="flex space-x-4">
@@ -398,7 +398,7 @@ function ChannelNavigation({
   // 如果没有频道数据且不在加载中，显示错误提示
   if (!loading && channels.length === 0) {
     return (
-      <section className="bg-white sticky z-30" style={{ top: "var(--sticky-offset)" }}>
+      <section className="bg-white border-b border-gray-200 sticky z-30" style={{ top: "var(--sticky-offset)" }}>
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex items-center justify-center py-3 md:py-3.5">
             <div className="text-gray-500 text-sm">
@@ -445,7 +445,7 @@ function ChannelNavigation({
   };
 
   return (
-    <section className="bg-white sticky z-30" style={{ top: "var(--sticky-offset)" }}>
+    <section className="bg-white border-b border-gray-200 sticky z-30" style={{ top: "var(--sticky-offset)" }}>
       <div className="max-w-7xl mx-auto px-4">
         <div
           className="flex items-center space-x-4 py-3 md:py-3.5 transition-all duration-200"
