@@ -238,8 +238,8 @@ export default function TopStoriesGrid({
   // 主要新闻（左侧大图轮播）- 全部9条都参与轮播
   const mainItems = gridItems;
   const currentMainItem = mainItems[currentMainIndex] || mainItems[0];
-  // 侧边新闻（右侧列表）- 显示除当前轮播项外的其他新闻
-  const sideItems = gridItems.filter((_, index) => index !== currentMainIndex).slice(0, 8);
+  // 侧边新闻（右侧列表）- 显示除当前轮播项外的其他新闻，优化数量
+  const sideItems = gridItems.filter((_, index) => index !== currentMainIndex).slice(0, 6);
 
   return (
     <section className={`bg-white ${className}`}>
@@ -259,19 +259,19 @@ export default function TopStoriesGrid({
         )}
       </div>
 
-      {/* 网格布局 */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
+      {/* 网格布局 - 响应式优化 */}
+      <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-5 gap-6 lg:gap-8">
         {/* 主要新闻 - 左侧大图轮播 */}
         {currentMainItem && (
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-3">
             <article 
               className="group cursor-pointer relative"
               onMouseEnter={handleMouseEnter}
               onMouseLeave={handleMouseLeave}
             >
               <Link href={`/portal/article/${currentMainItem.slug}`} className="block">
-                {/* 图片容器 */}
-                <div className="relative aspect-[16/9] mb-4 overflow-hidden rounded-lg bg-gray-200">
+                {/* 图片容器 - 响应式优化 */}
+                <div className="relative aspect-[16/9] sm:aspect-[16/9] md:aspect-[16/9] lg:aspect-[16/9] mb-4 overflow-hidden rounded-lg bg-gray-200">
                   <Image
                     src={currentMainItem.image_url || getTopStoryPlaceholderImage(currentMainItem)}
                     alt={currentMainItem.title}
@@ -354,9 +354,9 @@ export default function TopStoriesGrid({
                 </div>
               </Link>
               
-              {/* 轮播指示器 - 放在图片区域内，不会遮挡文字 */}
+              {/* 轮播指示器 - 响应式位置优化 */}
               {showMainNewsDots && mainItems.length > 1 && (
-                <div className="absolute top-4 right-4 flex space-x-2">
+                <div className="absolute top-3 right-3 sm:top-4 sm:right-4 flex space-x-2">
                   {mainItems.map((_, index) => (
                     <button
                       key={index}
@@ -375,36 +375,36 @@ export default function TopStoriesGrid({
           </div>
         )}
 
-        {/* 侧边新闻列表 - 右侧 */}
+        {/* 侧边新闻列表 - 右侧（桌面）/ 下方（移动） */}
         {sideItems.length > 0 && (
-          <div className="space-y-4">
+          <div className="lg:col-span-2 space-y-5 mt-6 lg:mt-0">
             {sideItems.map((item, index) => (
               <article key={item.id} className="group cursor-pointer">
                 <Link href={`/portal/article/${item.slug}`} className="block">
-                  <div className="flex space-x-3">
-                    {/* 小图 */}
-                    <div className="flex-shrink-0 w-20 h-14 overflow-hidden rounded bg-gray-200">
+                  <div className="flex space-x-4">
+                    {/* 优化后的图片 - 增大尺寸 */}
+                    <div className="flex-shrink-0 w-28 h-20 sm:w-32 sm:h-22 overflow-hidden rounded-lg bg-gray-200">
                       <Image
                         src={item.image_url || getSideNewsPlaceholderImage(item)}
                         alt={item.title}
-                        width={80}
-                        height={56}
+                        width={128}
+                        height={88}
                         className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                        sizes="80px"
+                        sizes="(max-width: 640px) 112px, 128px"
                         placeholder="blur"
-                        blurDataURL="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0nODAnIGhlaWdodD0nNTYnIHhtbG5zPSdodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2Zyc+PHJlY3QgZmlsbD0iI2VlZSIgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIvPjwvc3ZnPi"
+                        blurDataURL="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0nMTI4JyBoZWlnaHQ9Jzg4JyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnPjxyZWN0IGZpbGw9IiNlZWUiIHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiLz48L3N2Zz4="
                       />
                     </div>
 
                     {/* 文章信息 */}
-                    <div className="flex-1 min-w-0">
-                      {/* 标题 */}
-                      <h4 className="news-title-small line-clamp-2 group-hover:text-red-600 transition-colors mb-1">
+                    <div className="flex-1 min-w-0 flex flex-col justify-between">
+                      {/* 标题 - 优化行高和间距 */}
+                      <h4 className="news-title-small line-clamp-3 group-hover:text-red-600 transition-colors mb-2 leading-snug">
                         {item.title}
                       </h4>
                       
                       {/* 元信息 */}
-                      <div className="flex items-center justify-between news-meta-small">
+                      <div className="flex items-center justify-between news-meta-small mt-auto">
                         <div className="flex items-center space-x-2">
                           {item.channel && (
                             <span className="text-red-600 font-medium group-hover:text-red-700">

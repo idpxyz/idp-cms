@@ -10,6 +10,7 @@ import { getHeroItems } from "./components/HeroCarousel.utils";
 import TopStoriesGrid from "./components/TopStoriesGrid";
 import ChannelStrip from "./components/ChannelStrip";
 import ChannelPageRenderer from "./components/ChannelPageRenderer";
+import { getTopStories } from "./components/TopStoriesGrid.utils";
 
 // 获取要在首页显示的频道条带（简化版）
 function getHomepageChannelStrips(channels: any[]): any[] {
@@ -102,8 +103,18 @@ export default async function PortalPage({ searchParams }: { searchParams?: Prom
   const initialChannelId = channels[0]?.id || "";
   const channelStrips = getHomepageChannelStrips(channels);
   
-  // 获取 Hero 轮播数据 (TopStories 改为客户端获取)
-  const heroItems = await getHeroItems(5);
+  // 🚀 并行获取 Hero 轮播数据和头条新闻数据
+  const [heroItems, topStoriesData] = await Promise.all([
+    getHeroItems(5),
+    getTopStories(9, { 
+      hours: 24, 
+      diversity: 'high', 
+      excludeClusterIds: [] 
+    }).catch(error => {
+      console.error("Failed to fetch top stories:", error);
+      return []; // 获取失败时返回空数组，不影响页面渲染
+    })
+  ]);
 
 
   return (
@@ -130,16 +141,11 @@ export default async function PortalPage({ searchParams }: { searchParams?: Prom
 
       <PageContainer padding="md">
         
-        {/* Top Stories 头条网格 - 客户端获取数据 */}
+        {/* Top Stories 头条网格 - 服务端预获取数据 */}
         <Section space="md">
           <TopStoriesGrid 
-            autoFetch={true}
-            fetchLimit={9}
-            fetchOptions={{ 
-              hours: 24, 
-              diversity: 'high', 
-              excludeClusterIds: [] 
-            }}
+            items={topStoriesData}
+            autoFetch={false}
             title="头条新闻"
             showViewMore={true}
             viewMoreLink="/portal/news"
