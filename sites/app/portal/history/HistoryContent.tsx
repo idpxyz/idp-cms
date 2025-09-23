@@ -13,6 +13,7 @@ export default function HistoryContent() {
   const {
     history,
     isLoading: historyLoading,
+    totalItems,
     removeFromHistory,
     removeMultipleFromHistory,
     clearHistory,
@@ -33,45 +34,7 @@ export default function HistoryContent() {
     }
   }, [authLoading, isAuthenticated, router]);
 
-  // 生成一些模拟数据（用于演示）
-  useEffect(() => {
-    if (isAuthenticated && history.length === 0 && !historyLoading) {
-      // 模拟一些阅读历史数据
-      const mockHistory = [
-        {
-          id: '1',
-          title: '人工智能技术在新闻行业的创新应用探索',
-          slug: 'ai-in-news-industry',
-          excerpt: '人工智能正在革命性地改变新闻采编、分发和个性化推荐的方式，为读者带来更精准的信息服务。',
-          image_url: 'https://picsum.photos/400/240?random=1',
-          channel: { name: '科技', slug: 'tech' },
-          author: '张记者',
-          source: '科技日报',
-          publish_time: new Date(Date.now() - 86400000).toISOString(),
-          readTime: new Date(Date.now() - 3600000).toISOString(),
-          readDuration: 180,
-          readProgress: 85,
-        },
-        {
-          id: '2',
-          title: '5G网络建设推动智慧城市发展新篇章',
-          slug: '5g-smart-city-development',
-          excerpt: '随着5G基础设施的完善，智慧城市建设进入新阶段，物联网应用场景不断扩展。',
-          image_url: 'https://picsum.photos/400/240?random=2',
-          channel: { name: '科技', slug: 'tech' },
-          author: '李编辑',
-          source: '通信周刊',
-          publish_time: new Date(Date.now() - 172800000).toISOString(),
-          readTime: new Date(Date.now() - 7200000).toISOString(),
-          readDuration: 240,
-          readProgress: 100,
-        }
-      ];
-      
-      // 这里应该调用 addToHistory，但为了演示直接设置
-      console.log('Mock history data would be added here');
-    }
-  }, [isAuthenticated, history.length, historyLoading]);
+  // 直接使用真实的history数据，不使用模拟数据
 
   // 处理单个删除
   const handleRemoveItem = async (articleId: string) => {
@@ -176,7 +139,7 @@ export default function HistoryContent() {
         <div className="flex items-center justify-between mb-4">
           <div>
             <h1 className="text-2xl font-bold text-gray-900 mb-2">阅读历史</h1>
-            <p className="text-gray-600">您的个人阅读足迹 ({history.length} 篇文章)</p>
+            <p className="text-gray-600">您的个人阅读足迹 ({totalItems} 篇文章)</p>
           </div>
           
           {/* 视图切换 */}
@@ -217,7 +180,7 @@ export default function HistoryContent() {
         {showStats && (
           <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 p-4 bg-gray-50 rounded-lg">
             <div className="text-center">
-              <div className="text-2xl font-bold text-gray-900">{stats.totalArticles}</div>
+              <div className="text-2xl font-bold text-gray-900">{totalItems}</div>
               <div className="text-sm text-gray-600">总阅读量</div>
             </div>
             <div className="text-center">
@@ -351,9 +314,9 @@ export default function HistoryContent() {
                         <div className="flex items-center text-sm text-gray-500 space-x-4">
                           <span className="flex items-center">
                             <span className="inline-block w-2 h-2 bg-red-500 rounded-full mr-2"></span>
-                            {item.channel.name}
+                            {item.channel?.name || '未知频道'}
                           </span>
-                          <span>{item.author}</span>
+                          <span>{item.author || '未知作者'}</span>
                           <span>阅读时长: {formatDuration(item.readDuration)}</span>
                         </div>
                         
@@ -392,7 +355,7 @@ export default function HistoryContent() {
         ) : (
           // 列表模式显示
           <div className="divide-y divide-gray-200">
-            {history.map((item) => (
+                  {history.map((item) => (
               <div key={item.id} className="p-6 hover:bg-gray-50 transition-colors">
                 <div className="flex items-start space-x-4">
                   {/* 选择框 */}
@@ -438,9 +401,9 @@ export default function HistoryContent() {
                         <div className="flex items-center text-sm text-gray-500 space-x-4">
                           <span className="flex items-center">
                             <span className="inline-block w-2 h-2 bg-red-500 rounded-full mr-2"></span>
-                            {item.channel.name}
+                            {item.channel?.name || '未知频道'}
                           </span>
-                          <span>{item.author}</span>
+                          <span>{item.author || '未知作者'}</span>
                           <span>阅读于 {formatDateTime(item.readTime)}</span>
                           <span>时长: {formatDuration(item.readDuration)}</span>
                         </div>
