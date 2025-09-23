@@ -83,6 +83,7 @@ def build_query(name:str, **params)->dict:
         replace_in_dict(obj, "__SEEN_IDS__", seen_ids)
     else:
         # Remove the must_not condition if seen_ids is empty
+        # Handle function_score queries
         if "query" in obj and "function_score" in obj["query"]:
             if "bool" in obj["query"]["function_score"]["query"]:
                 if "must_not" in obj["query"]["function_score"]["query"]["bool"]:
@@ -92,6 +93,15 @@ def build_query(name:str, **params)->dict:
                     # If must_not is now empty, remove it entirely
                     if not must_not:
                         del obj["query"]["function_score"]["query"]["bool"]["must_not"]
+        # Handle simple bool queries (for hero template)
+        elif "query" in obj and "bool" in obj["query"]:
+            if "must_not" in obj["query"]["bool"]:
+                # Find and remove the article_id terms query from must_not
+                must_not = obj["query"]["bool"]["must_not"]
+                must_not[:] = [item for item in must_not if not (isinstance(item, dict) and "terms" in item and ("article_id" in item["terms"] or "article_id.keyword" in item["terms"]))]
+                # If must_not is now empty, remove it entirely
+                if not must_not:
+                    del obj["query"]["bool"]["must_not"]
     
     # Handle size parameter
     size = params.get("size")

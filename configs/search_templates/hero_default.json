@@ -1,0 +1,62 @@
+{
+  "query": {
+    "bool": {
+      "must": [
+        {
+          "range": {
+            "publish_time": {
+              "gte": "now-__HOURS__h/h"
+            }
+          }
+        },
+        {
+          "term": {
+            "is_hero": true
+          }
+        }
+      ],
+      "must_not": [
+        {
+          "terms": {
+            "article_id.keyword": "__SEEN_IDS__"
+          }
+        }
+      ],
+      "should": "__CHANNELS_CONDITION__"
+    }
+  },
+  "sort": [
+    {
+      "weight": {
+        "order": "desc"
+      }
+    },
+    {
+      "publish_time": {
+        "order": "desc"
+      }
+    }
+  ],
+  "size": "__SIZE__",
+  "_source": {
+    "includes": [
+      "article_id",
+      "title",
+      "excerpt",
+      "image_url",
+      "author",
+      "source",
+      "publish_time",
+      "channel",
+      "topic",
+      "slug",
+      "is_featured",
+      "is_breaking",
+      "is_live",
+      "has_video",
+      "tags",
+      "weight",
+      "is_hero"
+    ]
+  }
+}

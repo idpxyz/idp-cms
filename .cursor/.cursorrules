@@ -14,7 +14,7 @@
 - 训练：LightGBM 排序（文件工件 + 别名 `models/alias.json`）；开关走 flags。
 - 模型：统一放在 `apps/core/models.py` 中，不要在其他地方定义模型。
 - 迁移：每次改模型必须生成 `makemigrations`；**禁止**在 PR 里手写/拼装历史迁移。
-- 运行：我们的项目运行在 Docker 容器中，所以不需要考虑本地运行。使用'docker compose' 运行容器，不要使用'docker-compose'，不要直接使用python 命令。
+- 运行：我们的项目运行在 Docker 容器中，所以不需要考虑本地运行。使用'docker compose' 运行容器。
 - 环境: Docker compose 的配置文件在'infra/local/docker-compose.yaml'
 
 ## 1) 目录与边界（生成代码前必须检查）

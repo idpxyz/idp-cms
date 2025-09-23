@@ -187,12 +187,20 @@ def headlines(request):
     
     # 🎯 根据模式选择查询模板
     mode = request.query_params.get("mode", "").lower()
-    query_template = "topstories_default" if mode == "topstories" else "recommend_default"
+    if mode == "topstories":
+        query_template = "topstories_default"
+    elif mode == "hero":
+        query_template = "hero_default"
+    else:
+        query_template = "recommend_default"
     
-    # 🎯 TopStories模式不限制频道，获取所有频道的优质内容
+    # 🎯 根据模式设置频道筛选策略
     if mode == "topstories":
         # TopStories模式：如果没有指定频道，则不限制频道（传递None或空列表让查询模板处理）
         query_channels = req_channels if req_channels else []
+    elif mode == "hero":
+        # Hero模式：不限制频道，获取所有标记为Hero的内容
+        query_channels = []
     else:
         # 普通模式：使用默认的热门频道
         query_channels = req_channels if req_channels else ["hot", "trending"]
