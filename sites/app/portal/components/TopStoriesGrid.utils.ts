@@ -1,7 +1,8 @@
 import { fetchTrendingFeed } from '@/lib/api/feed';
 import { getNews } from '@/lib/api/news';
 import { TopStoryItem } from './TopStoriesGrid';
-import { buildBackendApiUrl } from '@/lib/utils/api-url';
+import { endpoints } from '@/lib/config/endpoints';
+import { getTopStoriesDefaultHours, getTopStoriesRetryHours } from '@/lib/config/content-timing';
 
 // 现代化前端缓存系统
 interface ModernCacheItem {
@@ -141,7 +142,7 @@ export async function getTopStories(
     // 构建现代缓存key
     const params = new URLSearchParams({
       size: limit.toString(),
-      hours: String(options?.hours ?? 24),
+      hours: String(options?.hours ?? getTopStoriesDefaultHours()), // 🎯 使用集中化配置
       diversity: String(options?.diversity ?? 'high'),
       site: 'aivoya.com'
     });
@@ -152,7 +153,7 @@ export async function getTopStories(
     }
     
     // 🎯 使用专用的TopStories API端点
-    const apiUrl = buildBackendApiUrl(`/api/topstories/?${params.toString()}`);
+    const apiUrl = endpoints.getCmsEndpoint(`/api/topstories/?${params.toString()}`);
     const cacheKey = `topstories_v4_${apiUrl.replace(/[^a-zA-Z0-9]/g, '_')}`;
     
     // 检查现代前端缓存
@@ -200,7 +201,7 @@ export async function getTopStories(
     console.log('📝 No TopStories found, trying with relaxed parameters...');
     const retryParams = new URLSearchParams({
       size: limit.toString(),
-      hours: String(options?.hours ?? 168), // 7天
+      hours: String(getTopStoriesRetryHours(options?.hours)), // 🎯 使用集中化重试配置
       diversity: String(options?.diversity ?? 'med'), // 放宽多样性
       site: 'aivoya.com'
     });
@@ -210,7 +211,7 @@ export async function getTopStories(
       options.excludeClusterIds.forEach(id => retryParams.append('exclude_cluster_ids', id));
     }
     
-    const retryUrl = buildBackendApiUrl(`/api/topstories/?${retryParams.toString()}`);
+    const retryUrl = endpoints.getCmsEndpoint(`/api/topstories/?${retryParams.toString()}`);
     console.log(`🔄 Retrying TopStories with relaxed params: ${retryUrl}`);
     
     const retryRes = await fetch(retryUrl, {

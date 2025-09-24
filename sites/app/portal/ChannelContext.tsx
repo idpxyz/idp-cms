@@ -80,11 +80,8 @@ interface ChannelContextType {
 
 const ChannelContext = createContext<ChannelContextType | undefined>(undefined);
 
-// 最小化默认频道列表 - 仅包含首页频道，避免硬编码数据库频道
-// 真实频道数据应该完全来自数据库API
-const DEFAULT_CHANNELS: Channel[] = [
-  { id: "recommend", name: "首页", slug: "recommend", order: -1 },
-];
+// 空的默认频道列表 - 所有频道数据都应该来自数据库API
+const DEFAULT_CHANNELS: Channel[] = [];
 
 interface ChannelProviderProps {
   children: ReactNode;
@@ -168,7 +165,7 @@ export function ChannelProvider({ children, initialChannels }: ChannelProviderPr
   const fetchChannels = async (): Promise<Channel[]> => {
     try {
       const channelsUrl = endpoints.buildUrl(
-        endpoints.getCmsEndpoint('/api/channels'),
+        endpoints.getCmsEndpoint('/api/channels/'),
         { site: getMainSite().hostname }
       );
 
@@ -194,15 +191,12 @@ export function ChannelProvider({ children, initialChannels }: ChannelProviderPr
         console.log('Successfully fetched channels from backend:', data.channels.length);
         
         const channels = data.channels;
-        const recommendChannel = { id: "recommend", name: "首页", slug: "recommend", order: -1 };
-        const otherChannels = channels
-          .filter((ch: any) => ch.slug !== "recommend")
-          .map((ch: any) => ({
-            ...ch,
-            id: ch.slug // 使用slug作为ID，保持与前端期望的字符串ID一致
-          }));
+        const realChannels = channels.map((ch: any) => ({
+          ...ch,
+          id: ch.slug // 使用slug作为ID，保持与前端期望的字符串ID一致
+        }));
         
-        return [recommendChannel, ...otherChannels];
+        return realChannels;
       } else {
         const errorData = await response.json().catch(() => ({}));
         console.warn(`Backend API error: ${response.status} - ${errorData.error || response.statusText}`);

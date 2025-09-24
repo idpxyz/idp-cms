@@ -10,6 +10,12 @@ from pathlib import Path
 from datetime import timedelta
 from corsheaders.defaults import default_headers
 
+# 导入环境变量验证器
+from config.env_validator import EnvValidator, auto_validate
+
+# 自动验证环境变量
+auto_validate()
+
 # 项目根目录 - 包含manage.py的目录
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
@@ -18,10 +24,10 @@ APPS_DIR = BASE_DIR / "apps"
 if str(APPS_DIR) not in sys.path:
     sys.path.insert(0, str(APPS_DIR))
 
-# 安全配置
-SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "dev-secret-key-change-in-production")
-DEBUG = int(os.getenv("DJANGO_DEBUG", "0")) == 1
-ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS", "*").split(",")
+# 安全配置 - 使用验证器方法
+SECRET_KEY = EnvValidator.get_str("DJANGO_SECRET_KEY", "dev-secret-key-change-in-production")
+DEBUG = EnvValidator.get_bool("DJANGO_DEBUG", False)
+ALLOWED_HOSTS = EnvValidator.get_list("DJANGO_ALLOWED_HOSTS", ["*"])
 
 # Django应用配置
 DJANGO_APPS = [
@@ -127,11 +133,11 @@ ASGI_APPLICATION = "config.asgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.getenv("POSTGRES_DB", "idp_cms"),
-        "USER": os.getenv("POSTGRES_USER", "idp_cms"),
-        "PASSWORD": os.getenv("POSTGRES_PASSWORD", "idp_cms"),
-        "HOST": os.getenv("POSTGRES_HOST", "localhost"),
-        "PORT": int(os.getenv("POSTGRES_PORT", "5432")),
+        "NAME": EnvValidator.get_str("POSTGRES_DB", "idp_cms"),
+        "USER": EnvValidator.get_str("POSTGRES_USER", "idp_cms"),
+        "PASSWORD": EnvValidator.get_str("POSTGRES_PASSWORD", "idp_cms"),
+        "HOST": EnvValidator.get_str("POSTGRES_HOST", "localhost"),
+        "PORT": EnvValidator.get_int("POSTGRES_PORT", 5432),
         "OPTIONS": {
             "MAX_CONNS": 20,
         },
@@ -142,7 +148,7 @@ DATABASES = {
 CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.redis.RedisCache",
-        "LOCATION": os.getenv("REDIS_URL", "redis://redis:6379/1"),
+        "LOCATION": EnvValidator.get_str("REDIS_URL", "redis://redis:6379/1"),
         "KEY_PREFIX": "idp_cms",
         "TIMEOUT": 300,
         "VERSION": 1,
@@ -152,7 +158,7 @@ CACHES = {
     },
     "api": {
         "BACKEND": "django.core.cache.backends.redis.RedisCache", 
-        "LOCATION": os.getenv("REDIS_URL", "redis://redis:6379/1"),
+        "LOCATION": EnvValidator.get_str("REDIS_URL", "redis://redis:6379/1"),
         "KEY_PREFIX": "idp_cms_api",
         "TIMEOUT": 600,
         "VERSION": 1,
@@ -166,7 +172,7 @@ CACHE_MIDDLEWARE_ALIAS = "default"
 
 # 国际化配置
 LANGUAGE_CODE = "zh-hans"
-TIME_ZONE = os.getenv("DJANGO_TIME_ZONE", "Asia/Shanghai")
+TIME_ZONE = EnvValidator.get_str("DJANGO_TIME_ZONE", "Asia/Shanghai")
 USE_I18N = True
 USE_TZ = True
 
@@ -186,17 +192,17 @@ MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
 # 文件存储配置（支持S3/MinIO）
-if os.getenv("MINIO_ENDPOINT"):
+if EnvValidator.get_str("MINIO_ENDPOINT"):
     # MinIO 内部访问配置（用于上传）
     # 注意: 不再使用 DEFAULT_FILE_STORAGE，而是使用 STORAGES 配置
-    AWS_ACCESS_KEY_ID = os.getenv("MINIO_ACCESS_KEY")
-    AWS_SECRET_ACCESS_KEY = os.getenv("MINIO_SECRET_KEY")
-    AWS_STORAGE_BUCKET_NAME = os.getenv("MINIO_BUCKET", "media")  # 保留用于兼容性
-    AWS_S3_ENDPOINT_URL = os.getenv("MINIO_ENDPOINT")
+    AWS_ACCESS_KEY_ID = EnvValidator.get_str("MINIO_ACCESS_KEY")
+    AWS_SECRET_ACCESS_KEY = EnvValidator.get_str("MINIO_SECRET_KEY")
+    AWS_STORAGE_BUCKET_NAME = EnvValidator.get_str("MINIO_BUCKET", "media")  # 保留用于兼容性
+    AWS_S3_ENDPOINT_URL = EnvValidator.get_str("MINIO_ENDPOINT")
     AWS_S3_REGION_NAME = "us-east-1"
     
     # 外部访问域名配置（用于传统桶的兼容性）
-    AWS_S3_CUSTOM_DOMAIN = f"{os.getenv('MINIO_PUBLIC_DOMAIN', 'localhost:9002')}/{AWS_STORAGE_BUCKET_NAME}"
+    AWS_S3_CUSTOM_DOMAIN = f"{EnvValidator.get_str('MINIO_PUBLIC_DOMAIN', 'localhost:9002')}/{AWS_STORAGE_BUCKET_NAME}"
     
     # 强制使用自定义域名生成URL
     AWS_S3_USE_SSL = False
@@ -271,7 +277,7 @@ SITE_ID = 1
 WAGTAIL_SITE_NAME = "IDP-CMS"
 # WAGTAILADMIN_BASE_URL 已废弃，使用新的统一URL配置管理器
 # 保留此行仅为向后兼容，实际URL由 apps.core.url_config.URLConfig 管理
-WAGTAILADMIN_BASE_URL = os.getenv("DJANGO_BASE_URL", "http://localhost:8000")
+WAGTAILADMIN_BASE_URL = EnvValidator.get_str("CMS_PUBLIC_URL", "http://localhost:8000")
 
 # 直接扩展 Wagtail 的 Site 模型，无需自定义模型配置
 
@@ -293,7 +299,7 @@ REST_FRAMEWORK = {
 }
 
 # CORS配置
-CORS_ALLOWED_ORIGINS = os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:3001").split(",")
+CORS_ALLOWED_ORIGINS = EnvValidator.get_list("CORS_ALLOWED_ORIGINS", ["http://localhost:3000", "http://localhost:3001"])
 CORS_ALLOW_CREDENTIALS = True
 # 允许自定义请求头（用于前端跟踪请求ID）
 CORS_ALLOW_HEADERS = list(default_headers) + [
@@ -374,7 +380,7 @@ CELERY_BEAT_SCHEDULE = {
 }
 
 # 日志配置变量
-LOG_FILE_PATH = os.getenv("DJANGO_LOG_FILE", "/app/logs/django.log")
+LOG_FILE_PATH = EnvValidator.get_str("DJANGO_LOG_FILE", "/app/logs/django.log")
 USE_FILE_LOGGING = True
 
 try:
@@ -389,8 +395,8 @@ except Exception:
     USE_FILE_LOGGING = False
 
 # 默认broker配置（生产环境）
-CELERY_BROKER_URL = os.getenv("REDIS_URL", "redis://redis:6379/1")
-CELERY_RESULT_BACKEND = os.getenv("REDIS_URL", "redis://redis:6379/1")
+CELERY_BROKER_URL = EnvValidator.get_str("REDIS_URL", "redis://redis:6379/1")
+CELERY_RESULT_BACKEND = EnvValidator.get_str("REDIS_URL", "redis://redis:6379/1")
 
 LOGGING = {
     "version": 1,
@@ -425,7 +431,7 @@ LOGGING = {
     "loggers": {
         "django": {
             "handlers": ["console"],
-            "level": os.getenv("DJANGO_LOG_LEVEL", "INFO"),
+            "level": EnvValidator.get_str("DJANGO_LOG_LEVEL", "INFO"),
             "propagate": False,
         },
         "apps": {
@@ -454,8 +460,8 @@ if USE_FILE_LOGGING:
     LOGGING["loggers"]["apps"]["handlers"].append("file")
 
 # 自定义配置
-WEBHOOK_SECRET_KEY = os.getenv("WEBHOOK_SECRET_KEY", "webhook-secret-key")
-SITE_HOSTNAME = os.getenv("SITE_HOSTNAME", "localhost")
+WEBHOOK_SECRET_KEY = EnvValidator.get_str("WEBHOOK_SECRET_KEY", "webhook-secret-key")
+SITE_HOSTNAME = EnvValidator.get_str("SITE_HOSTNAME", "localhost")
 
 # 安全配置
 if not DEBUG:

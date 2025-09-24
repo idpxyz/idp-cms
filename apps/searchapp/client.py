@@ -61,4 +61,4 @@ def index_name_for(site: str) -> str:
     from apps.core.site_utils import normalize_site_identifier
     
     normalized_site = normalize_site_identifier(site)
-    return f"news_{normalized_site}_articles"
+    return f"articles_{normalized_site}"

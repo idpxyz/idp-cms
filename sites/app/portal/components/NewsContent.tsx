@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { getNews } from "@/lib/api/news";
-import { buildFrontendApiUrl } from '@/lib/utils/api-url';
+// Removed api-url dependency - using relative paths instead
 import { 
   fetchFeed, 
   fetchPersonalizedFeed, 
@@ -17,6 +17,7 @@ import {
 import type { FeedItem, FeedResponse } from "@/lib/api/feed";
 import { endpoints } from "@/lib/config/endpoints";
 import { getDefaultSite, getMainSite } from "@/lib/config/sites";
+import { ContentTimingManager } from "@/lib/config/content-timing";
 import Image from "next/image";
 import ModuleRenderer from "../../../components/modules/ModuleRenderer";
 import {
@@ -468,7 +469,7 @@ export default function NewsContent({
     items: initialArticles || [],
     next_cursor: pagination.has_next ? 'page_2' : '',
     debug: {
-      hours: 24,
+      hours: ContentTimingManager.getNewsConfig().categoryHours, // 🎯 使用集中化配置
       template: 'category',
       sort_by: 'publish_time',
       site: '',
@@ -641,7 +642,7 @@ export default function NewsContent({
           items: adaptedItems,
           next_cursor: nextCursor,
           debug: {
-            hours: 24,
+            hours: ContentTimingManager.getNewsConfig().categoryHours, // 🎯 使用集中化配置
             template: 'category',
             sort_by: 'publish_time',
             site: response.meta.site || '',
@@ -708,7 +709,7 @@ export default function NewsContent({
             items: adaptedItems,
             next_cursor: nextCursor,
             debug: {
-              hours: 24,
+              hours: ContentTimingManager.getNewsConfig().categoryHours, // 🎯 使用集中化配置 (channel_tags场景)
               template: 'channel_tags',
               sort_by: 'publish_time',
               site: response.meta.site || '',
@@ -744,7 +745,7 @@ export default function NewsContent({
             size: 20,
             channels: [currentChannelSlug],
             sort: "final_score",
-            hours: 168,
+            hours: ContentTimingManager.getChannelDefaultHours(), // 🎯 使用集中化配置
             cursor: isLoadMore ? (cursorRef.current || undefined) : undefined
           }, Array.from(seenIdsRef.current));
         }
@@ -790,7 +791,7 @@ export default function NewsContent({
           items: adaptedItems,
           next_cursor: nextCursor,  // 🔥 修复：使用实际的分页cursor而不是空字符串
           debug: {
-            hours: 24,
+            hours: ContentTimingManager.getNewsConfig().categoryHours, // 🎯 使用集中化配置
             template: 'traditional_channel',
             sort_by: 'publish_time',
             site: getMainSite().hostname,
@@ -1063,8 +1064,8 @@ export default function NewsContent({
     const fetchModules = async () => {
       try {
         const [homeRes, sideRes] = await Promise.all([
-          fetch(buildFrontendApiUrl('/api/frontend/modules?region=home&type=portal'), { next: { revalidate: 600 } }),
-          fetch(buildFrontendApiUrl('/api/frontend/modules?region=sidebar&type=portal'), { next: { revalidate: 600 } }),
+          fetch('/api/frontend/modules?region=home&type=portal', { next: { revalidate: 600 } }),
+          fetch('/api/frontend/modules?region=sidebar&type=portal', { next: { revalidate: 600 } }),
         ]);
 
         const homeJson = homeRes.ok ? await homeRes.json() : { modules: [] };

@@ -37,8 +37,9 @@ from apps.api.rest.cache_management import cache_stats, clear_cache, invalidate_
 from apps.api.utils.cache_performance import cache_performance_stats, reset_cache_stats
 from apps.api.rest.articles import (
     articles_list, article_detail, channels_list, regions_list, 
-    portal_articles, hero_articles, site_settings
+    portal_articles, site_settings
 )
+from apps.api.rest.articlesep.hero import hero_articles
 from apps.api.rest.revalidate import revalidate, revalidate_status
 from apps.api.rest import cdn_config
 from apps.api.rest.crawler_api import (

@@ -11,23 +11,37 @@ import TopStoriesGrid from "./components/TopStoriesGrid";
 import ChannelStrip from "./components/ChannelStrip";
 import ChannelPageRenderer from "./components/ChannelPageRenderer";
 import { getTopStories } from "./components/TopStoriesGrid.utils";
+import { getTopStoriesDefaultHours } from "@/lib/config/content-timing";
 
 // 获取要在首页显示的频道条带（简化版）
 function getHomepageChannelStrips(channels: any[]): any[] {
-  return channels
+  console.log('🔍 调试: 所有频道数据:', channels.map(ch => ({
+    name: ch.name,
+    slug: ch.slug,
+    show_in_homepage: ch.show_in_homepage
+  })));
+
+  const filteredChannels = channels
     .filter((channel: any) => {
       // 🎯 完全由后台控制 - 移除硬编码的频道排除逻辑
       // 只依赖后台配置的 show_in_homepage 字段
-      return channel.show_in_homepage === true;
+      const shouldShow = channel.show_in_homepage === true;
+      if (!shouldShow) {
+        console.log(`❌ 频道 ${channel.name} 不在首页显示 (show_in_homepage: ${channel.show_in_homepage})`);
+      }
+      return shouldShow;
     })
     .sort((a: any, b: any) => {
       // 按首页显示顺序排序，如果没有则使用原始order
       const aOrder = a.homepage_order ?? a.order ?? 0;
       const bOrder = b.homepage_order ?? b.order ?? 0;
       return aOrder - bOrder;
-    })
+    });
     // 🎯 移除硬编码数量限制 - 完全由后台控制
     // 运营人员通过设置 show_in_homepage 来控制显示的频道数量
+
+  console.log(`✅ 首页显示的频道 (${filteredChannels.length}个):`, filteredChannels.map(ch => ch.name));
+  return filteredChannels;
 }
 
 // 获取频道列表
@@ -35,7 +49,7 @@ async function getChannels() {
   try {
     // 使用统一的端点管理器构建URL
     const channelsUrl = endpoints.buildUrl(
-      endpoints.getCmsEndpoint('/api/channels'),
+      endpoints.getCmsEndpoint('/api/channels/'),
       { site: getMainSite().hostname }
     );
 
@@ -50,17 +64,17 @@ async function getChannels() {
     if (response.ok) {
       const data = await response.json();
       
-      // 确保首页频道在最前面，并将数字ID转换为字符串slug以保持一致性
-      const channels = data.channels || [];
-      const homepageChannel = { id: "recommend", name: "首页", slug: "recommend", order: -1 };
-      const otherChannels = channels
-        .filter((ch: any) => ch.slug !== "recommend")
-        .map((ch: any) => ({
-          ...ch,
-          id: ch.slug // 使用slug作为ID，保持与前端期望的字符串ID一致
-        }));
+      console.log('🔍 API返回的原始频道数据:', data);
       
-      return [homepageChannel, ...otherChannels];
+      // 直接返回数据库中的真实频道，不添加虚拟频道
+      const channels = data.channels || [];
+      const realChannels = channels.map((ch: any) => ({
+        ...ch,
+        id: ch.slug // 使用slug作为ID，保持与前端期望的字符串ID一致
+      }));
+      
+      console.log('🔍 真实频道数据:', realChannels);
+      return realChannels;
     } else {
       if (response.status === 429) {
       } else {
@@ -71,10 +85,9 @@ async function getChannels() {
     console.error('Error fetching channels from backend:', error);
   }
 
-  // API调用失败时只返回首页频道，避免硬编码数据库频道
-  return [
-    { id: "recommend", name: "首页", slug: "recommend", order: -1 },
-  ];
+  // API调用失败时返回空数组，避免显示虚拟频道
+  console.warn('频道API调用失败，返回空频道列表');
+  return [];
 }
 
 export default async function PortalPage({ searchParams }: { searchParams?: Promise<{ channel?: string; tags?: string }> }) {
@@ -107,7 +120,7 @@ export default async function PortalPage({ searchParams }: { searchParams?: Prom
       return []; // 获取失败时返回空数组，不影响页面渲染
     }),
     getTopStories(9, { 
-      hours: 168, // 🔧 临时扩大到7天，确保有足够数据用于测试
+      hours: getTopStoriesDefaultHours(), // 🎯 使用集中化配置，平衡数据量和时效性
       diversity: 'high'
       // 🎯 不再需要excludeClusterIds，后端OpenSearch自动处理Hero去重
     }).catch(error => {

@@ -172,7 +172,7 @@ def topstories(request):
     import time as _t
     t0 = _t.time()
     client = get_client()
-    index = index_name_for(site)
+    index = index_name_for(site_name)
     
     # 提高ES候选量，缓解多样性与去重后的空集风险
     elastic_size = max(size * 40, 400)
@@ -204,11 +204,11 @@ def topstories(request):
         resp = client.search(index=index, body=body, request_timeout=8)
         total_hits = resp.get("hits", {}).get("total", {}).get("value", 0)
         
+        # 首先收集所有候选项，然后智能处理seen列表
+        all_items = []
         for h in resp.get("hits", {}).get("hits", []):
             returned_hits += 1
             src = h.get("_source", {})
-            if str(h.get("_id")) in combined_seen:
-                continue
                 
             item = {"id": h.get("_id"), **src}
             
@@ -219,7 +219,26 @@ def topstories(request):
             # 计算TopStory评分
             item["topstory_score"] = _compute_topstory_score(item)
             
-            candidates.append(item)
+            # 标记是否已seen
+            item["_is_seen"] = str(h.get("_id")) in combined_seen
+            all_items.append(item)
+        
+        # 优先选择未seen的，但如果未seen的不够，则包含一些seen的
+        unseen_items = [item for item in all_items if not item["_is_seen"]]
+        seen_items = [item for item in all_items if item["_is_seen"]]
+        
+        # 确保至少有size/2个候选项（即使包含seen的）
+        min_candidates = max(size // 2, 3)
+        if len(unseen_items) >= min_candidates:
+            candidates = unseen_items
+        else:
+            # 需要补充一些seen的项目
+            needed = min_candidates - len(unseen_items)
+            candidates = unseen_items + seen_items[:needed]
+        
+        # 移除临时标记
+        for item in candidates:
+            item.pop("_is_seen", None)
         
         t1 = _t.time()
         

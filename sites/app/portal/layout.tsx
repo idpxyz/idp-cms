@@ -34,7 +34,7 @@ interface PortalLayoutProps {
 async function getChannels() {
   try {
     const channelsUrl = endpoints.buildUrl(
-      endpoints.getCmsEndpoint('/api/channels'),
+      endpoints.getCmsEndpoint('/api/channels/'),
       { site: getMainSite().hostname }
     );
 
@@ -53,25 +53,20 @@ async function getChannels() {
     if (response.ok) {
       const data = await response.json();
       const channels = data.channels || [];
-      const recommendChannel = { id: "recommend", name: "首页", slug: "recommend", order: -1 };
-      const otherChannels = channels
-        .filter((ch: any) => ch.slug !== "recommend")
-        .map((ch: any) => ({
-          ...ch,
-          id: ch.slug // 使用slug作为ID，保持与前端期望的字符串ID一致
-        }));
-      console.log('Server-side channels fetched:', channels.length);
-      return [recommendChannel, ...otherChannels];
+      const realChannels = channels.map((ch: any) => ({
+        ...ch,
+        id: ch.slug // 使用slug作为ID，保持与前端期望的字符串ID一致
+      }));
+      console.log('Server-side channels fetched:', realChannels.length);
+      return realChannels;
     }
   } catch (error) {
     console.error('Error fetching channels in layout:', error);
   }
   
-  // 返回最小可用的频道集合，而不是 null
-  console.log('Using minimal fallback channels in layout');
-  return [
-    { id: "recommend", name: "首页", slug: "recommend", order: -1 }
-  ];
+  // 返回空数组，避免显示虚拟频道
+  console.log('Using empty fallback channels in layout');
+  return [];
 }
 
 export default async function PortalLayout({ children }: PortalLayoutProps) {

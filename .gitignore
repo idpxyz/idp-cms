@@ -31,11 +31,19 @@ static/
 # Node
 node_modules/
 .npm
-# .env
-# .env.local
+# 环境变量文件配置
+# 明确排除可能造成混乱的本地配置文件
+.env.local
+.env.*.local
+sites/.env.local
+sites/env.local.backup
+*.env.local
 .env.development.local
 .env.test.local
 .env.production.local
+
+# 注意：我们使用统一的配置管理，不依赖 .env.local 文件
+# 配置优先级：Docker Compose > .env.{environment} > .env.features > .env.core > 默认值
 
 # Next.js
 .next/

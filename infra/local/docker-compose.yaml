@@ -129,6 +129,11 @@ services:
     environment:
       # 动态覆盖配置（仅在需要时使用）
       DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1,192.168.8.195,portal.local}
+      # 新的统一环境变量配置
+      CMS_ORIGIN: http://authoring:8000
+      CMS_PUBLIC_URL: http://localhost:8000
+      FRONTEND_ORIGIN: http://localhost:3000
+      FRONTEND_PUBLIC_URL: http://localhost:3001
     user: "${DEV_UID:-1000}:${DEV_GID:-1000}"
     volumes: ["../../:/app"]
     working_dir: /app
@@ -162,6 +167,11 @@ services:
       DJANGO_SETTINGS_MODULE: config.settings.dev
       ENABLE_MEDIA_CLEANUP: "0"
       ENABLE_RENDITION_CLEANUP: "0"
+      # 新的统一环境变量配置
+      CMS_ORIGIN: http://authoring:8000
+      CMS_PUBLIC_URL: http://localhost:8000
+      FRONTEND_ORIGIN: http://localhost:3000
+      FRONTEND_PUBLIC_URL: http://localhost:3001
     volumes: ["../../:/app"]
     working_dir: /app
     depends_on:
@@ -181,6 +191,11 @@ services:
       DJANGO_SETTINGS_MODULE: config.settings.dev
       ENABLE_MEDIA_CLEANUP: "0"
       ENABLE_RENDITION_CLEANUP: "0"
+      # 新的统一环境变量配置
+      CMS_ORIGIN: http://authoring:8000
+      CMS_PUBLIC_URL: http://localhost:8000
+      FRONTEND_ORIGIN: http://localhost:3000
+      FRONTEND_PUBLIC_URL: http://localhost:3001
     volumes: ["../../:/app"]
     working_dir: /app
     depends_on:
@@ -234,9 +249,14 @@ services:
     environment:
       - NODE_ENV=development
       - NEXT_PUBLIC_API_BASE=/cms/api/v1
+      # 统一环境变量配置
       - CMS_ORIGIN=http://authoring:8000
-      - DJANGO_API_URL=http://authoring:8000
+      - CMS_PUBLIC_URL=http://localhost:8000
+      - FRONTEND_ORIGIN=http://localhost:3000
+      - FRONTEND_PUBLIC_URL=http://localhost:3001
       - NEXT_PUBLIC_SITE_URL=http://sites:3000
+      # 向后兼容的环境变量
+      - DJANGO_API_URL=http://authoring:8000
       - NEXT_PUBLIC_API_URL=http://localhost:8000
     depends_on:
       - authoring
