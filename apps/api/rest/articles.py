@@ -243,7 +243,7 @@ def article_detail(request, slug):
             "title": article.title,
             "slug": article.slug,
             "excerpt": getattr(article, 'introduction', ''),
-            "body": expand_db_html(article.body).replace('http://authoring:8000', 'http://localhost:8000') if hasattr(article, 'body') else '',
+            "body": expand_db_html(article.body).replace('http://authoring:8000', '/api/media-proxy') if hasattr(article, 'body') else '',
             "publish_at": article.first_published_at.isoformat() if article.first_published_at else None,
             "updated_at": article.last_published_at.isoformat() if article.last_published_at else None,
             "channel_slug": getattr(article.channel, 'slug', '') if article.channel else '',
