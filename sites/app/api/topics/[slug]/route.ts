@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { endpoints } from "@/lib/config/endpoints";
 import { getMainSite } from "@/lib/config/sites";
+import { ContentTimingManager } from "@/lib/config/content-timing";
 
 export const runtime = "nodejs";
 export const revalidate = 0;
@@ -10,7 +11,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ slug
   try {
     const { slug } = await params;
     const { searchParams } = new URL(req.url);
-    const hours = searchParams.get('hours') || '72';
+    const hours = searchParams.get('hours') || ContentTimingManager.getApiConfig().topicDetailHours.toString(); // 🎯 使用集中化配置
     const channels = searchParams.getAll('channel');
 
     const url = new URL(endpoints.getCmsEndpoint(`/api/topics/${encodeURIComponent(slug)}/`));

@@ -1,7 +1,7 @@
 from celery import shared_task
 from wagtail.models import Page
 from .client import get_client
-from .alias import write_alias
+from .simple_index import get_index_name, ensure_index  # 🎯 使用简化索引
 from .indexer import article_to_doc
 from .consistency import run_consistency_check, send_alert
 from clickhouse_driver import Client
@@ -13,14 +13,18 @@ from apps.core.utils.circuit_breaker import get_breaker
 def upsert_article_doc(page_id:int):
     page = Page.objects.filter(id=page_id).specific().first()
     if not page or not page.live: return
-    idx = write_alias(page.get_site().hostname)
-    get_client().index(index=idx, id=str(page.id), body=article_to_doc(page))
+    
+    # 🎯 简化：直接使用索引名称
+    site = page.get_site().hostname
+    index_name = ensure_index(site)  # 确保索引存在
+    get_client().index(index=index_name, id=str(page.id), body=article_to_doc(page))
 
 @app.task
 def delete_article_doc(page_id:int):
     try:
-        # Use SITE_HOSTNAME alias to try delete; for multi-tenant you may loop indices.
-        get_client().delete(index=write_alias(settings.SITE_HOSTNAME), id=str(page_id))
+        # 🎯 简化：直接使用索引名称
+        index_name = get_index_name(settings.SITE_HOSTNAME)
+        get_client().delete(index=index_name, id=str(page_id))
     except Exception:
         pass
 
@@ -39,12 +43,12 @@ def update_ctr_features(site:str=None):
     """
     rows = breaker.call(ch.execute, q, {"site": site})
     os = get_client()
-    idx = write_alias(site)
+    index_name = get_index_name(site)  # 🎯 简化：直接使用索引名称
     for site, aid, ctr1h, c1h in rows:
         # 🎯 使用update方法进行部分更新，保留文档的其他字段（如is_hero等）
         try:
             os.update(
-                index=idx, 
+                index=index_name, 
                 id=aid, 
                 body={
                     "doc": {

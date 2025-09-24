@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import { formatDateShort } from "@/lib/utils/date";
-import { buildFrontendApiUrl } from '@/lib/utils/api-url';
+// Removed api-url dependency - using relative paths instead
 import { trackSearch, trackSearchDwell } from "@/lib/tracking/analytics";
 import SmartSearchBox from "@/components/search/SmartSearchBox";
 import SearchFilters, { SearchFilters as FilterType } from "@/components/search/SearchFilters";
@@ -99,7 +99,7 @@ export default function EnhancedSearchPage() {
       if (searchFilters.since) params.set('since', searchFilters.since);
       if (searchFilters.orderBy) params.set('order', searchFilters.orderBy);
 
-      const response = await fetch(buildFrontendApiUrl(`/api/search?${params.toString()}`));
+      const response = await fetch(`/api/search?${params.toString()}`);
       
       if (!response.ok) {
         throw new Error(`搜索服务错误: ${response.status}`);

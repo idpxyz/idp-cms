@@ -347,9 +347,9 @@ export default function HeroCarousel({
                       className={`object-cover transition-opacity duration-300 ${
                         imageLoaded[index] ? 'opacity-100' : 'opacity-0'
                       }`}
-                      priority={index === 0}
-                      fetchPriority={index === 0 ? 'high' : 'auto'}
-                      loading={index <= 1 ? 'eager' : 'lazy'}
+                      priority={index <= 2}
+                      fetchPriority={index <= 2 ? 'high' : 'auto'}
+                      loading={index <= 2 ? 'eager' : 'lazy'}
                       onLoad={() => handleImageLoad(index)}
                       sizes={hasRightRail ? "(min-width: 1024px) 66vw, 100vw" : "100vw"}
                     />

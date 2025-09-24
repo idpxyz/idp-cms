@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
   
   // 使用统一的端点管理器构建URL
   const channelsUrl = endpoints.buildUrl(
-    endpoints.getCmsEndpoint('/api/channels'),
+    endpoints.getCmsEndpoint('/api/channels/'),
     Object.fromEntries(searchParams.entries())
   );
 

@@ -7,6 +7,7 @@ import RegionSwitcher from "../../app/portal/components/RegionSwitcherModule";
 import StrategyBar from "../../app/portal/components/StrategyBarModule";
 import TopStoriesGrid from "../../app/portal/components/TopStoriesGrid";
 import EditorsChoice from "../../app/portal/components/EditorsChoiceModule";
+import { getTopStoriesDefaultHours } from "../../lib/config/content-timing";
 
 // 今日头条模块包装器 - 使用现代TopStoriesGrid
 const TodayHeadlinesWrapper = () => (
@@ -14,7 +15,7 @@ const TodayHeadlinesWrapper = () => (
     autoFetch={true}
     fetchLimit={8}
     fetchOptions={{ 
-      hours: 24, 
+      hours: getTopStoriesDefaultHours(), // 🎯 使用集中化配置
       diversity: 'high' 
     }}
     title="今日头条"

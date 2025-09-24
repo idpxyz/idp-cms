@@ -2,7 +2,7 @@ from django.core.management.base import BaseCommand
 from apps.news.models.article import ArticlePage
 from apps.searchapp.indexer import ArticleIndexer
 from apps.searchapp.client import get_client
-from apps.searchapp.alias import write_alias
+from apps.searchapp.simple_index import get_index_name  # 🎯 使用简化索引
 from wagtail.models import Site
 import logging
 
@@ -55,7 +55,7 @@ class Command(BaseCommand):
             return
         
         client = get_client()
-        index = write_alias(site_hostname)
+        index = get_index_name(site_hostname)  # 🎯 使用简化索引
         indexer = ArticleIndexer(target_site=site_hostname)
         
         processed = 0

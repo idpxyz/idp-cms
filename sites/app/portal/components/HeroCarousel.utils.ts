@@ -1,5 +1,5 @@
 import { HeroItem } from './HeroCarousel';
-import { buildBackendApiUrl } from '@/lib/utils/api-url';
+import { endpoints } from '@/lib/config/endpoints';
 
 /**
  * 获取 Hero 轮播数据
@@ -17,7 +17,7 @@ export async function getHeroItems(limit: number = 5): Promise<HeroItem[]> {
     });
     
     // 🎯 使用专用的Hero API端点
-    const apiUrl = buildBackendApiUrl(`/api/hero/?${params.toString()}`);
+    const apiUrl = endpoints.getCmsEndpoint(`/api/hero/?${params.toString()}`);
     
     const response = await fetch(apiUrl, {
       headers: {

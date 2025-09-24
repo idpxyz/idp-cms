@@ -13,7 +13,7 @@ from django.db import connection
 from wagtail.models import Site
 from apps.news.models import ArticlePage
 from apps.searchapp.client import get_client
-from apps.searchapp.alias import read_alias
+from apps.searchapp.simple_index import get_index_name  # 🎯 使用简化索引
 from apps.core.site_utils import normalize_site_identifier
 import json
 
@@ -181,7 +181,7 @@ class Command(BaseCommand):
         try:
             client = get_client()
             normalized_site = normalize_site_identifier(site_identifier)
-            index = read_alias(normalized_site)
+            index = get_index_name(normalized_site)  # 🎯 使用简化索引
             
             # 查询站点数据
             query = {

@@ -376,6 +376,9 @@ export default function TopStoriesGrid({
                         fill
                         className="object-cover transition-transform duration-300 group-hover:scale-105"
                         sizes="(max-width: 640px) 112px, 128px"
+                        priority={index <= 2} // 优化LCP: 前3个侧边项目也使用priority
+                        fetchPriority={index <= 2 ? 'high' : 'auto'}
+                        loading={index <= 2 ? 'eager' : 'lazy'}
                         placeholder="blur"
                         blurDataURL="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0nMTI4JyBoZWlnaHQ9Jzg4JyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnPjxyZWN0IGZpbGw9IiNlZWUiIHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiLz48L3N2Zz4="
                       />

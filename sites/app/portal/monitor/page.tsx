@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { buildFrontendApiUrl } from '@/lib/utils/api-url';
+// Removed api-url dependency - using relative paths instead
 
 interface RealTimeEvent {
   ts: string;
@@ -34,7 +34,7 @@ export default function MonitorPage() {
     // 保留原有的统计数据获取（用于初始化）
     const fetchStats = async () => {
       try {
-        const response = await fetch(buildFrontendApiUrl("/api/analytics"));
+        const response = await fetch("/api/analytics");
         if (response.ok) {
           const data = await response.json();
           setStats({
@@ -181,7 +181,7 @@ export default function MonitorPage() {
 
     const fetchSystemStats = async () => {
       try {
-        const response = await fetch(buildFrontendApiUrl("/api/monitoring/dashboard"));
+        const response = await fetch("/api/monitoring/dashboard");
         
         if (response.ok) {
           const data = await response.json();

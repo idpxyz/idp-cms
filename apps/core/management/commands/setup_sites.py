@@ -5,7 +5,7 @@ from django.core.management.base import BaseCommand
 from django.db import transaction
 from wagtail.models import Site, Page
 from apps.core.site_utils import get_available_sites
-from apps.searchapp.alias import ensure_versioned_index
+from apps.searchapp.simple_index import ensure_index  # 🎯 使用简化索引
 import logging
 
 logger = logging.getLogger(__name__)
@@ -125,7 +125,7 @@ class Command(BaseCommand):
 
             try:
                 # 为每个站点创建索引
-                ensure_versioned_index(site_id, v=1)
+                ensure_index(site_id)  # 🎯 使用简化索引
                 self.stdout.write(f"✅ 创建索引: {site_id}")
                 created_count += 1
                 

@@ -89,8 +89,9 @@ class DataSyncService:
             
             # 确定索引名
             from apps.searchapp.utils import get_site_from_article
+            from apps.searchapp.simple_index import get_index_name  # 🎯 使用标准函数
             site_identifier = get_site_from_article(article)
-            index_name = f"articles_{site_identifier.replace('.', '_')}"
+            index_name = get_index_name(site_identifier)
             
             # 索引文档
             response = client.index(

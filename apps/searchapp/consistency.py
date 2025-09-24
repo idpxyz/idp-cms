@@ -9,7 +9,7 @@ from wagtail.models import Site
 from apps.news.models import ArticlePage
 
 from .client import get_client
-from .alias import read_alias
+from .simple_index import get_index_name  # 🎯 使用简化索引
 
 
 logger = logging.getLogger(__name__)
@@ -35,7 +35,7 @@ def _get_db_count(site_hostname: str) -> int:
 
 def _get_os_count(site_hostname: str) -> int:
     client = get_client()
-    alias = read_alias(site_hostname)
+    alias = get_index_name(site_hostname)  # 🎯 使用简化索引
     q = {"query": {"term": {"site": site_hostname}}}
     try:
         resp = client.count(index=alias, body=q)
@@ -57,7 +57,7 @@ def _sample_missing_in_os(site_hostname: str, sample_size: int = 50) -> List[int
     if not ids:
         return []
     client = get_client()
-    alias = read_alias(site_hostname)
+    alias = get_index_name(site_hostname)  # 🎯 使用简化索引
     try:
         resp = client.mget(index=alias, body={"ids": [str(i) for i in ids]})
         missing = [ids[i] for i, d in enumerate(resp.get("docs", [])) if not d.get("found")]
@@ -69,7 +69,7 @@ def _sample_missing_in_os(site_hostname: str, sample_size: int = 50) -> List[int
 
 def _sample_orphan_in_os(site_hostname: str, sample_size: int = 50) -> List[int]:
     client = get_client()
-    alias = read_alias(site_hostname)
+    alias = get_index_name(site_hostname)  # 🎯 使用简化索引
     try:
         resp = client.search(
             index=alias,

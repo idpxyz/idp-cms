@@ -17,7 +17,7 @@ from celery import shared_task
 from apps.news.models.article import ArticlePage
 from apps.core.services.hotness_calculator import HotnessCalculator
 from apps.searchapp.client import get_client
-from apps.searchapp.alias import write_alias
+from apps.searchapp.simple_index import get_index_name  # 🎯 使用简化索引
 from apps.core.utils.circuit_breaker import get_breaker
 
 logger = logging.getLogger(__name__)
@@ -70,7 +70,7 @@ def update_article_hotness_tags(self, site: str = None, hours_back: int = 72, ba
         # 分批处理
         calculator = HotnessCalculator()
         es_client = get_client()
-        write_index = write_alias(site)
+        write_index = get_index_name(site)  # 🎯 使用简化索引
         
         for batch_start in range(0, total_articles, batch_size):
             batch_articles = list(articles_qs[batch_start:batch_start + batch_size])
@@ -221,7 +221,7 @@ def daily_hotness_cleanup(self, site: str = None):
         
         # 批量恢复原始频道
         es_client = get_client()
-        write_index = write_alias(site)
+        write_index = get_index_name(site)  # 🎯 使用简化索引
         cleaned = 0
         
         for batch_start in range(0, total_old, 100):

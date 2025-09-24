@@ -104,7 +104,7 @@ def _cluster_by_title(items: list, similarity: float = 0.88) -> list:
 def hot(request):
     site = get_site_from_request(request)
     size = max(1, min(int(request.query_params.get("size", 10)), 50))
-    hours = int(request.query_params.get("hours", 168))
+    hours = int(request.query_params.get("hours", 720))
     buckets = (request.query_params.get("buckets") or "1h,6h,24h").split(",")
     region = request.query_params.get("region")
     lang = request.query_params.get("lang")

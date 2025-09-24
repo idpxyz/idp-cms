@@ -131,7 +131,7 @@ export async function getChannelArticles(
     // 使用现有的 /api/news/ API
     const params = new URLSearchParams({
       channel: channelSlug,
-      limit: limit.toString(),
+      size: limit.toString(),
     });
 
     const apiUrl = `/api/news?${params.toString()}`;

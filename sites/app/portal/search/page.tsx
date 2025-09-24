@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import { formatDateShort } from "@/lib/utils/date";
-import { buildFrontendApiUrl } from '@/lib/utils/api-url';
+// Removed api-url dependency - using relative paths instead
 
 // 相对时间格式化
 function formatRelativeTime(dateString: string): string {
@@ -128,7 +128,7 @@ export default function SearchPage() {
       }
       if (searchFilters.category) params.set('category', searchFilters.category);
 
-      const response = await fetch(buildFrontendApiUrl(`/api/search?${params.toString()}`));
+      const response = await fetch(`/api/search?${params.toString()}`);
       const data: SearchResponse = await response.json();
       
       if (!response.ok) {

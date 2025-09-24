@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import type { FeedItem } from "@/lib/api/feed"; // Keep type definition
-import { buildBackendApiUrl } from '@/lib/utils/api-url';
+import { endpoints } from '@/lib/config/endpoints';
 
 export default function MostReadModule({ onArticleClick, limit = 8, excludeClusterIds = [] as string[], region, lang, diversity = 'med' as 'low'|'med'|'high' }: { onArticleClick?: (slug: string) => void; limit?: number; excludeClusterIds?: string[]; region?: string; lang?: string; diversity?: 'low'|'med'|'high' }) {
   const [items, setItems] = useState<FeedItem[]>([]);
@@ -41,16 +41,8 @@ export default function MostReadModule({ onArticleClick, limit = 8, excludeClust
         params.set('diversity', diversity);
       }
       
-      const response = await fetch(buildBackendApiUrl(`/api/hot?${params.toString()}`));
+      const response = await fetch(endpoints.getCmsEndpoint(`/api/hot?${params.toString()}`));
       const res = await response.json();
-
-      console.log('🔍 MostReadModule API Response:', { 
-        status: response.status, 
-        itemsCount: res.items?.length, 
-        hasItems: !!res.items?.length,
-        firstItem: res.items?.[0]?.title,
-        nextCursor: res.next_cursor
-      });
 
       // 🎯 转换API数据格式以匹配FeedItem类型
       const rawItems = res.items || [];

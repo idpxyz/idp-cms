@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { fetchFeed, fetchFeedByStrategy, getAnonymousStrategy, FeedItem } from '@/lib/api/feed';
 import { endpoints } from '@/lib/config/endpoints';
 import { getDefaultSite } from '@/lib/config/sites';
+import { getInfiniteScrollHours } from '@/lib/config/content-timing';
 import { formatDate } from '@/lib/utils/date';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -50,7 +51,7 @@ const InfiniteNewsList: React.FC<InfiniteNewsListProps> = ({
         response = await fetchFeed({
           size: initialSize,
           sort: 'final_score',
-          hours: 168, // 7天内的文章
+          hours: getInfiniteScrollHours(), // 🎯 使用集中化配置
           cursor: cursor || undefined,
         });
       }

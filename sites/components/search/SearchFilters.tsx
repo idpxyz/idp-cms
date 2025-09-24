@@ -37,10 +37,9 @@ export default function SearchFilters({
     const load = async () => {
       try {
         setLoadingCats(true);
-        // 构建前端API路由URL
-        const baseUrl = `${window.location.origin}/api/categories`;
+        // 使用前端API代理路径
         const url = endpoints.buildUrl(
-          baseUrl,
+          '/api/categories',
           {
             site: getMainSite().hostname,
             format: 'flat',

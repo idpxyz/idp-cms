@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { formatDateTime } from '@/lib/utils/date';
+import { getSideNewsPlaceholderImage } from '@/lib/utils/placeholderImages';
 
 interface ModernNewsItemProps {
   news: any;
@@ -24,8 +25,13 @@ const ModernNewsItem: React.FC<ModernNewsItemProps> = ({
   const articleUrl = news.slug ? `/portal/article/${news.slug}` : 
                     (news.id ? `/portal/article/${news.id}` : (news.url || "/portal"));
   
-  // 生成基于文章ID的随机Picsum图片
-  const picsumImageUrl = `https://picsum.photos/seed/${news.id || news.slug || Math.random()}/400/240?random=1`;
+  // 使用本地placeholder图片系统，避免外部服务依赖
+  const placeholderImageUrl = getSideNewsPlaceholderImage({
+    id: news.id,
+    title: news.title,
+    channel: news.channel,
+    tags: news.tags
+  });
 
   return (
     <article className="group bg-white hover:bg-gray-50 transition-colors duration-200 border-b border-gray-100 last:border-b-0">
@@ -117,24 +123,27 @@ const ModernNewsItem: React.FC<ModernNewsItemProps> = ({
         <div className="flex-shrink-0">
           <div className="relative w-32 h-20 sm:w-36 sm:h-24 bg-gray-200 rounded-lg overflow-hidden">
             <Image
-              src={(news.image_url && !imageError) ? news.image_url : picsumImageUrl}
+              src={(news.image_url && !imageError) ? news.image_url : placeholderImageUrl}
               alt={news.title}
               fill
               className="object-cover group-hover:scale-105 transition-transform duration-300"
               sizes="(max-width: 640px) 128px, 144px"
+              priority={index <= 5} // 优化LCP: 为前6个项目添加优先级
+              fetchPriority={index <= 5 ? 'high' : 'auto'}
+              loading={index <= 5 ? 'eager' : 'lazy'}
               onError={() => {
                 if (news.image_url && !imageError) {
-                  console.log('🖼️ Original image failed, using Picsum:', news.image_url);
+                  console.log('🖼️ Original image failed, using placeholder:', news.image_url);
                   setImageError(true);
                 } else {
-                  console.log('🖼️ Picsum image failed:', picsumImageUrl);
+                  console.log('🖼️ Placeholder image failed:', placeholderImageUrl);
                 }
               }}
               onLoad={() => {
                 if (news.image_url && !imageError) {
                   console.log('✅ Original image loaded:', news.image_url);
                 } else {
-                  console.log('✅ Picsum image loaded:', picsumImageUrl);
+                  console.log('✅ Placeholder image loaded:', placeholderImageUrl);
                 }
               }}
             />

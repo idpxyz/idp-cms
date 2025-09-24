@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from ..utils.rate_limit import FEED_RATE_LIMIT as TAG_RATE_LIMIT
 from apps.core.site_utils import get_site_from_request
 from apps.searchapp.client import get_client
-from apps.searchapp.alias import read_alias
+from apps.searchapp.simple_index import get_index_name  # 🎯 使用简化索引
 
 
 @api_view(["GET"])
@@ -22,7 +22,7 @@ def top_tags(request):
     site_obj = get_site_from_request(request)
     site = site_obj.hostname if site_obj else None
     client = get_client()
-    index = read_alias(site or "localhost")
+    index = get_index_name(site or "localhost")  # 🎯 使用简化索引
     body = {
         "size": 0,
         "aggs": {"top_tags": {"terms": {"field": "tags", "size": size}}}
@@ -57,7 +57,7 @@ def tag_articles(request, tag_slug: str):
     site_obj = get_site_from_request(request)
     site = site_obj.hostname if site_obj else None
     client = get_client()
-    index = read_alias(site or "localhost")
+    index = get_index_name(site or "localhost")  # 🎯 使用简化索引
 
     body = {
         "query": {"bool": {"must": [{"term": {"tags": tag_slug}}]}},

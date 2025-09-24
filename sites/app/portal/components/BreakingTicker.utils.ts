@@ -1,7 +1,8 @@
 import { fetchTrendingFeed } from '@/lib/api/feed';
 import { getNews } from '@/lib/api/news';
 import { BreakingNewsItem } from './BreakingTicker';
-import { buildBackendApiUrl } from '@/lib/utils/api-url';
+import { endpoints } from '@/lib/config/endpoints';
+import { getBreakingNewsHours } from '@/lib/config/content-timing';
 
 /**
  * 获取快讯数据
@@ -12,7 +13,7 @@ export async function getBreakingNews(limit: number = 8): Promise<BreakingNewsIt
     
     // 首先尝试获取 breaking news (最近6小时内的紧急新闻) - 注意尾部斜杠
     const headlinesPath = `/api/headlines/?size=${limit * 2}&hours=6&diversity=high&site=aivoya.com`;
-    const headlinesUrl = buildBackendApiUrl(headlinesPath);
+    const headlinesUrl = endpoints.getCmsEndpoint(headlinesPath);
     
     const response = await fetch(headlinesUrl, {
       next: { revalidate: 30 }, // 快讯数据30秒缓存
@@ -31,7 +32,7 @@ export async function getBreakingNews(limit: number = 8): Promise<BreakingNewsIt
           .filter((item: any) => {
             const publishTime = new Date(item.publish_time || item.publish_at);
             const hoursAgo = (Date.now() - publishTime.getTime()) / (1000 * 60 * 60);
-            return hoursAgo <= 24; // 24小时内的新闻
+            return hoursAgo <= getBreakingNewsHours(); // 🎯 使用集中化配置
           })
           .slice(0, limit);
         
@@ -56,7 +57,7 @@ export async function getBreakingNews(limit: number = 8): Promise<BreakingNewsIt
         .filter((item: any) => {
           const publishTime = new Date(item.publish_at || item.first_published_at);
           const hoursAgo = (Date.now() - publishTime.getTime()) / (1000 * 60 * 60);
-          return hoursAgo <= 24; // 24小时内
+          return hoursAgo <= getBreakingNewsHours(); // 🎯 使用集中化配置
         })
         .slice(0, limit);
       
@@ -101,7 +102,7 @@ function transformToBreakingItem(item: any): BreakingNewsItem {
       slug: item.channel.slug || item.channel.id || ''
     } : (typeof item.channel === 'string' ? {
       id: item.channel,
-      name: item.channel === 'recommend' ? '首页' : item.channel,
+      name: item.channel,
       slug: item.channel
     } : undefined),
     is_urgent: item.is_breaking || item.is_urgent || item.is_featured || false,

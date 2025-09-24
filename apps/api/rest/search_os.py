@@ -4,7 +4,7 @@ from rest_framework import status
 
 from apps.api.rest.utils import validate_site_parameter
 from apps.searchapp.client import get_client
-from apps.searchapp.alias import read_alias
+from apps.searchapp.simple_index import get_index_name  # 🎯 使用简化索引
 
 
 @api_view(["GET"])
@@ -106,7 +106,7 @@ def search_os(request):
 
         # 4) 执行查询
         client = get_client()
-        index = read_alias(site.hostname)
+        index = get_index_name(site.hostname)  # 🎯 使用简化索引
         res = client.search(index=index, body=body)
 
         hits = res.get("hits", {})

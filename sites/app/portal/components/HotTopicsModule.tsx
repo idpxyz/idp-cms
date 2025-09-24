@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import { buildBackendApiUrl } from '@/lib/utils/api-url';
+import { endpoints } from '@/lib/config/endpoints';
 
 export default function HotTopicsModule() {
   const [topics, setTopics] = useState<any[]>([]);
@@ -10,7 +10,7 @@ export default function HotTopicsModule() {
     const load = async () => {
       try {
         setLoading(true);
-        const res = await fetch(buildBackendApiUrl('/api/topics?size=8'), { cache: 'no-store' });
+        const res = await fetch(endpoints.getCmsEndpoint('/api/topics?size=8'), { cache: 'no-store' });
         const data = res.ok ? await res.json() : { items: [] };
         const items = (data && (data.items || data)) || [];
         setTopics(items || []);

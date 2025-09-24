@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { endpoints } from "@/lib/config/endpoints";
 import { getMainSite } from "@/lib/config/sites";
+import { ContentTimingManager } from "@/lib/config/content-timing";
 
 export const runtime = "nodejs";
 export const revalidate = 0;
@@ -9,7 +10,7 @@ export const dynamic = "force-dynamic";
 export async function GET(req: NextRequest) {
   const url = new URL(req.url);
   const size = Math.max(1, Math.min(Number(url.searchParams.get('size') || '8'), 20));
-  const hours = Math.max(1, Math.min(Number(url.searchParams.get('hours') || '48'), 720));
+  const hours = Math.max(1, Math.min(Number(url.searchParams.get('hours') || ContentTimingManager.getApiConfig().topicsDefaultHours.toString()), 720)); // 🎯 使用集中化配置
 
   try {
     const cmsUrl = new URL(endpoints.getCmsEndpoint('/api/topics/'));

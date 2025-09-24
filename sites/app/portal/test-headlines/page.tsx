@@ -1,5 +1,6 @@
 import React from "react";
 import TopStoriesGrid from "../components/TopStoriesGrid";
+import { getTopStoriesDefaultHours, getChannelDefaultHours } from "@/lib/config/content-timing";
 
 export default function TestHeadlinesPage() {
   return (
@@ -14,7 +15,7 @@ export default function TestHeadlinesPage() {
             autoFetch={true}
             fetchLimit={8}
             fetchOptions={{ 
-              hours: 24, 
+              hours: getTopStoriesDefaultHours(), // 🎯 使用集中化配置
               diversity: 'high' 
             }}
             title="热点新闻"
@@ -30,7 +31,7 @@ export default function TestHeadlinesPage() {
             autoFetch={true}
             fetchLimit={8}
             fetchOptions={{ 
-              hours: 168, 
+              hours: getChannelDefaultHours(), // 🎯 使用集中化配置 (168小时)
               diversity: 'med' 
             }}
             title="趋势新闻"

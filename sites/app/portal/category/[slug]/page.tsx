@@ -52,13 +52,12 @@ async function getChannels() {
       order: cat.order || 0
     }));
     
-    // 添加首页频道
-    const recommendChannel = { id: "recommend", name: "首页", slug: "recommend", order: -1 };
-    return [recommendChannel, ...channelData];
+    // 只返回真实的数据库频道
+    return channelData;
   } catch (error) {
     console.error('Error fetching channels:', error);
-    // 返回默认首页频道
-    return [{ id: "recommend", name: "首页", slug: "recommend", order: -1 }];
+    // 返回空数组，避免显示虚拟频道
+    return [];
   }
 }
 

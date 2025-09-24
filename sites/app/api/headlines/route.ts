@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { endpoints } from "@/lib/config/endpoints";
 import { getMainSite } from "@/lib/config/sites";
+import { ContentTimingManager } from "@/lib/config/content-timing";
 
 export const runtime = "nodejs";
 // 动态缓存时间，由内容类型决定
@@ -10,7 +11,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const size = searchParams.get('size') || '8';
     const site = searchParams.get('site') || getMainSite().hostname;
-    const hours = searchParams.get('hours') || '24';
+    const hours = searchParams.get('hours') || ContentTimingManager.getApiConfig().headlinesDefaultHours.toString(); // 🎯 使用集中化配置
     const region = searchParams.get('region') || '';
     const lang = searchParams.get('lang') || '';
     const diversity = searchParams.get('diversity') || '';

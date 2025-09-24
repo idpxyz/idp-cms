@@ -21,7 +21,4 @@ def normalize_site_identifier(site_identifier):
     return site_identifier.lower().replace('www.', '')
 
 
-def read_alias(site_identifier):
-    """获取站点的OpenSearch索引别名"""
-    normalized = normalize_site_identifier(site_identifier)
-    return f"articles_{normalized.replace('.', '_')}"
+# 注意：read_alias 函数已废弃，请使用 simple_index.get_index_name() 代替

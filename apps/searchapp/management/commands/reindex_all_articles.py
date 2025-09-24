@@ -2,7 +2,7 @@ from django.core.management.base import BaseCommand
 from django.conf import settings
 from apps.news.models import ArticlePage
 from apps.searchapp.client import get_client
-from apps.searchapp.alias import write_alias, ensure_versioned_index
+from apps.searchapp.simple_index import get_index_name, ensure_index  # 🎯 使用简化索引
 from apps.searchapp.indexer import ArticleIndexer
 
 class Command(BaseCommand):
@@ -18,13 +18,11 @@ class Command(BaseCommand):
         clear = options["clear"]
         dry_run = options["dry_run"]
         
-        self.stdout.write(f"🔄 开始重新索引站点: {site}")
-        
-        # 确保索引存在
-        ensure_versioned_index(site)
+        # 🎯 使用简化索引系统
+        self.stdout.write(f"🔄 开始重新索引站点: {site} (简化索引系统)")
+        index = ensure_index(site)
         
         client = get_client()
-        index = write_alias(site)
         indexer = ArticleIndexer(target_site=site)
         
         # 如果需要清空索引
@@ -36,12 +34,20 @@ class Command(BaseCommand):
             except Exception as e:
                 self.stdout.write(self.style.WARNING(f"⚠️  清空索引失败: {e}"))
         
-        # 获取所有需要索引的页面
+        # 获取指定站点的页面
         all_pages = []
         
-        # 文章页面
+        # 🎯 获取指定站点的文章
         try:
-            article_pages = ArticlePage.objects.live().public()
+            from wagtail.models import Site
+            try:
+                target_site = Site.objects.get(hostname=site)
+                article_pages = ArticlePage.objects.live().public().descendant_of(target_site.root_page)
+                self.stdout.write(f"🎯 获取站点 {site} 的文章")
+            except Site.DoesNotExist:
+                self.stdout.write(self.style.ERROR(f"❌ 站点 {site} 不存在"))
+                return
+            
             all_pages.extend(article_pages)
             self.stdout.write(f"📰 找到 {article_pages.count()} 个文章页面")
         except Exception as e:
@@ -87,13 +93,15 @@ class Command(BaseCommand):
         
         # 输出结果
         self.stdout.write(self.style.SUCCESS(
-            f"✅ 重新索引完成! 成功: {success_count}, 失败: {error_count}"
+            f"✅ 重新索引完成! (简化索引) 成功: {success_count}, 失败: {error_count}"
         ))
         
         # 验证结果
         try:
             result = client.count(index=index)
             count = result.get("count", 0)
-            self.stdout.write(f"📊 索引中当前有 {count} 个文档")
+            self.stdout.write(f"📊 索引 {index} 中当前有 {count} 个文档")
+            
+            self.stdout.write(f"🎯 使用简化索引系统，字段完全对齐")
         except Exception as e:
             self.stdout.write(self.style.WARNING(f"⚠️  验证索引失败: {e}"))
