@@ -60,9 +60,13 @@ export async function GET(request: NextRequest) {
     
     // 降级策略：尝试直接获取静态频道列表
     try {
-      const site = process.env.NEXT_PUBLIC_SITE_NAME || 'localhost:3001';
-      const staticChannelsUrl = `${process.env.API_BASE_URL}/api/channels/?site=${site}`;
-      const staticResponse = await fetch(staticChannelsUrl);
+      // 使用站点信息从请求中获取，避免硬编码
+      const url = new URL(request.url);
+      const site = url.searchParams.get('site') || 'aivoya.com';
+      // 使用相对路径调用内部API
+      const staticResponse = await fetch(`/api/channels/?site=${site}`, {
+        next: { revalidate: 300 }
+      });
       
       if (staticResponse.ok) {
         const staticData = await staticResponse.json();
