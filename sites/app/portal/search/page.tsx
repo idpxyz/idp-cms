@@ -27,7 +27,7 @@ function formatNumber(num: number): string {
 }
 import { trackSearch, trackSearchDwell } from "@/lib/tracking/analytics";
 import SearchFilters, { SearchFilters as FilterType } from "@/components/search/SearchFilters";
-import RelatedSearches, { generateRelatedSearches } from "@/components/search/RelatedSearches";
+import RelatedSearches, { generateRelatedSearches, RelatedSearch } from "@/components/search/RelatedSearches";
 import TrendingSearches from "@/components/search/TrendingSearches";
 import { useSearchHistory } from "@/lib/hooks/useSearchHistory";
 
@@ -73,6 +73,7 @@ export default function SearchPage() {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
+  const [relatedSearches, setRelatedSearches] = useState<RelatedSearch[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -211,9 +212,24 @@ export default function SearchPage() {
     router.push(`/portal/search?${params.toString()}`);
   }, [router, filters]);
 
-  // 生成相关搜索
-  const relatedSearches = React.useMemo(() => {
-    return query ? generateRelatedSearches(query, 6) : [];
+  // 异步生成相关搜索
+  useEffect(() => {
+    if (!query) {
+      setRelatedSearches([]);
+      return;
+    }
+    
+    const loadRelatedSearches = async () => {
+      try {
+        const related = await generateRelatedSearches(query, 6);
+        setRelatedSearches(related);
+      } catch (error) {
+        console.warn('加载相关搜索失败:', error);
+        setRelatedSearches([]);
+      }
+    };
+    
+    loadRelatedSearches();
   }, [query]);
 
   // 页面停留时间跟踪

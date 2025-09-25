@@ -8,7 +8,7 @@ import { formatDateShort } from "@/lib/utils/date";
 import { trackSearch, trackSearchDwell } from "@/lib/tracking/analytics";
 import SmartSearchBox from "@/components/search/SmartSearchBox";
 import SearchFilters, { SearchFilters as FilterType } from "@/components/search/SearchFilters";
-import RelatedSearches, { generateRelatedSearches } from "@/components/search/RelatedSearches";
+import RelatedSearches, { generateRelatedSearches, RelatedSearch } from "@/components/search/RelatedSearches";
 import TrendingSearches from "@/components/search/TrendingSearches";
 import { useSearchHistory } from "@/lib/hooks/useSearchHistory";
 
@@ -56,6 +56,7 @@ export default function EnhancedSearchPage() {
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState<FilterType>({});
+  const [relatedSearches, setRelatedSearches] = useState<RelatedSearch[]>([]);
   
   const { addToHistory } = useSearchHistory();
 
@@ -169,9 +170,24 @@ export default function EnhancedSearchPage() {
     router.push(`/portal/search/enhanced?${params.toString()}`);
   }, [router, searchParams]);
 
-  // 生成相关搜索
-  const relatedSearches = React.useMemo(() => {
-    return query ? generateRelatedSearches(query, 6) : [];
+  // 异步生成相关搜索
+  useEffect(() => {
+    if (!query) {
+      setRelatedSearches([]);
+      return;
+    }
+    
+    const loadRelatedSearches = async () => {
+      try {
+        const related = await generateRelatedSearches(query, 6);
+        setRelatedSearches(related);
+      } catch (error) {
+        console.warn('加载相关搜索失败:', error);
+        setRelatedSearches([]);
+      }
+    };
+    
+    loadRelatedSearches();
   }, [query]);
 
   return (
