@@ -19,7 +19,8 @@ logger = logging.getLogger(__name__)
 @api_view(["GET"])
 def search_suggest(request):
     """
-    搜索建议接口 - 简化版本
+    搜索建议接口 - 改进版本
+    基于实际文章内容生成有意义的建议，去除无意义的通用后缀
     """
     query = request.query_params.get("q", "").strip()
     limit = min(int(request.query_params.get("limit", 8)), 20)
@@ -31,23 +32,99 @@ def search_suggest(request):
             "query": query
         })
     
-    # 简单的默认建议
-    suggestions = [
-        {"text": f"{query}新闻", "type": "default", "reason": "热门搜索", "score": 70},
-        {"text": f"{query}资讯", "type": "default", "reason": "热门搜索", "score": 65},
-        {"text": f"{query}报道", "type": "default", "reason": "热门搜索", "score": 60},
-        {"text": f"{query}分析", "type": "default", "reason": "热门搜索", "score": 55},
-        {"text": f"{query}评论", "type": "default", "reason": "热门搜索", "score": 50},
-    ]
+    # 获取当前站点标识符
+    try:
+        site_identifier = get_site_from_request(request)
+    except Exception:
+        site_identifier = "localhost"
     
-    # 限制数量
-    final_suggestions = suggestions[:limit]
+    # 缓存键
+    cache_key = f"search_suggest:{site_identifier}:{query}:{limit}"
+    cached_result = cache.get(cache_key)
+    if cached_result:
+        return Response(cached_result)
     
-    return Response({
+    suggestions = []
+    
+    try:
+        # 从文章标题中寻找相关建议
+        from apps.news.models import ArticlePage
+        
+        # 查找标题包含查询词的文章
+        articles = ArticlePage.objects.live().filter(
+            title__icontains=query
+        ).values('title').distinct()[:limit * 2]
+        
+        seen_titles = set()
+        for article in articles:
+            title = article['title'].strip()
+            if (title and 
+                title.lower() not in seen_titles and 
+                len(title) <= 50 and
+                query.lower() in title.lower()):
+                
+                suggestions.append({
+                    "text": title,
+                    "type": "article_title",
+                    "reason": "来自相关文章",
+                    "score": 90
+                })
+                seen_titles.add(title.lower())
+        
+        # 如果基于标题的建议不够，添加查询词本身
+        if len(suggestions) < limit:
+            suggestions.append({
+                "text": query,
+                "type": "exact_match",
+                "reason": "精确搜索",
+                "score": 50
+            })
+            
+        # 添加一些语义扩展（基于常见的相关词汇）
+        if len(suggestions) < limit and len(query) > 1:
+            semantic_extensions = []
+            
+            # 根据查询词的类别添加相关扩展
+            if any(word in query for word in ['科技', '技术', '创新']):
+                semantic_extensions = ['人工智能', '区块链', '云计算', '大数据']
+            elif any(word in query for word in ['经济', '金融', '投资']):
+                semantic_extensions = ['股市', '基金', '银行', '保险']
+            elif any(word in query for word in ['教育', '学习', '培训']):
+                semantic_extensions = ['在线教育', '职业培训', '学历提升']
+            elif any(word in query for word in ['健康', '医疗', '养生']):
+                semantic_extensions = ['中医', '西医', '保健', '运动']
+            
+            for ext in semantic_extensions[:2]:  # 最多添加2个
+                if len(suggestions) < limit:
+                    suggestions.append({
+                        "text": f"{query} {ext}",
+                        "type": "semantic_extension",
+                        "reason": "相关主题",
+                        "score": 40
+                    })
+    
+    except Exception as e:
+        logger.warning(f"Search suggest error: {str(e)}")
+        # 出错时返回原始查询
+        suggestions = [{
+            "text": query,
+            "type": "fallback",
+            "reason": "精确搜索",
+            "score": 30
+        }]
+    
+    # 按分数排序并限制数量
+    final_suggestions = sorted(suggestions, key=lambda x: x['score'], reverse=True)[:limit]
+    
+    # 缓存结果 (5分钟)
+    result = {
         "success": True,
         "data": final_suggestions,
         "query": query
-    })
+    }
+    cache.set(cache_key, result, 300)
+    
+    return Response(result)
 
 
 def get_title_suggestions(query, site, limit):
