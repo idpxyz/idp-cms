@@ -21,10 +21,31 @@ const CHANNEL_TEMPLATES = {
 
 /**
  * 动态获取频道模板
- * @param channelSlug 频道标识
+ * @param channel 频道对象，包含模板信息
  * @returns 对应的模板组件
  */
-export function getChannelTemplate(channelSlug: string) {
+export function getChannelTemplate(channel: any) {
+  // 优先使用数据库中的模板配置
+  if (channel?.template?.file_name) {
+    const templateName = channel.template.file_name.replace('.tsx', '');
+    
+    // 根据模板文件名动态选择
+    switch (templateName) {
+      case 'SocialTemplate':
+        return SocialTemplate;
+      case 'CultureTemplate':
+        return CultureTemplate;
+      case 'TechTemplate':
+        return TechTemplate;
+      case 'FashionTemplate':
+        return FashionTemplate;
+      default:
+        return DefaultTemplate;
+    }
+  }
+  
+  // 回退到基于slug的硬编码映射（向后兼容）
+  const channelSlug = channel?.slug || '';
   return CHANNEL_TEMPLATES[channelSlug as keyof typeof CHANNEL_TEMPLATES] || DefaultTemplate;
 }
 

@@ -10,14 +10,15 @@ interface ChannelPageRendererProps {
 }
 
 /**
- * 🎪 简化的频道页面渲染器
- * 基于频道slug自动选择对应的模板文件
+ * 🎪 智能频道页面渲染器
+ * 优先使用数据库配置的模板，回退到slug映射
  * 
- * 新的设计理念：
- * - 每个频道都有独立的模板文件 (如 SocialTemplate.tsx)
- * - 基于频道slug自动选择模板 (social -> SocialTemplate)
- * - 无需复杂的JSON配置，直接在代码中定制
- * - 更易维护，更灵活，更可控
+ * 升级后的设计理念：
+ * - 🎨 优先使用数据库中配置的模板信息
+ * - 📁 每个频道都有独立的模板文件 (如 SocialTemplate.tsx)
+ * - 🔄 支持在Wagtail后台动态切换模板
+ * - 🛡️ 向后兼容：无配置时回退到slug映射
+ * - 🚀 管理员友好：无需修改代码即可调整模板
  */
 const ChannelPageRenderer: React.FC<ChannelPageRendererProps> = ({
   channelSlug,
@@ -48,8 +49,8 @@ const ChannelPageRenderer: React.FC<ChannelPageRendererProps> = ({
     );
   }
 
-  // 🎨 获取对应的模板组件
-  const TemplateComponent = getChannelTemplate(channelSlug);
+  // 🎨 获取对应的模板组件 - 使用完整的频道对象
+  const TemplateComponent = getChannelTemplate(channel);
   
   // 📄 渲染模板
   return (

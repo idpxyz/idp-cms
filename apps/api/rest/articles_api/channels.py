@@ -41,8 +41,8 @@ def channels_list(request):
         # 2. 获取查询参数
         fields = request.query_params.get("fields", "").split(",") if request.query_params.get("fields") else []
         
-        # 3. 查询频道 - 性能优化版本
-        channels = Channel.objects.filter(sites=site).select_related().order_by('order', 'name')
+        # 3. 查询频道 - 性能优化版本，包含模板信息
+        channels = Channel.objects.filter(sites=site).select_related('template').order_by('order', 'name')
         
         # 4. 序列化数据 - 批量处理
         serialized_channels = [
@@ -54,6 +54,13 @@ def channels_list(request):
                 # 🆕 首页显示配置字段
                 "show_in_homepage": getattr(channel, 'show_in_homepage', True),
                 "homepage_order": getattr(channel, 'homepage_order', 0),
+                # 🎨 模板信息
+                "template": {
+                    "id": channel.template.id if channel.template else None,
+                    "name": channel.template.name if channel.template else None,
+                    "slug": channel.template.slug if channel.template else None,
+                    "file_name": channel.template.file_name if channel.template else None,
+                } if channel.template else None,
             }
             for channel in channels
         ]
