@@ -86,3 +86,4 @@ infra/local/theme_test_report_*.md
 
 # Data files
 data_consistency_report.json
+infra/local/plugins/

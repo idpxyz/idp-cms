@@ -21,12 +21,28 @@ ARTICLE_MAPPING = {
         "index": {
             "number_of_shards": 1,
             "number_of_replicas": 0,
-            # 中文分词优化
+            # 增强型中文分词配置（OpenSearch 3.0优化）
             "analysis": {
                 "analyzer": {
                     "chinese_analyzer": {
-                        "type": "standard",
-                        "stopwords": "_none_"
+                        "tokenizer": "standard",
+                        "char_filter": ["html_strip"],
+                        "filter": ["lowercase", "cjk_width", "cjk_bigram", "stop_chinese"]
+                    },
+                    "chinese_search_analyzer": {
+                        "tokenizer": "standard", 
+                        "char_filter": ["html_strip"],
+                        "filter": ["lowercase", "cjk_width", "stop_chinese"]
+                    },
+                    "chinese_keyword_analyzer": {
+                        "tokenizer": "keyword",
+                        "filter": ["lowercase", "trim"]
+                    }
+                },
+                "filter": {
+                    "stop_chinese": {
+                        "type": "stop",
+                        "stopwords": ["的", "了", "在", "是", "和", "与", "但", "而", "因", "为", "由", "从", "到", "这", "那", "个", "之", "以", "及", "将", "会", "可", "所", "有", "等", "等等", "或者", "如果", "虽然", "但是", "因为", "所以"]
                     }
                 }
             }
@@ -45,15 +61,43 @@ ARTICLE_MAPPING = {
             "title": {
                 "type": "text", 
                 "analyzer": "chinese_analyzer",
-                "fields": {"raw": {"type": "keyword", "ignore_above": 256}}
+                "search_analyzer": "chinese_search_analyzer",
+                "fields": {
+                    "raw": {"type": "keyword", "ignore_above": 256},
+                    "suggest": {
+                        "type": "text",
+                        "analyzer": "chinese_analyzer"
+                    }
+                }
             },
             "summary": {
                 "type": "text", 
-                "analyzer": "chinese_analyzer"
+                "analyzer": "chinese_analyzer",
+                "search_analyzer": "chinese_search_analyzer"
             },
             "body": {
                 "type": "text", 
-                "analyzer": "chinese_analyzer"
+                "analyzer": "chinese_analyzer",
+                "search_analyzer": "chinese_search_analyzer"
+            },
+            # 🎯 新增重要搜索字段
+            "excerpt": {
+                "type": "text",
+                "analyzer": "chinese_analyzer", 
+                "search_analyzer": "chinese_search_analyzer"
+            },
+            "search_description": {
+                "type": "text",
+                "analyzer": "chinese_analyzer",
+                "search_analyzer": "chinese_search_analyzer"
+            },
+            "seo_title": {
+                "type": "text",
+                "analyzer": "chinese_analyzer",
+                "search_analyzer": "chinese_search_analyzer",
+                "fields": {
+                    "raw": {"type": "keyword", "ignore_above": 256}
+                }
             },
             
             # === 作者信息 ===
@@ -65,6 +109,7 @@ ARTICLE_MAPPING = {
             "original_channel": {"type": "keyword"},
             "categories": {"type": "keyword"},  # 数组类型
             "tags": {"type": "keyword"},        # 数组类型
+            "topics": {"type": "keyword"},      # 🎯 主题标签数组
             "region": {"type": "keyword"},
             
             # === 语言信息 ===
@@ -82,6 +127,7 @@ ARTICLE_MAPPING = {
             # === 时间字段 ===
             "publish_time": {"type": "date"},
             "first_published_at": {"type": "date"},
+            "updated_at": {"type": "date"},  # 🔥 更新时间
             
             # === 统计数据 ===
             "view_count": {"type": "long"},
