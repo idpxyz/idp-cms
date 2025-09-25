@@ -17,8 +17,8 @@ import { TokenStyle } from "@/lib/tokens";
 // 获取站点配置
 async function getSiteSettings(host: string) {
   try {
-    // 使用相对路径避免外部访问问题
-    const response = await fetch(`/api/site-settings?site=${host}`, {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+    const response = await fetch(`${apiUrl}/api/site-settings?site=${host}`, {
       next: {
         revalidate: 120,
         tags: [`site:${host}`, `settings:${host}`],

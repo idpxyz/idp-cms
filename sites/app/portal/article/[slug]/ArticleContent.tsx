@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useEffect, useState, useRef } from "react";
+// @ts-ignore
+import QRCode from 'qrcode';
 import "../../../../styles/article.css";
 import Image from "next/image";
 import Link from "next/link";
@@ -215,7 +217,7 @@ export default function ArticleContent({
   // 处理点赞
   const handleLike = async () => {
     if (!isAuthenticated) {
-      alert('请先登录');
+      showToast('请先登录', 'error');
       return;
     }
 
@@ -223,7 +225,7 @@ export default function ArticleContent({
     const result = await toggleLike(article.id.toString());
     
     if (!result.success && result.error) {
-      alert(result.error);
+      showToast(result.error, 'error');
     }
     
     setIsInteracting(false);
@@ -232,7 +234,7 @@ export default function ArticleContent({
   // 处理收藏
   const handleFavorite = async () => {
     if (!isAuthenticated) {
-      alert('请先登录');
+      showToast('请先登录', 'error');
       return;
     }
 
@@ -244,35 +246,183 @@ export default function ArticleContent({
     });
     
     if (!result.success && result.error) {
-      alert(result.error);
+      showToast(result.error, 'error');
     }
     
     setIsInteracting(false);
   };
 
+  // 分享弹窗状态
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [qrCodeModalOpen, setQrCodeModalOpen] = useState(false);
+  const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>('');
+  
+  // Toast 通知状态
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastVisible, setToastVisible] = useState(false);
+  const [toastType, setToastType] = useState<'success' | 'error'>('success');
+
+  // 显示 Toast 通知
+  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+    setToastMessage(message);
+    setToastType(type);
+    setToastVisible(true);
+    
+    // 3秒后自动隐藏
+    setTimeout(() => {
+      setToastVisible(false);
+    }, 3000);
+  };
+
   // 处理分享
   const handleShare = async () => {
-    if (navigator.share) {
+    const shareUrl = getShareUrl();
+    
+    // 检查是否支持原生分享且在HTTPS环境下
+    const canUseNativeShare = 'share' in navigator && 
+      window.location.protocol === 'https:' && 
+      typeof navigator.share === 'function';
+
+    if (canUseNativeShare) {
       try {
         await navigator.share({
           title: article.title,
           text: article.excerpt || '',
-          url: window.location.href,
+          url: shareUrl,
         });
       } catch (error) {
-        // 用户取消分享
+        console.log('用户取消分享或分享失败:', error);
+        // 如果原生分享失败，打开自定义分享弹窗
+        setShareModalOpen(true);
       }
     } else {
-      // 复制链接到剪贴板
-      try {
-        await navigator.clipboard.writeText(window.location.href);
-        alert('链接已复制到剪贴板');
-      } catch (error) {
-        alert('分享功能不可用');
-      }
+      // 打开自定义分享弹窗
+      setShareModalOpen(true);
     }
   };
 
+  // 复制链接
+  const handleCopyLink = async () => {
+    const shareUrl = getShareUrl();
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      showToast('链接已复制到剪贴板！', 'success');
+      setShareModalOpen(false);
+    } catch (error) {
+      // 降级处理：手动选择文本
+      const textArea = document.createElement('textarea');
+      textArea.value = shareUrl;
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        showToast('链接已复制到剪贴板！', 'success');
+        setShareModalOpen(false);
+      } catch (e) {
+        showToast('复制失败，请手动复制链接', 'error');
+      }
+      document.body.removeChild(textArea);
+    }
+  };
+
+  // 社交媒体分享
+  const handleSocialShare = (platform: string) => {
+    const shareUrl = getShareUrl();
+    const url = encodeURIComponent(shareUrl);
+    const title = encodeURIComponent(article.title);
+    const text = encodeURIComponent(article.excerpt || article.title);
+    
+    let targetUrl = '';
+    
+    switch (platform) {
+      case 'weibo':
+        targetUrl = `https://service.weibo.com/share/share.php?url=${url}&title=${text}`;
+        break;
+      case 'qq':
+        targetUrl = `https://connect.qq.com/widget/shareqq/index.html?url=${url}&title=${title}&summary=${text}`;
+        break;
+      case 'qzone':
+        targetUrl = `https://sns.qzone.qq.com/cgi-bin/qzshare/cgi_qzshare_onekey?url=${url}&title=${title}&summary=${text}`;
+        break;
+      case 'douban':
+        targetUrl = `https://www.douban.com/share/service?href=${url}&name=${title}&text=${text}`;
+        break;
+      case 'wechat':
+        // 微信分享：显示二维码或提示
+        handleWechatShare();
+        return;
+      default:
+        return;
+    }
+    
+    window.open(targetUrl, '_blank', 'width=600,height=400');
+    setShareModalOpen(false);
+  };
+
+  // 生成真实的二维码 - 使用本地qrcode库
+  const generateRealQRCode = async (text: string): Promise<string> => {
+    try {
+      const qrDataUrl = await QRCode.toDataURL(text, {
+        width: 200,
+        margin: 1,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF'
+        }
+      });
+      return qrDataUrl;
+    } catch (error) {
+      console.error('生成二维码失败:', error);
+      return '';
+    }
+  };
+
+  // 获取分享URL - 确保使用正确的域名
+  const getShareUrl = () => {
+    // 在生产环境使用实际域名，开发环境可以使用localhost
+    const currentUrl = window.location.href;
+    
+    // 如果是localhost，替换为生产域名
+    if (currentUrl.includes('localhost') || currentUrl.includes('127.0.0.1')) {
+      const path = window.location.pathname + window.location.search;
+      // 这里需要替换为您的实际生产域名
+      return `https://aivoya.com${path}`;
+    }
+    
+    return currentUrl;
+  };
+
+  // 微信分享处理 - 显示二维码
+  const handleWechatShare = () => {
+    // 检查是否在微信浏览器中
+    const isWechat = /micromessenger/i.test(navigator.userAgent);
+    
+    if (isWechat) {
+      // 在微信中，提示用户使用右上角分享
+      showToast('请点击右上角的"..."按钮，然后选择分享给朋友或分享到朋友圈', 'success');
+    } else {
+      // 不在微信中，生成并显示二维码
+      const shareUrl = getShareUrl();
+      generateRealQRCode(shareUrl).then(qrDataUrl => {
+        setQrCodeDataUrl(qrDataUrl);
+        setQrCodeModalOpen(true);
+      });
+    }
+    setShareModalOpen(false);
+  };
+
+  // 处理评论按钮点击 - 滚动到评论区
+  const handleCommentClick = () => {
+    const commentSection = document.querySelector('[data-comment-section]');
+    if (commentSection) {
+      // 平滑滚动到评论区，留一些顶部空间
+      const offsetTop = commentSection.getBoundingClientRect().top + window.pageYOffset - 80;
+      window.scrollTo({
+        top: offsetTop,
+        behavior: 'smooth'
+      });
+    }
+  };
 
   // 页面浏览追踪
   useEffect(() => {
@@ -350,6 +500,40 @@ export default function ArticleContent({
 
   return (
     <div className="bg-gray-50">
+      {/* Toast 通知 */}
+      {toastVisible && (
+        <div className={`fixed top-4 right-4 z-50 max-w-sm w-full bg-white border-l-4 rounded-lg shadow-lg transform transition-all duration-300 ease-in-out ${
+          toastType === 'success' ? 'border-green-400' : 'border-red-400'
+        }`}>
+          <div className="flex items-center p-4">
+            <div className={`flex-shrink-0 w-6 h-6 mr-3 ${toastType === 'success' ? 'text-green-400' : 'text-red-400'}`}>
+              {toastType === 'success' ? (
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              ) : (
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              )}
+            </div>
+            <div className="flex-1">
+              <p className={`text-sm font-medium ${toastType === 'success' ? 'text-green-800' : 'text-red-800'}`}>
+                {toastMessage}
+              </p>
+            </div>
+            <button
+              onClick={() => setToastVisible(false)}
+              className={`ml-3 flex-shrink-0 text-gray-400 hover:text-gray-600 transition-colors`}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* 阅读进度条 */}
       <div className="reading-progress">
         <div 
@@ -357,6 +541,174 @@ export default function ArticleContent({
           style={{ width: `${readingProgress}%` }}
         />
       </div>
+
+      {/* 分享弹窗 */}
+      {shareModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShareModalOpen(false)}>
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">分享文章</h3>
+              <button 
+                onClick={() => setShareModalOpen(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              {/* 复制链接 */}
+              <button 
+                onClick={handleCopyLink}
+                className="w-full flex items-center space-x-3 p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+              >
+                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                  <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <div className="flex-1 text-left">
+                  <div className="font-medium text-gray-900">复制链接</div>
+                  <div className="text-sm text-gray-500">复制文章链接到剪贴板</div>
+                </div>
+              </button>
+
+              {/* 社交媒体分享 */}
+              <div className="grid grid-cols-3 gap-2">
+                {/* 微信分享 */}
+                <button 
+                  onClick={() => handleSocialShare('wechat')}
+                  className="flex flex-col items-center p-3 rounded-lg border border-gray-200 hover:bg-green-50 hover:border-green-300 transition-colors"
+                >
+                  <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mb-1">
+                    <svg className="w-6 h-6 text-green-600" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M8.691 2.188C3.891 2.188 0 5.476 0 9.53c0 2.212 1.17 4.203 3.002 5.55a.59.59 0 0 1 .213.665l-.39 1.48c-.019.07-.048.141-.048.213 0 .163.13.295.29.295a.326.326 0 0 0 .167-.054l1.903-1.114a.864.864 0 0 1 .717-.098 10.16 10.16 0 0 0 2.837.403c.276 0 .543-.027.811-.05-.857-2.578.157-4.972 1.932-6.446 1.703-1.415 3.882-1.98 6.093-1.615-.54-3.547-4.077-6.061-8.836-6.061zM5.785 5.991c.642 0 1.162.529 1.162 1.18 0 .659-.52 1.188-1.162 1.188-.642 0-1.162-.53-1.162-1.188 0-.651.52-1.18 1.162-1.18zm5.813 0c.642 0 1.162.529 1.162 1.18 0 .659-.52 1.188-1.162 1.188-.642 0-1.162-.53-1.162-1.188 0-.651.52-1.18 1.162-1.18zm5.34 2.867c-1.797-.052-3.746.512-5.28 1.786-1.72 1.428-2.687 3.72-1.78 6.22.942 2.453 3.666 4.229 6.884 4.229.826 0 1.622-.12 2.361-.336a.722.722 0 0 1 .598.082l1.584.926a.272.272 0 0 0 .14.047c.134 0 .24-.111.24-.248 0-.06-.023-.12-.038-.177l-.327-1.233a.582.582 0 0 1-.023-.156.49.49 0 0 1 .201-.398C23.024 18.48 24 16.82 24 14.98c0-3.21-2.931-5.837-6.656-6.088V8.82c-.001-.437.013-.878.098-1.308.12-.552.31-1.098.609-1.617z"/>
+                    </svg>
+                  </div>
+                  <span className="text-xs font-medium text-gray-900">微信</span>
+                </button>
+
+                {/* 微博分享 */}
+                <button 
+                  onClick={() => handleSocialShare('weibo')}
+                  className="flex flex-col items-center p-3 rounded-lg border border-gray-200 hover:bg-red-50 hover:border-red-300 transition-colors"
+                >
+                  <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center mb-1">
+                    <span className="text-red-600 font-bold text-lg">微</span>
+                  </div>
+                  <span className="text-xs font-medium text-gray-900">微博</span>
+                </button>
+
+                {/* QQ分享 */}
+                <button 
+                  onClick={() => handleSocialShare('qq')}
+                  className="flex flex-col items-center p-3 rounded-lg border border-gray-200 hover:bg-blue-50 hover:border-blue-300 transition-colors"
+                >
+                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mb-1">
+                    <span className="text-blue-600 font-bold text-sm">QQ</span>
+                  </div>
+                  <span className="text-xs font-medium text-gray-900">QQ</span>
+                </button>
+
+                {/* QQ空间分享 */}
+                <button 
+                  onClick={() => handleSocialShare('qzone')}
+                  className="flex flex-col items-center p-3 rounded-lg border border-gray-200 hover:bg-yellow-50 hover:border-yellow-300 transition-colors"
+                >
+                  <div className="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center mb-1">
+                    <span className="text-yellow-600 font-bold text-xs">空间</span>
+                  </div>
+                  <span className="text-xs font-medium text-gray-900">QQ空间</span>
+                </button>
+
+                {/* 豆瓣分享 */}
+                <button 
+                  onClick={() => handleSocialShare('douban')}
+                  className="flex flex-col items-center p-3 rounded-lg border border-gray-200 hover:bg-green-50 hover:border-green-300 transition-colors"
+                >
+                  <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mb-1">
+                    <span className="text-green-600 font-bold text-lg">豆</span>
+                  </div>
+                  <span className="text-xs font-medium text-gray-900">豆瓣</span>
+                </button>
+
+                {/* 钉钉分享 - 工作场景 */}
+                <button 
+                  onClick={() => {
+                    handleCopyLink();
+                    showToast('链接已复制！您可以在钉钉中发送给同事或群聊', 'success');
+                  }}
+                  className="flex flex-col items-center p-3 rounded-lg border border-gray-200 hover:bg-blue-50 hover:border-blue-300 transition-colors"
+                >
+                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mb-1">
+                    <span className="text-blue-600 font-bold text-lg">钉</span>
+                  </div>
+                  <span className="text-xs font-medium text-gray-900">钉钉</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 微信二维码弹窗 */}
+      {qrCodeModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setQrCodeModalOpen(false)}>
+          <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">微信分享</h3>
+              <button 
+                onClick={() => setQrCodeModalOpen(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <div className="text-center">
+              <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+                {qrCodeDataUrl ? (
+                  <img
+                    src={qrCodeDataUrl}
+                    alt="微信分享二维码"
+                    width={200}
+                    height={200}
+                    className="mx-auto border border-gray-200 rounded-lg"
+                  />
+                ) : (
+                  <div className="w-48 h-48 mx-auto bg-gray-200 rounded-lg flex items-center justify-center">
+                    <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+                    </svg>
+                  </div>
+                )}
+              </div>
+              <p className="text-sm text-gray-600 mb-2">使用微信扫一扫</p>
+              <p className="text-xs text-gray-500 mb-4">扫描二维码在微信中打开文章</p>
+              
+              <button 
+                onClick={async () => {
+                  const shareUrl = getShareUrl();
+                  try {
+                    await navigator.clipboard.writeText(shareUrl);
+                    showToast('链接已复制到剪贴板！可发送到微信', 'success');
+                  } catch (error) {
+                    showToast('复制失败，请手动复制链接', 'error');
+                  }
+                  setQrCodeModalOpen(false);
+                }}
+                className="w-full px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+              >
+                复制链接到微信
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 全屏封面图片 */}
       {(article.image_url || article.cover?.url) && (
@@ -510,7 +862,10 @@ export default function ArticleContent({
                 </button>
 
                 {/* 评论按钮 */}
-                <button className="flex items-center space-x-2 px-4 py-2 rounded-full bg-gray-100 hover:bg-yellow-50 hover:text-yellow-600 transition-colors">
+                <button 
+                  onClick={handleCommentClick}
+                  className="flex items-center space-x-2 px-4 py-2 rounded-full bg-gray-100 hover:bg-yellow-50 hover:text-yellow-600 transition-colors"
+                >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
                   </svg>
@@ -683,18 +1038,13 @@ export default function ArticleContent({
               </div>
               
               {/* 评论系统 */}
-              <div className="lg:col-span-2 mt-8">
+              <div className="lg:col-span-2 mt-8" data-comment-section>
                 <CommentSection 
                   articleId={article.id.toString()} 
                   commentCount={articleInteraction.commentCount}
                   onCommentCountChange={(count) => {
                     // 更新文章互动状态中的评论数
                     updateCommentCount(article.id.toString(), count);
-                  }}
-                  articleInfo={{
-                    title: article.title,
-                    slug: article.slug,
-                    channel: article.channel?.name || '未分类',
                   }}
                 />
               </div>

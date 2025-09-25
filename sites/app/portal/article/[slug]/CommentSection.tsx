@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { useAuth } from '@/lib/context/AuthContext';
 import { formatDateTime } from '@/lib/utils/date';
@@ -27,12 +27,7 @@ interface CommentSectionProps {
   articleId: string;
   commentCount: number;
   onCommentCountChange: (count: number) => void;
-  // 文章信息，用于记录评论
-  articleInfo?: {
-    title: string;
-    slug: string;
-    channel: string;
-  };
+  articleInfo?: undefined; // 后端不再需要这些字段
 }
 
 export default function CommentSection({ articleId, commentCount, onCommentCountChange, articleInfo }: CommentSectionProps) {
@@ -43,6 +38,7 @@ export default function CommentSection({ articleId, commentCount, onCommentCount
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyContent, setReplyContent] = useState('');
+  const [likingIds, setLikingIds] = useState<Set<string>>(new Set()); // 正在点赞的评论ID集合
   
   // 文章评论系统独立运行，不需要用户评论管理
 
@@ -68,12 +64,21 @@ export default function CommentSection({ articleId, commentCount, onCommentCount
         const convertedComments = response.data.map(convertApiCommentToLocal);
         setComments(convertedComments);
         
-        // 计算总评论数（包括回复）
-        const totalCount = convertedComments.reduce((count, comment) => {
-          return count + 1 + comment.replies.length;
-        }, 0);
-        
-        onCommentCountChange(totalCount);
+
+        // 使用后端统计接口，避免前端误算
+        try {
+          const stats = await articleCommentsApi.getStats(articleId);
+          if (stats.success && stats.data) {
+            onCommentCountChange(stats.data.total_comments);
+          } else {
+            // 回退：粗略计算（根+一级回复）
+            const fallback = convertedComments.reduce((count, c) => count + 1 + c.replies.length, 0);
+            onCommentCountChange(fallback);
+          }
+        } catch {
+          const fallback = convertedComments.reduce((count, c) => count + 1 + c.replies.length, 0);
+          onCommentCountChange(fallback);
+        }
       } else {
         console.error('Failed to load comments:', response.message);
         // 加载失败时显示空评论列表
@@ -92,16 +97,13 @@ export default function CommentSection({ articleId, commentCount, onCommentCount
 
   // 提交新评论
   const handleSubmitComment = async () => {
-    if (!isAuthenticated || !user || !newComment.trim() || !articleInfo) return;
+    if (!isAuthenticated || !user || !newComment.trim()) return;
 
     setIsSubmitting(true);
     
     try {
       const response = await articleCommentsApi.addComment(articleId, {
         content: newComment.trim(),
-        article_title: articleInfo.title,
-        article_slug: articleInfo.slug,
-        article_channel: articleInfo.channel,
       });
       
       if (response.success && response.data) {
@@ -114,7 +116,17 @@ export default function CommentSection({ articleId, commentCount, onCommentCount
         // 评论已保存到数据库，用户可在"我的评论"页面查看
         
         setNewComment('');
-        onCommentCountChange(commentCount + 1);
+        // 从统计接口刷新总数
+        try {
+          const stats = await articleCommentsApi.getStats(articleId);
+          if (stats.success && stats.data) {
+            onCommentCountChange(stats.data.total_comments);
+          } else {
+            onCommentCountChange(commentCount + 1);
+          }
+        } catch {
+          onCommentCountChange(commentCount + 1);
+        }
       } else {
         alert(response.message || '发表评论失败，请稍后重试');
       }
@@ -128,16 +140,13 @@ export default function CommentSection({ articleId, commentCount, onCommentCount
 
   // 提交回复
   const handleSubmitReply = async (parentId: string) => {
-    if (!isAuthenticated || !user || !replyContent.trim() || !articleInfo) return;
+    if (!isAuthenticated || !user || !replyContent.trim()) return;
 
     setIsSubmitting(true);
     
     try {
       const response = await articleCommentsApi.addComment(articleId, {
         content: replyContent.trim(),
-        article_title: articleInfo.title,
-        article_slug: articleInfo.slug,
-        article_channel: articleInfo.channel,
         parent_id: parentId,
       });
       
@@ -163,7 +172,17 @@ export default function CommentSection({ articleId, commentCount, onCommentCount
         
         setReplyContent('');
         setReplyingTo(null);
-        onCommentCountChange(commentCount + 1);
+        // 从统计接口刷新总数
+        try {
+          const stats = await articleCommentsApi.getStats(articleId);
+          if (stats.success && stats.data) {
+            onCommentCountChange(stats.data.total_comments);
+          } else {
+            onCommentCountChange(commentCount + 1);
+          }
+        } catch {
+          onCommentCountChange(commentCount + 1);
+        }
       } else {
         alert(response.message || '发表回复失败，请稍后重试');
       }
@@ -175,23 +194,38 @@ export default function CommentSection({ articleId, commentCount, onCommentCount
     }
   };
 
-  // 点赞评论
-  const handleLikeComment = async (commentId: string, isReply = false, parentId?: string) => {
+  // 点赞评论 - 使用useCallback稳定函数引用
+  const handleLikeComment = useCallback(async (commentId: string, isReply = false, parentId?: string) => {
     if (!isAuthenticated) {
       alert('请先登录');
       return;
     }
 
+    // 防抖：同一条评论的点赞请求进行中时，忽略重复点击
+    if (likingIds.has(commentId)) return;
+    setLikingIds(prev => new Set(prev).add(commentId));
+
     try {
-      const response = await articleCommentsApi.toggleLike(commentId);
+      // 传入期望状态，确保幂等：当前未点赞 => 期望like=true；当前已点赞 => 期望like=false
+      const current = comments.find(c => c.id === (isReply ? parentId : commentId));
+      let currentIsLiked = false;
+      if (isReply && current) {
+        const target = current.replies.find(r => r.id === commentId);
+        currentIsLiked = !!target?.isLiked;
+      } else {
+        currentIsLiked = !!comments.find(c => c.id === commentId)?.isLiked;
+      }
+
+      const response = await articleCommentsApi.toggleLike(commentId, { like: !currentIsLiked });
       
       if (response.success) {
         // 获取响应数据
         const action = response.data?.action;
         const like_count = response.data?.like_count;
+        const is_liked = response.data?.is_liked;
         
         if (action && like_count !== undefined) {
-          const isLiked = action === 'liked';
+          const isLiked = typeof is_liked === 'boolean' ? is_liked : action === 'liked';
           
           setComments(prev => prev.map(comment => {
             if (isReply && comment.id === parentId) {
@@ -223,8 +257,14 @@ export default function CommentSection({ articleId, commentCount, onCommentCount
       }
     } catch (error) {
       console.error('Failed to like comment:', error);
+    } finally {
+      setLikingIds(prev => {
+        const next = new Set(prev);
+        next.delete(commentId);
+        return next;
+      });
     }
-  };
+  }, [isAuthenticated, comments, articleCommentsApi]); // 添加依赖数组
 
   // 渲染单个评论
   const renderComment = (comment: Comment, isReply = false, parentCommentId?: string) => (
@@ -265,14 +305,19 @@ export default function CommentSection({ articleId, commentCount, onCommentCount
           <div className="flex items-center space-x-4 mt-2 text-sm">
             <button
               onClick={() => handleLikeComment(comment.id, isReply, parentCommentId)}
-              className={`flex items-center space-x-1 transition-colors ${
-                comment.isLiked ? 'text-red-600' : 'text-gray-500 hover:text-red-600'
-              }`}
+              disabled={likingIds.has(comment.id)}
+              className={`flex items-center space-x-1 px-3 py-1.5 rounded-full transition-all duration-200 ${
+                comment.isLiked 
+                  ? 'bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 transform scale-105' 
+                  : 'bg-gray-50 text-gray-500 border border-gray-200 hover:bg-red-50 hover:text-red-600 hover:border-red-200'
+              } ${likingIds.has(comment.id) ? 'opacity-60 cursor-not-allowed' : ''}`}
             >
-              <svg className={`w-4 h-4 ${comment.isLiked ? 'fill-current' : ''}`} fill={comment.isLiked ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+              <svg className={`w-4 h-4 transition-transform duration-200 ${
+                comment.isLiked ? 'fill-current scale-110' : 'hover:scale-110'
+              }`} fill={comment.isLiked ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
               </svg>
-              <span>{comment.likeCount > 0 ? comment.likeCount : '点赞'}</span>
+              <span className="text-xs font-medium">{comment.likeCount > 0 ? comment.likeCount : '点赞'}</span>
             </button>
 
             {!isReply && (
@@ -352,6 +397,7 @@ export default function CommentSection({ articleId, commentCount, onCommentCount
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      
       {/* 评论头部 */}
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-lg font-bold text-gray-900">

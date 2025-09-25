@@ -1,0 +1,35 @@
+"""
+文章API端点 - 重构后的简化版本
+
+此文件现在仅作为入口点，实际实现已模块化拆分到articles/目录下：
+
+- articles/articles.py: 核心文章API (列表、详情)
+- articles/channels.py: 频道相关API  
+- articles/regions.py: 地区相关API
+- articles/portal.py: 门户聚合API
+- articles/hero.py: Hero文章API
+- articles/settings.py: 站点配置API
+- articles/common.py: 共同工具函数
+
+原始的2018行大文件已备份为 articles.py.bak.large
+"""
+
+# 从模块化文件中导入所有API端点
+from .articles.articles import articles_list, article_detail
+from .articles.channels import channels_list, channel_recommendations  
+from .articles.regions import regions_list
+from .articles.portal import portal_articles
+from .articles.hero import hero_articles
+from .articles.settings import site_settings
+
+# 保持向后兼容性，导出所有API函数
+__all__ = [
+    'articles_list',
+    'article_detail',
+    'channels_list', 
+    'channel_recommendations',
+    'regions_list',
+    'portal_articles',
+    'hero_articles',
+    'site_settings'
+]

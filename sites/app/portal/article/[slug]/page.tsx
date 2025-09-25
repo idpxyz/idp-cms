@@ -34,9 +34,10 @@ async function getArticle(slug: string, site?: string): Promise<Article | null> 
   try {
     const decodedSlug = decodeURIComponent(slug);
     const { GET } = await import("@/app/api/articles/[slug]/route");
-    // 直接调用API处理器，避免自引用网络请求
-    const mockRequest = new NextRequest(`https://example.com/api/articles/${decodedSlug}${site ? `?site=${encodeURIComponent(site)}` : ''}`);
-    const response = await GET(mockRequest, { params: Promise.resolve({ slug: decodedSlug }) });
+    const url = site
+      ? `http://localhost:3001/api/articles/${decodedSlug}?site=${encodeURIComponent(site)}`
+      : `http://localhost:3001/api/articles/${decodedSlug}`;
+    const response = await GET(new NextRequest(url), { params: Promise.resolve({ slug: decodedSlug }) });
 
     if (!response.ok) {
       if (response.status === 404) return null;
@@ -70,9 +71,9 @@ export default async function ArticlePage({ params, searchParams }: { params: Pr
   // 拉取相关文章（同频道，排除当前）
   let relatedArticles: any[] = [];
   try {
-    // 使用相对路径避免外部访问问题
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
     const resp = await fetch(
-      `/api/news?channel=${encodeURIComponent(article.channel.slug)}&limit=4`,  // 🎯 统一：使用channel参数
+      `${baseUrl}/api/news?channel=${encodeURIComponent(article.channel.slug)}&limit=4`,  // 🎯 统一：使用channel参数
       { next: { revalidate: 300 } }
     );
     if (resp.ok) {

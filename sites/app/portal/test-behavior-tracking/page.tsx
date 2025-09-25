@@ -48,7 +48,7 @@ export default function BehaviorTrackingTest() {
         delete trackingPayload.article_id;
       }
 
-      const response = await fetch('/api/track/', {
+      const response = await fetch('http://localhost:8000/api/track/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -174,7 +174,7 @@ export default function BehaviorTrackingTest() {
     const handleBeforeUnload = () => {
       const dwellTime = Date.now() - pageLoadTime.current;
       if (dwellTime > 1000) {
-        navigator.sendBeacon('/api/track/', JSON.stringify({
+        navigator.sendBeacon('http://localhost:8000/api/track/', JSON.stringify({
           event: 'page_dwell',
           dwell_ms: dwellTime,
           device_id: getDeviceId(),

@@ -10,11 +10,10 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = request.nextUrl;
     
-    // 构建后端API URL
-    const backendUrl = endpoints.buildUrl(
-      endpoints.getCmsEndpoint('/api/categories/'),
-      Object.fromEntries(searchParams.entries())
-    );
+    // 🎯 直接调用后端API，避免依赖环境变量
+    const cmsOrigin = process.env.CMS_ORIGIN || 'http://authoring:8000';
+    const queryString = searchParams.toString();
+    const backendUrl = `${cmsOrigin}/api/categories/${queryString ? `?${queryString}` : ''}`;
 
     // 代理请求到后端
     const response = await fetch(backendUrl, {

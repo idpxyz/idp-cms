@@ -24,8 +24,8 @@ export async function GET(
     // 重构原始路径
     const mediaPath = path.join('/');
     
-    // 构建后端媒体URL
-    const backendUrl = endpoints.getCmsEndpoint(`/${mediaPath}`);
+    // 构建后端媒体URL - 修复路径问题
+    const backendUrl = endpoints.getCmsEndpoint(`/api/media/proxy/${mediaPath}`);
     
     console.log('媒体代理请求:', {
       originalPath: path,

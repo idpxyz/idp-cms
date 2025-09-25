@@ -41,7 +41,7 @@ export default function MostReadModule({ onArticleClick, limit = 8, excludeClust
         params.set('diversity', diversity);
       }
       
-      const response = await fetch(endpoints.getCmsEndpoint(`/api/hot?${params.toString()}`));
+      const response = await fetch(`/api/backend/hot?${params.toString()}`);
       const res = await response.json();
 
       // 🎯 转换API数据格式以匹配FeedItem类型

@@ -3,7 +3,7 @@
 
 提供用户收藏、阅读历史、评论、互动等数据管理功能
 """
-from django.db.models import Count, Sum
+from django.db.models import Count, Sum, F
 from django.utils import timezone
 from datetime import timedelta
 from rest_framework import status
@@ -524,35 +524,42 @@ def toggle_article_like(request, article_id):
             
             if interaction:
                 # 已点赞，取消点赞
-                interaction.delete()
+                deleted_count, _ = interaction.delete()
+                if deleted_count:
+                    # 原子减少文章点赞数
+                    try:
+                        ArticlePage.objects.filter(id=article_id).update(like_count=F('like_count') - 1)
+                    except Exception:
+                        pass
                 action = 'unliked'
+                is_liked = False
             else:
                 # 未点赞，添加点赞
-                UserInteraction.objects.create(
-                    user=user,
-                    target_type='article',
-                    target_id=article_id,
-                    interaction_type='like'
-                )
-                action = 'liked'
+                try:
+                    UserInteraction.objects.create(
+                        user=user,
+                        target_type='article',
+                        target_id=article_id,
+                        interaction_type='like'
+                    )
+                    # 原子增加文章点赞数
+                    try:
+                        ArticlePage.objects.filter(id=article_id).update(like_count=F('like_count') + 1)
+                    except Exception:
+                        pass
+                    action = 'liked'
+                    is_liked = True
+                except Exception:
+                    # 创建失败（可能已存在），当作已点赞处理
+                    action = 'liked'
+                    is_liked = True
             
-            # 重新统计点赞数
+            # 获取最新的点赞数
             like_count = UserInteraction.objects.filter(
                 target_type='article',
                 target_id=article_id,
                 interaction_type='like'
             ).count()
-            
-            # 🔄 同步更新 ArticlePage 的 like_count 字段
-            try:
-                article = ArticlePage.objects.get(id=article_id)
-                article.like_count = like_count
-                article.save(update_fields=['like_count'])
-            except ArticlePage.DoesNotExist:
-                # 文章不存在，记录日志但不影响用户操作
-                import logging
-                logger = logging.getLogger(__name__)
-                logger.warning(f"Article {article_id} not found when updating like_count")
         
         return Response({
             'success': True,

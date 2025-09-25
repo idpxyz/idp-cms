@@ -100,14 +100,14 @@ export function ChannelProvider({ children, initialChannels }: ChannelProviderPr
     
     // 首先检查全局内存缓存
     if (globalChannelsCache && (now - globalChannelsCacheTime) < CACHE_DURATION) {
-      console.log('Using global cached channels data');
+      // console.log('Using global cached channels data'); // 减少控制台噪音
       return globalChannelsCache;
     }
     
     // 然后检查浏览器存储缓存
     const { channels: storedChannels, cacheTime: storedTime } = loadChannelsFromStorage();
     if (storedChannels) {
-      console.log('Using stored channels data');
+      // console.log('Using stored channels data'); // 减少控制台噪音
       // 同步到全局缓存
       globalChannelsCache = storedChannels;
       globalChannelsCacheTime = storedTime;
@@ -143,7 +143,7 @@ export function ChannelProvider({ children, initialChannels }: ChannelProviderPr
   
   // 统一的频道切换函数
   const switchChannel = useCallback((channelSlug: string) => {
-    console.log('🔄 Switching channel to:', channelSlug, 'from:', pathname);
+    // console.log('🔄 Switching channel to:', channelSlug, 'from:', pathname); // 减少控制台噪音
     
     // 保留现有的 tags 查询参数
     const params = new URLSearchParams();
@@ -153,7 +153,7 @@ export function ChannelProvider({ children, initialChannels }: ChannelProviderPr
     const qs = params.toString();
     const newUrl = qs ? `/portal?${qs}` : '/portal';
     
-    console.log('🎯 Navigating to:', newUrl);
+    // console.log('🎯 Navigating to:', newUrl); // 减少控制台噪音
     router.push(newUrl);
   }, [router, pathname, searchParams]);
   
@@ -239,10 +239,10 @@ export function ChannelProvider({ children, initialChannels }: ChannelProviderPr
     
     // 只有在没有初始数据且所有缓存都已过期的情况下才获取新数据
     if (!initialChannels && !hasFreshGlobalCache && !hasFreshStoredCache) {
-      console.log('Fetching fresh channels data - no cache available');
+      // console.log('Fetching fresh channels data - no cache available'); // 减少控制台噪音
       refreshChannels();
     } else {
-      console.log('Skipping channels fetch - using cached or initial data');
+      // console.log('Skipping channels fetch - using cached or initial data'); // 减少控制台噪音
     }
   }, []); // 移除依赖，避免重复执行
 

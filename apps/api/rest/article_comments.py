@@ -7,7 +7,9 @@
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
-from django.db.models import Count, Q
+from django.db.models import Count, Q, F
+from django.db import transaction, IntegrityError
+from django.utils.html import strip_tags
 from apps.web_users.models import WebUser, UserComment
 from apps.web_users.serializers import UserCommentSerializer
 from apps.api.rest.web_auth import get_user_from_token
@@ -20,57 +22,85 @@ def get_article_comments(request, article_id):
     try:
         # 获取当前用户（如果已登录）
         current_user = get_user_from_token(request)
-        
-        # 获取查询参数
-        page = int(request.GET.get('page', 1))
-        limit = min(int(request.GET.get('limit', 20)), 50)  # 最大50条
+
+        # 获取并校验查询参数
+        try:
+            page = int(request.GET.get('page', 1))
+            limit = int(request.GET.get('limit', 20))
+        except ValueError:
+            return JsonResponse({'success': False, 'message': '分页参数格式错误'}, status=400)
+
+        if page < 1:
+            return JsonResponse({'success': False, 'message': 'page 必须 >= 1'}, status=400)
+        if limit < 1 or limit > 50:
+            return JsonResponse({'success': False, 'message': 'limit 必须在 1-50 之间'}, status=400)
+
         offset = (page - 1) * limit
-        
-        # 获取文章的所有已发布评论，按时间倒序
-        comments_qs = UserComment.objects.filter(
+
+        # 仅对根评论进行分页
+        root_qs = UserComment.objects.filter(
             article_id=article_id,
-            status='published'
+            status='published',
+            parent__isnull=True
         ).select_related('user').order_by('-created_at')
-        
-        total = comments_qs.count()
-        comments_list = comments_qs[offset:offset + limit]
-        
-        # 序列化评论数据
-        serializer = UserCommentSerializer(comments_list, many=True)
+
+        total = root_qs.count()
+        root_comments = list(root_qs[offset:offset + limit])
+
+        # 逐层获取所选根评论的所有子孙评论（避免全量扫描）
+        all_thread_comments = list(root_comments)
+        frontier = root_comments
+        while frontier:
+            children_qs = list(
+                UserComment.objects.filter(
+                    article_id=article_id,
+                    status='published',
+                    parent__in=frontier
+                ).select_related('user').order_by('created_at')
+            )
+            if not children_qs:
+                break
+            all_thread_comments.extend(children_qs)
+            frontier = children_qs
+
+        # 序列化所需评论
+        serializer = UserCommentSerializer(all_thread_comments, many=True)
         comments_data = serializer.data
-        
-        # 如果用户已登录，添加点赞状态
+
+        # 标注点赞状态（当前用户）
         if current_user:
             from apps.web_users.models import UserInteraction
-            # 获取用户对这些评论的点赞状态
-            comment_ids = [comment['id'] for comment in comments_data]
+            comment_ids = [str(comment['id']) for comment in comments_data]
+            
             user_likes = set(
                 UserInteraction.objects.filter(
                     user=current_user,
                     target_type='comment',
-                    target_id__in=[str(cid) for cid in comment_ids],
+                    target_id__in=comment_ids,
                     interaction_type='like'
                 ).values_list('target_id', flat=True)
             )
             
-            # 为每条评论添加是否点赞的标记
             for comment in comments_data:
                 comment['is_liked'] = str(comment['id']) in user_likes
         else:
-            # 未登录用户，所有评论都未点赞
             for comment in comments_data:
                 comment['is_liked'] = False
-        
+
+        # 为每条评论添加空的 replies 字段（便于前端直接使用）
+        for comment in comments_data:
+            comment.setdefault('replies', [])
+
         # 构建评论树结构
         comments_tree = build_comment_tree(comments_data)
-        
+
         return JsonResponse({
             'success': True,
             'data': comments_tree,
             'pagination': {
                 'page': page,
                 'limit': limit,
-                'total': total,
+                'total': total,  # 根评论总数
                 'has_next': offset + limit < total
             }
         })
@@ -98,6 +128,8 @@ def add_article_comment(request, article_id):
         # 解析请求数据
         data = json.loads(request.body)
         content = data.get('content', '').strip()
+        # 基础清洗，去除HTML标签，防止XSS
+        content = strip_tags(content)
         parent_id = data.get('parent_id')
         
         if not content:
@@ -105,11 +137,25 @@ def add_article_comment(request, article_id):
                 'success': False,
                 'message': '评论内容不能为空'
             }, status=400)
+        # 内容长度限制
+        if len(content) > 2000:
+            return JsonResponse({
+                'success': False,
+                'message': '评论内容过长（最多2000字符）'
+            }, status=400)
         
-        # 获取文章信息（从前端传递或者从其他地方获取）
-        article_title = data.get('article_title', f'文章 {article_id}')
-        article_slug = data.get('article_slug', article_id)
-        article_channel = data.get('article_channel', '默认频道')
+        # 获取文章信息（从后端读取，不信任前端字段）
+        from apps.news.models.article import ArticlePage
+        try:
+            article_obj = ArticlePage.objects.get(id=int(article_id))
+        except (ArticlePage.DoesNotExist, ValueError):
+            return JsonResponse({
+                'success': False,
+                'message': '文章不存在'
+            }, status=404)
+        article_title = article_obj.title
+        article_slug = article_obj.slug
+        article_channel = getattr(article_obj.channel, 'name', '默认频道')
         
         # 处理父评论信息
         parent_comment = None
@@ -132,9 +178,6 @@ def add_article_comment(request, article_id):
                 }, status=400)
         
         # 创建评论并同步更新文章统计
-        from django.db import transaction
-        from apps.news.models.article import ArticlePage
-        
         with transaction.atomic():
             # 创建评论
             comment = UserComment.objects.create(
@@ -150,30 +193,21 @@ def add_article_comment(request, article_id):
                 status='published'  # 直接发布，或者设为pending等待审核
             )
             
-            # 🔄 同步更新 ArticlePage 的 comment_count 字段
-            try:
-                # 重新统计该文章的评论数（只统计已发布的评论）
-                comment_count = UserComment.objects.filter(
-                    article_id=article_id,
-                    status='published'
-                ).count()
-                
-                article = ArticlePage.objects.get(id=article_id)
-                article.comment_count = comment_count
-                article.save(update_fields=['comment_count'])
-            except ArticlePage.DoesNotExist:
-                # 文章不存在，记录日志但不影响评论创建
-                import logging
-                logger = logging.getLogger(__name__)
-                logger.warning(f"Article {article_id} not found when updating comment_count")
+            # 🔄 原子自增 ArticlePage 的 comment_count 字段
+            ArticlePage.objects.filter(id=article_obj.id).update(comment_count=F('comment_count') + 1)
         
         # 序列化返回数据
         serializer = UserCommentSerializer(comment)
-        
+
+        # 统一返回结构，便于前端直接插入
+        response_comment = dict(serializer.data)
+        response_comment['is_liked'] = False
+        response_comment['replies'] = []
+
         return JsonResponse({
             'success': True,
             'message': '评论发表成功',
-            'data': serializer.data
+            'data': response_comment
         }, status=201)
         
     except json.JSONDecodeError:
@@ -210,42 +244,77 @@ def toggle_comment_like(request, comment_id):
                 'message': '评论不存在'
             }, status=404)
         
-        # 这里应该有一个独立的点赞表，现在先简化处理
-        # 可以创建一个 CommentLike 模型来记录点赞关系
-        
-        # 临时实现：模拟点赞切换
         from apps.web_users.models import UserInteraction
-        
-        interaction, created = UserInteraction.objects.get_or_create(
-            user=user,
-            target_type='comment',
-            target_id=str(comment_id),
-            interaction_type='like'
-        )
-        
-        if not created:
-            # 已存在，删除（取消点赞）
-            interaction.delete()
-            action = 'unliked'
-        else:
-            # 新创建（点赞）
-            action = 'liked'
-        
-        # 更新评论点赞数（需要重新计算）
-        like_count = UserInteraction.objects.filter(
-            target_type='comment',
-            target_id=str(comment_id),
-            interaction_type='like'
-        ).count()
-        
-        comment.likes = like_count
-        comment.save(update_fields=['likes'])
-        
+
+        # 可选接受期望状态: { "like": true|false }
+        desired_like = None
+        try:
+            if request.body:
+                payload = json.loads(request.body)
+                if isinstance(payload, dict) and 'like' in payload:
+                    desired_like = bool(payload.get('like'))
+        except json.JSONDecodeError:
+            desired_like = None  # 忽略解析错误，回退到切换逻辑
+
+        with transaction.atomic():
+            # 当前是否已点赞
+            has_like = UserInteraction.objects.filter(
+                user=user,
+                target_type='comment',
+                target_id=str(comment_id),
+                interaction_type='like'
+            ).exists()
+
+            # 计算目标状态：若未显式指定，则执行切换
+            target_like = (not has_like) if desired_like is None else desired_like
+            
+
+            if target_like and not has_like:
+                # 执行点赞
+                try:
+                    interaction, created = UserInteraction.objects.get_or_create(
+                        user=user,
+                        target_type='comment',
+                        target_id=str(comment_id),
+                        interaction_type='like'
+                    )
+                except IntegrityError:
+                    created = False
+                if created:
+                    UserComment.objects.filter(id=comment.id).update(likes=F('likes') + 1)
+                action = 'liked'
+                is_liked = True
+            elif (not target_like) and has_like:
+                # 执行取消点赞
+                interaction = UserInteraction.objects.filter(
+                    user=user,
+                    target_type='comment',
+                    target_id=str(comment_id),
+                    interaction_type='like'
+                ).first()
+                if interaction:
+                    deleted_count, _ = interaction.delete()
+                    if deleted_count:
+                        UserComment.objects.filter(id=comment.id).update(likes=F('likes') - 1)
+                action = 'unliked'
+                is_liked = False
+            else:
+                # 目标状态与当前一致，返回当前实际状态而非noop
+                action = 'liked' if has_like else 'unliked'
+                is_liked = has_like
+
+        # 刷新点赞数
+        comment.refresh_from_db(fields=['likes'])
+        if comment.likes < 0:
+            comment.likes = 0
+            comment.save(update_fields=['likes'])
+
         return JsonResponse({
             'success': True,
             'data': {
                 'action': action,
-                'like_count': like_count
+                'like_count': comment.likes,
+                'is_liked': is_liked
             }
         })
         
@@ -277,7 +346,16 @@ def build_comment_tree(comments_data):
         else:
             # 这是一个根评论
             root_comments.append(comment)
-    
+
+    # 对每个父评论的回复按创建时间升序排序（如有字段）
+    for c in comments_dict.values():
+        if c.get('replies'):
+            try:
+                c['replies'].sort(key=lambda x: x.get('created_at'))
+            except Exception:
+                # 如果无法排序（缺少字段），忽略
+                pass
+
     return root_comments
 
 
@@ -291,15 +369,13 @@ def get_comment_stats(request, article_id):
             status='published'
         ).count()
         
-        # 统计回复数
-        reply_count = UserComment.objects.filter(
+        # 统计根评论数与回复数
+        root_comment_count = UserComment.objects.filter(
             article_id=article_id,
             status='published',
-            parent__isnull=False
+            parent__isnull=True
         ).count()
-        
-        # 统计根评论数
-        root_comment_count = total_comments - reply_count
+        reply_count = total_comments - root_comment_count
         
         return JsonResponse({
             'success': True,

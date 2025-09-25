@@ -141,15 +141,16 @@ class UserCommentSerializer(serializers.ModelSerializer):
     """用户评论序列化器"""
     
     user_info = serializers.SerializerMethodField()
+    is_liked = serializers.BooleanField(read_only=True, default=False)  # 动态添加的点赞状态字段
     
     class Meta:
         model = UserComment
         fields = [
             'id', 'article_id', 'article_title', 'article_slug', 'article_channel',
             'content', 'parent', 'parent_content', 'parent_author', 
-            'status', 'likes', 'created_at', 'updated_at', 'user_info'
+            'status', 'likes', 'created_at', 'updated_at', 'user_info', 'is_liked'
         ]
-        read_only_fields = ['id', 'created_at', 'updated_at', 'status', 'likes']
+        read_only_fields = ['id', 'created_at', 'updated_at', 'status', 'likes', 'is_liked']
     
     def get_user_info(self, obj):
         """获取用户信息"""

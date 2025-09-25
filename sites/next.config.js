@@ -80,18 +80,17 @@ const nextConfig = {
       {
         protocol: 'https',
         hostname: 'lf9-static.bytednsdoc.com',
-      }
+      },
       // 移除 images.unsplash.com，使用稳定的 Picsum
     ],
   },
 
   async rewrites() {
+    // 🎯 Next.js 15 兼容的rewrites配置
     return [
       {
         source: "/cms/:path*",
-        destination: `${
-          process.env.CMS_ORIGIN || "http://local-authoring-1:8000"
-        }/api/:path*`,
+        destination: "http://authoring:8000/api/:path*",
       },
     ];
   },
