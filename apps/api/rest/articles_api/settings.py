@@ -1,7 +1,7 @@
 """
 站点设置API端点
 
-包含站点配置的API实现
+包含站点配置功能
 """
 
 from rest_framework.decorators import api_view
@@ -10,8 +10,8 @@ from rest_framework import status
 
 from apps.core.models import SiteSettings
 from ..utils import validate_site_parameter, generate_etag
-from ..utils.rate_limit import SITE_SETTINGS_RATE_LIMIT
-from ..utils.cache_performance import monitor_cache_performance
+from ...utils.rate_limit import SITE_SETTINGS_RATE_LIMIT
+from ...utils.cache_performance import monitor_cache_performance
 
 
 @api_view(["GET"])

@@ -1,4 +1,5 @@
 import React from 'react';
+import Image from 'next/image';
 import PageContainer from "@/components/layout/PageContainer";
 import Section from "@/components/layout/Section";
 import NewsContent from "../../components/NewsContent";
@@ -56,10 +57,14 @@ const SocialTemplate: React.FC<ChannelTemplateProps> = ({
           <div className="lg:col-span-2">
             <div className="relative bg-white rounded-lg overflow-hidden shadow-sm border border-gray-200">
               <div className="aspect-video bg-gray-100 relative">
-                <img 
+                <Image 
                   src="https://picsum.photos/800/450?random=1" 
                   alt="头条新闻"
-                  className="w-full h-full object-cover"
+                  fill
+                  className="object-cover"
+                  priority={false}
+                  placeholder="blur"
+                  blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAAIAAoDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAhEAACAQMDBQAAAAAAAAAAAAABAgMABAUGIWGRkqGx0f/EABUBAQEAAAAAAAAAAAAAAAAAAAMF/8QAGhEAAgIDAAAAAAAAAAAAAAAAAAECEgMRkf/aAAwDAQACEQMRAD8AltJagyeH0AthI5xdrLcNM91BF5pX2HaH9bcfaSXWGaRmknyJckliyjqTzSlT54b6bk+h0R//2Q=="
                 />
                 <div className="absolute top-4 left-4">
                   <span className="bg-red-600 text-white px-3 py-1 rounded-full news-meta-small font-medium">头条</span>
@@ -91,10 +96,13 @@ const SocialTemplate: React.FC<ChannelTemplateProps> = ({
             <div className="space-y-4">
               <article className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
                 <div className="flex space-x-4">
-                  <img 
+                  <Image 
                     src="https://picsum.photos/120/80?random=2" 
                     alt="新闻图片"
-                    className="w-20 h-14 object-cover rounded flex-shrink-0"
+                    width={80}
+                    height={56}
+                    className="object-cover rounded flex-shrink-0"
+                    priority={false}
                   />
                   <div className="flex-1 min-w-0">
                     <h4 className="news-title-small text-gray-900 mb-2 line-clamp-2">
@@ -111,10 +119,13 @@ const SocialTemplate: React.FC<ChannelTemplateProps> = ({
 
               <article className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
                 <div className="flex space-x-4">
-                  <img 
+                  <Image 
                     src="https://picsum.photos/120/80?random=3" 
                     alt="新闻图片"
-                    className="w-20 h-14 object-cover rounded flex-shrink-0"
+                    width={80}
+                    height={56}
+                    className="object-cover rounded flex-shrink-0"
+                    priority={false}
                   />
                   <div className="flex-1 min-w-0">
                     <h4 className="news-title-small text-gray-900 mb-2 line-clamp-2">
@@ -131,10 +142,13 @@ const SocialTemplate: React.FC<ChannelTemplateProps> = ({
 
               <article className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
                 <div className="flex space-x-4">
-                  <img 
+                  <Image 
                     src="https://picsum.photos/120/80?random=4" 
                     alt="新闻图片"
-                    className="w-20 h-14 object-cover rounded flex-shrink-0"
+                    width={80}
+                    height={56}
+                    className="object-cover rounded flex-shrink-0"
+                    priority={false}
                   />
                   <div className="flex-1 min-w-0">
                     <h4 className="news-title-small text-gray-900 mb-2 line-clamp-2">
@@ -151,10 +165,13 @@ const SocialTemplate: React.FC<ChannelTemplateProps> = ({
 
               <article className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
                 <div className="flex space-x-4">
-                  <img 
+                  <Image 
                     src="https://picsum.photos/120/80?random=5" 
                     alt="新闻图片"
-                    className="w-20 h-14 object-cover rounded flex-shrink-0"
+                    width={80}
+                    height={56}
+                    className="object-cover rounded flex-shrink-0"
+                    priority={false}
                   />
                   <div className="flex-1 min-w-0">
                     <h4 className="news-title-small text-gray-900 mb-2 line-clamp-2">
@@ -209,10 +226,13 @@ const SocialTemplate: React.FC<ChannelTemplateProps> = ({
               <div className="divide-y divide-gray-200">
                 <article className="p-6 hover:bg-gray-50 transition-colors">
                   <div className="flex space-x-4">
-                    <img 
+                    <Image 
                       src="https://picsum.photos/100/70?random=6" 
                       alt="新闻图片"
-                      className="w-24 h-16 object-cover rounded flex-shrink-0"
+                      width={96}
+                      height={64}
+                      className="object-cover rounded flex-shrink-0"
+                      priority={false}
                     />
                     <div className="flex-1">
                       <h3 className="news-title-medium text-gray-900 mb-2 leading-tight">
@@ -234,10 +254,13 @@ const SocialTemplate: React.FC<ChannelTemplateProps> = ({
 
                 <article className="p-6 hover:bg-gray-50 transition-colors">
                   <div className="flex space-x-4">
-                    <img 
+                    <Image 
                       src="https://picsum.photos/100/70?random=7" 
                       alt="新闻图片"
-                      className="w-24 h-16 object-cover rounded flex-shrink-0"
+                      width={96}
+                      height={64}
+                      className="object-cover rounded flex-shrink-0"
+                      priority={false}
                     />
                     <div className="flex-1">
                       <h3 className="news-title-medium text-gray-900 mb-2 leading-tight">
@@ -259,10 +282,13 @@ const SocialTemplate: React.FC<ChannelTemplateProps> = ({
 
                 <article className="p-6 hover:bg-gray-50 transition-colors">
                   <div className="flex space-x-4">
-                    <img 
+                    <Image 
                       src="https://picsum.photos/100/70?random=8" 
                       alt="新闻图片"
-                      className="w-24 h-16 object-cover rounded flex-shrink-0"
+                      width={96}
+                      height={64}
+                      className="object-cover rounded flex-shrink-0"
+                      priority={false}
                     />
                     <div className="flex-1">
                       <h3 className="news-title-medium text-gray-900 mb-2 leading-tight">

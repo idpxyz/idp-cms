@@ -1,7 +1,7 @@
 """
 核心文章API端点
 
-包含文章列表和文章详情的API实现
+包含文章列表和文章详情的核心功能
 """
 
 from rest_framework.decorators import api_view
@@ -21,8 +21,8 @@ from ..utils import (
     generate_etag,
     generate_surrogate_keys
 )
-from ..utils.rate_limit import ARTICLES_RATE_LIMIT
-from ..utils.cache_performance import monitor_cache_performance
+from ...utils.rate_limit import ARTICLES_RATE_LIMIT
+from ...utils.cache_performance import monitor_cache_performance
 
 
 @api_view(["GET"])
@@ -41,8 +41,7 @@ def articles_list(request):
     - categories: 分类过滤（多选，逗号分隔）
     - topics: 专题过滤（多选，逗号分隔）
     - q: 搜索关键词
-    - is_featured: 是否置顶推荐
-    - is_hero: 是否首页轮播
+    - is_featured: 是否置顶
     - since: 时间过滤
     - order: 排序
     - page: 分页
@@ -73,7 +72,7 @@ def articles_list(request):
         queryset = apply_ordering(queryset, request.query_params.get("order", "-publish_at"))
         
         # 6. 性能优化：预取关联数据，避免N+1查询
-        queryset = queryset.select_related('channel', 'region', 'cover').prefetch_related('topics', 'tags', 'categories')
+        queryset = queryset.select_related('channel', 'region').prefetch_related('tags', 'categories', 'topics')
         
         # 7. 分页 - 优化版本，避免重复count查询
         total_count = queryset.count()
@@ -93,11 +92,9 @@ def articles_list(request):
                 "updated_at": article.last_published_at.isoformat() if article.last_published_at else None,
                 "channel_slug": getattr(article.channel, 'slug', '') if article.channel else '',
                 "region": getattr(article.region, 'name', '') if article.region else '',
-                "topic_slug": '',  # topics是多对多字段，暂时留空
-                "topic_title": '',  # topics是多对多字段，暂时留空
+                "topics": [{"slug": topic.slug, "title": topic.title} for topic in article.topics.all()] if hasattr(article, 'topics') else [],
                 "category_names": article.get_category_names() if hasattr(article, 'get_category_names') else [],
                 "is_featured": getattr(article, 'is_featured', False),
-                "is_hero": getattr(article, 'is_hero', False),
                 "weight": getattr(article, 'weight', 0),
                 "allow_aggregate": getattr(article, 'allow_aggregate', True),
                 "canonical_url": getattr(article, 'canonical_url', ''),
@@ -232,7 +229,7 @@ def article_detail(request, slug):
             "title": article.title,
             "slug": article.slug,
             "excerpt": getattr(article, 'introduction', ''),
-            "body": expand_db_html(article.body).replace('http://authoring:8000', 'http://192.168.8.195:8000') if hasattr(article, 'body') and article.body else '',
+            "body": expand_db_html(article.body).replace('http://authoring:8000/api/media/proxy', '/api/media-proxy') if hasattr(article, 'body') else '',
             "publish_at": article.first_published_at.isoformat() if article.first_published_at else None,
             "updated_at": article.last_published_at.isoformat() if article.last_published_at else None,
             "channel_slug": getattr(article.channel, 'slug', '') if article.channel else '',

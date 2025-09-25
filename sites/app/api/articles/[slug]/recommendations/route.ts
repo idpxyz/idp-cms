@@ -1,106 +1,109 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { endpoints } from '@/lib/config/endpoints';
+import { NextRequest, NextResponse } from "next/server";
+import { endpoints } from "@/lib/config/endpoints";
+import { getMainSite } from "@/lib/config/sites";
+
+export const runtime = "nodejs";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
-    const { id } = await params;
-    const searchParams = request.nextUrl.searchParams;
+    const { slug } = await params;
+    const { searchParams } = new URL(request.url);
     
-    // 构建查询参数
-    const queryParams = new URLSearchParams();
+    // 构建Django API URL - 参考其他API的模式
+    const djangoUrlObj = new URL(endpoints.getCmsEndpoint(`/api/articles/${encodeURIComponent(slug)}/recommendations/`));
     
-    // 传递所有查询参数到后端
+    // 传递查询参数
     searchParams.forEach((value, key) => {
-      queryParams.set(key, value);
+      djangoUrlObj.searchParams.set(key, value);
     });
     
-    // 构建后端API URL
-    const backendUrl = endpoints.getCmsEndpoint(
-      `/api/articles/${id}/recommendations/?${queryParams.toString()}`
+    // 设置默认站点参数
+    if (!djangoUrlObj.searchParams.has('site')) {
+      djangoUrlObj.searchParams.set('site', 'aivoya.com'); // 临时硬编码测试
+    }
+
+    const djangoUrl = djangoUrlObj.toString();
+
+    console.log('推荐API调试信息:', {
+      slug,
+      djangoUrl,
+      environment: typeof window === 'undefined' ? 'server' : 'client',
+      cmsOrigin: endpoints.getCmsEndpoint(),
+      timestamp: new Date().toISOString()
+    });
+
+    // 发起请求 - 使用统一的配置
+    const response = await fetch(
+      djangoUrl,
+      endpoints.createFetchConfig({ 
+        method: 'GET', 
+        timeout: Math.max(10000, endpoints.getCmsTimeout()),
+        headers: {
+          // 转发用户标识头
+          'X-Forwarded-For': request.headers.get('X-Forwarded-For') || request.headers.get('X-Real-IP') || '',
+          'User-Agent': request.headers.get('User-Agent') || 'NextJS-Recommendations-API',
+        }
+      })
     );
-    
-    // 转发用户标识头到后端
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-    };
-    
-    // 转发用户识别头部
-    const userHeaders = [
-      'x-device-id',
-      'x-session-id', 
-      'x-user-id',
-      'user-agent',
-      'x-forwarded-for',
-      'x-real-ip',
-      'host'
-    ];
-    
-    userHeaders.forEach(header => {
-      const value = request.headers.get(header);
-      if (value) {
-        headers[header] = value;
-      }
+
+    console.log('推荐API响应信息:', {
+      status: response.status,
+      statusText: response.statusText,
+      ok: response.ok,
+      url: response.url
     });
-    
-    console.log(`[Articles Recommendations API] Fetching: ${backendUrl}`);
-    
-    // 调用后端API
-    const response = await fetch(backendUrl, {
-      method: 'GET',
-      headers,
-      next: { revalidate: 300 } // 5分钟缓存
-    });
-    
+
     if (!response.ok) {
-      console.error(`[Articles Recommendations API] Backend error: ${response.status}`);
+      console.error('推荐API请求失败:', {
+        status: response.status,
+        statusText: response.statusText,
+        url: djangoUrl,
+        slug
+      });
       
-      // API失败时返回降级数据
+      // 返回降级响应而不是错误
       return NextResponse.json({
         recommendations: [],
         meta: {
-          article_id: parseInt(id),
+          article_slug: slug,
           limit: parseInt(searchParams.get('limit') || '6'),
           total: 0,
           strategy: 'fallback',
           confidence: 0,
           error: 'Recommendation service unavailable'
         }
-      }, { status: 200 }); // 返回200避免前端错误
+      }, { 
+        status: 200,
+        headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300' }
+      });
     }
-    
+
     const data = await response.json();
     
-    // 设置缓存头
-    const responseHeaders = new Headers();
-    responseHeaders.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=120');
-    
-    // 转发后端的缓存头
-    const cacheHeaders = ['etag', 'last-modified'];
-    cacheHeaders.forEach(header => {
-      const value = response.headers.get(header);
-      if (value) {
-        responseHeaders.set(header, value);
+    return NextResponse.json(data, {
+      headers: { 
+        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
+        'Surrogate-Key': `recommendations article:${encodeURIComponent(slug)}`
       }
     });
-    
-    console.log(`[Articles Recommendations API] Success: ${data?.recommendations?.length || 0} recommendations`);
-    
-    return NextResponse.json(data, { headers: responseHeaders });
-    
+
   } catch (error) {
-    console.error('[Articles Recommendations API] Error:', error);
+    console.error('推荐API内部错误:', {
+      error: error.message,
+      stack: error.stack,
+      name: error.name
+    });
+    const { slug } = await params;
+    const { searchParams } = new URL(request.url);
     
-    // 发生错误时返回空推荐列表，避免前端崩溃
-    const { id } = await params;
-    const searchParams = request.nextUrl.searchParams;
-    
+    // 返回降级响应
     return NextResponse.json({
       recommendations: [],
       meta: {
-        article_id: parseInt(id),
+        article_slug: slug,
         limit: parseInt(searchParams.get('limit') || '6'),
         total: 0,
         strategy: 'error_fallback',
@@ -109,9 +112,7 @@ export async function GET(
       }
     }, { 
       status: 200,
-      headers: {
-        'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=30'
-      }
+      headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=30' }
     });
   }
 }

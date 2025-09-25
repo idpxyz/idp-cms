@@ -1,7 +1,7 @@
 """
 地区相关API端点
 
-包含地区列表的API实现
+包含地区列表功能
 """
 
 from rest_framework.decorators import api_view

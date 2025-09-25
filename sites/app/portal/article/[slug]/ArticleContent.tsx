@@ -16,6 +16,7 @@ import { useInteraction } from "@/lib/context/InteractionContext";
 import { useAuth } from "@/lib/context/AuthContext";
 import CommentSection from "./CommentSection";
 import { useReadingHistory } from "@/lib/hooks/useReadingHistory";
+import RecommendedArticles from "../../components/RecommendedArticles";
 
 interface Article {
   id: number;
@@ -60,6 +61,7 @@ export default function ArticleContent({
   const [readingProgress, setReadingProgress] = useState(0);
   const [readingStartTime, setReadingStartTime] = useState<number | null>(null);
   const [currentReadDuration, setCurrentReadDuration] = useState(0);
+  
   
   // 使用useRef获取最新的值，避免闭包问题
   const latestProgressRef = useRef(0);
@@ -773,10 +775,18 @@ export default function ArticleContent({
 
       <div className="py-2">
         <div className="max-w-7xl mx-auto px-4">
-          {/* 主内容和右侧栏容器 */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* 主内容和右侧栏容器 - 智能布局 */}
+          <div className={`grid grid-cols-1 gap-6 ${
+            (relatedArticles && relatedArticles.length > 0) 
+              ? 'lg:grid-cols-3' 
+              : 'lg:grid-cols-1'
+          }`}>
             {/* 主内容列 */}
-            <div className="lg:col-span-2">
+            <div className={
+              (relatedArticles && relatedArticles.length > 0) 
+                ? 'lg:col-span-2' 
+                : 'lg:col-span-1'
+            }>
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
                 {/* 文章头部 */}
             <div className="p-6">
@@ -987,43 +997,11 @@ export default function ArticleContent({
               )}
 
               {/* 您可能感兴趣 - 推荐文章区域 */}
-              <div className="mt-8 pt-6 border-t border-gray-200">
-                <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
-                  <svg className="w-5 h-5 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                  </svg>
-                  您可能感兴趣
-                </h3>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {/* 模拟推荐文章 */}
-                  {[1, 2, 3, 4, 5, 6].map((item) => (
-                    <Link
-                      key={item}
-                      href="#"
-                      className="group bg-white rounded-lg border border-gray-200 hover:border-red-300 hover:shadow-md transition-all overflow-hidden"
-                    >
-                      <div className="aspect-video bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
-                        <span className="text-gray-400 text-sm">图片 {item}</span>
-                      </div>
-                      <div className="p-3">
-                        <h4 className="text-sm font-medium text-gray-900 line-clamp-2 group-hover:text-red-600 transition-colors mb-2">
-                          {item === 1 && "区块链技术在金融领域的创新应用"}
-                          {item === 2 && "新能源汽车产业发展趋势分析"}
-                          {item === 3 && "元宇宙概念下的虚拟现实技术突破"}
-                          {item === 4 && "量子计算技术的最新进展与挑战"}
-                          {item === 5 && "物联网设备安全防护技术研究"}
-                          {item === 6 && "云计算服务在企业数字化转型中的作用"}
-                        </h4>
-                        <div className="flex items-center justify-between text-xs text-gray-500">
-                          <span>{article.channel?.name || "科技"}</span>
-                          <span>{(item * 3 + 2)}小时前</span>
-                        </div>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              </div>
+              <RecommendedArticles 
+                articleSlug={article.slug} 
+                currentChannel={article.channel?.name}
+                limit={6}
+              />
 
               {/* 返回按钮 */}
               <div className="mt-8 text-center">
@@ -1050,49 +1028,15 @@ export default function ArticleContent({
               </div>
               </div>
               
-              {/* 右侧栏 */}
-              <aside className="lg:col-span-1">
-                {/* 右侧栏粘性容器 - 统一对齐 */}
-                <div className="sticky top-24 space-y-6">
-                  {/* 文章目录 */}
-                  <TableOfContents content={article.content} />
-                  
-                  {/* 本频道热门 */}
-                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-                    <h3 className="text-base font-bold text-gray-900 mb-3 flex items-center">
-                      <svg className="w-4 h-4 mr-2 text-red-500" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                      </svg>
-                      本频道热门
-                    </h3>
-                    <div className="space-y-3">
-                      {/* 模拟热门文章数据 */}
-                      {[1, 2, 3].map((item) => (
-                        <div key={item} className="flex space-x-3 p-2 rounded-lg hover:bg-gray-50 transition-colors">
-                          <div className="flex-shrink-0 w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
-                            <span className="text-red-600 font-bold text-sm">{item}</span>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h4 className="text-sm font-medium text-gray-900 line-clamp-2 mb-1">
-                              <Link href="#" className="hover:text-red-500 transition-colors">
-                                {item === 1 && "科技创新推动数字经济高质量发展"}
-                                {item === 2 && "人工智能技术在教育领域的应用前景"}
-                                {item === 3 && "5G网络建设助力智慧城市发展"}
-                              </Link>
-                            </h4>
-                            <div className="flex items-center text-xs text-gray-500">
-                              <span>{12 - item}小时前</span>
-                              <span className="mx-1">•</span>
-                              <span>{(5 - item) * 1000 + 2000}阅读</span>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* 相关文章 */}
-                  {relatedArticles && relatedArticles.length > 0 && (
+              {/* 右侧栏 - 仅在有相关文章时显示 */}
+              {(relatedArticles && relatedArticles.length > 0) && (
+                <aside className="lg:col-span-1">
+                  {/* 右侧栏粘性容器 - 统一对齐 */}
+                  <div className="sticky top-24 space-y-6">
+                    {/* 文章目录 */}
+                    <TableOfContents content={article.content} />
+                    
+                    {/* 相关文章 */}
                     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
                       <h3 className="text-base font-bold text-gray-900 mb-3 flex items-center">
                         <svg className="w-4 h-4 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1137,9 +1081,9 @@ export default function ArticleContent({
                         ))}
                       </div>
                     </div>
-                  )}
-                </div>
-              </aside>
+                  </div>
+                </aside>
+              )}
             </div>
           </div>
         </div>

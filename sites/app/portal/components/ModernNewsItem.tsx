@@ -128,9 +128,9 @@ const ModernNewsItem: React.FC<ModernNewsItemProps> = ({
               fill
               className="object-cover group-hover:scale-105 transition-transform duration-300"
               sizes="(max-width: 640px) 128px, 144px"
-              priority={index <= 5} // 优化LCP: 为前6个项目添加优先级
-              fetchPriority={index <= 5 ? 'high' : 'auto'}
-              loading={index <= 5 ? 'eager' : 'lazy'}
+              priority={index <= 3} // 优化LCP: 为前4个项目添加优先级（更精准）
+              fetchPriority={index <= 3 ? 'high' : 'auto'}
+              loading={index <= 3 ? 'eager' : 'lazy'}
               onError={() => {
                 if (news.image_url && !imageError) {
                   console.log('🖼️ Original image failed, using placeholder:', news.image_url);

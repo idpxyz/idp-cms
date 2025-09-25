@@ -37,9 +37,8 @@ from apps.api.rest.cache_management import cache_stats, clear_cache, invalidate_
 from apps.api.utils.cache_performance import cache_performance_stats, reset_cache_stats
 from apps.api.rest.articles import (
     articles_list, article_detail, channels_list, regions_list, 
-    portal_articles, site_settings
+    portal_articles, site_settings, article_recommendations
 )
-from apps.api.rest.articlesep.hero import hero_articles
 from apps.api.rest.revalidate import revalidate, revalidate_status
 from apps.api.rest import cdn_config
 from apps.api.rest.crawler_api import (
@@ -167,8 +166,9 @@ urlpatterns = [
     path("api/channels/", channels_list, name="api-channels-list"),
     path("api/regions/", regions_list, name="api-regions-list"),
     path("api/portal/articles/", portal_articles, name="api-portal-articles"),
-    path("api/hero/articles/", hero_articles, name="api-hero-articles"),
     path("api/site-settings/", site_settings, name="api-site-settings"),
+    # 🆕 文章推荐API
+    path("api/articles/<str:article_slug>/recommendations/", article_recommendations, name="api-article-recommendations"),
     # 标签API
     path("api/tags/top/", api_top_tags, name="api-top-tags"),
     path("api/tags/<slug:tag_slug>/", api_tag_articles, name="api-tag-articles"),
