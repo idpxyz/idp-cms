@@ -97,21 +97,25 @@ export default function HeroCarouselDemo() {
           Hero Carousel 演示
         </h1>
         
-        {/* 设计理念说明 */}
-        <div className="mb-12 bg-white rounded-lg shadow-lg p-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">设计理念</h2>
-          <div className="grid md:grid-cols-3 gap-6">
-            <div className="bg-blue-50 p-4 rounded-lg">
-              <h3 className="font-semibold text-blue-800 mb-2">🎯 性能导向</h3>
-              <p className="text-blue-700 text-sm">避免默认全屏，保护 LCP 指标，确保首屏内容可见性</p>
+        {/* 新功能亮点 */}
+        <div className="mb-12 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg shadow-lg p-8">
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">✨ 新增：无缝循环轮播</h2>
+          <div className="grid md:grid-cols-4 gap-6">
+            <div className="bg-white p-4 rounded-lg border-l-4 border-green-500">
+              <h3 className="font-semibold text-green-800 mb-2">🔄 无缝循环</h3>
+              <p className="text-green-700 text-sm">使用slide cloning技术，消除视觉跳跃</p>
             </div>
-            <div className="bg-green-50 p-4 rounded-lg">
-              <h3 className="font-semibold text-green-800 mb-2">📐 场景化设计</h3>
-              <p className="text-green-700 text-sm">根据内容重要性和类型自动调整高度模式</p>
+            <div className="bg-white p-4 rounded-lg border-l-4 border-blue-500">
+              <h3 className="font-semibold text-blue-800 mb-2">⚡ 性能优化</h3>
+              <p className="text-blue-700 text-sm">智能边界重置，最小DOM操作</p>
             </div>
-            <div className="bg-purple-50 p-4 rounded-lg">
-              <h3 className="font-semibold text-purple-800 mb-2">📱 响应式优化</h3>
-              <p className="text-purple-700 text-sm">使用 svh 单位，适配移动端地址栏收缩</p>
+            <div className="bg-white p-4 rounded-lg border-l-4 border-purple-500">
+              <h3 className="font-semibold text-purple-800 mb-2">🎯 UX友好</h3>
+              <p className="text-purple-700 text-sm">自然的循环体验，视觉连贯性</p>
+            </div>
+            <div className="bg-white p-4 rounded-lg border-l-4 border-orange-500">
+              <h3 className="font-semibold text-orange-800 mb-2">📐 场景化设计</h3>
+              <p className="text-orange-700 text-sm">根据内容重要性和类型自动调整</p>
             </div>
           </div>
         </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import Image from 'next/image';
 import { formatDateTime } from '@/lib/utils/date';
 import { getTopStoryPlaceholderImage } from '@/lib/utils/placeholderImages';
@@ -64,12 +64,20 @@ export default function HeroCarousel({
   className = "",
   onItemClick,
 }: HeroCarouselProps) {
-  const [currentIndex, setCurrentIndex] = useState(0);
+  // 计算正确的初始索引
+  const getInitialIndex = () => {
+    const validItemsCount = items.filter(item => item && item.image_url).length;
+    return validItemsCount > 1 ? 1 : 0; // 有多项时从1开始（第0项是克隆的），单项时从0开始
+  };
+  
+  const [currentIndex, setCurrentIndex] = useState(getInitialIndex());
   const [isPlaying, setIsPlaying] = useState(autoPlay);
   const [isPaused, setIsPaused] = useState(false);
   const [imageLoaded, setImageLoaded] = useState<Record<number, boolean>>({});
+  const [isResetting, setIsResetting] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const carouselRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   
   // 触摸滑动相关状态
   const [touchStart, setTouchStart] = useState<number | null>(null);
@@ -78,6 +86,21 @@ export default function HeroCarousel({
   // 确保有有效的轮播项（只检查图片）
   const validItems = items.filter(item => item && item.image_url);
   const totalItems = validItems.length;
+
+  // 创建带克隆项的数组用于无缝循环
+  const clonedItems = useMemo(() => {
+    if (totalItems === 0) return [];
+    if (totalItems === 1) return validItems; // 只有一项时不需要克隆
+    
+    // 前后各添加一个克隆项
+    return [
+      { ...validItems[totalItems - 1], id: `clone-last-${validItems[totalItems - 1].id}` },
+      ...validItems,
+      { ...validItems[0], id: `clone-first-${validItems[0].id}` }
+    ];
+  }, [validItems, totalItems]);
+
+  const totalClonedItems = clonedItems.length;
 
   // 动态计算高度模式
   const getHeightMode = useCallback((): HeroHeightMode => {
@@ -165,18 +188,56 @@ export default function HeroCarousel({
     );
   }
 
-  // 自动播放逻辑（与原版相同）
+  // 重置到真实位置的函数（无动画）
+  const resetToRealPosition = useCallback((targetIndex: number) => {
+    if (!containerRef.current) return;
+    
+    // 标记正在重置，暂停自动播放
+    setIsResetting(true);
+    
+    // 立即更新状态，避免视觉闪烁
+    setCurrentIndex(targetIndex);
+    
+    // 禁用过渡动画
+    containerRef.current.style.transition = 'none';
+    containerRef.current.style.transform = `translateX(-${targetIndex * 100}%)`;
+    
+    // 强制重绘并恢复动画
+    void containerRef.current.offsetHeight; // 强制重绘
+    containerRef.current.style.transition = 'transform 0.7s ease-in-out';
+    
+    // 短暂延迟后恢复播放
+    setTimeout(() => {
+      setIsResetting(false);
+    }, 50);
+  }, []);
+
+  // 处理边界重置的效果
+  useEffect(() => {
+    if (totalItems <= 1 || isResetting) return;
+    
+    // 检测是否到达了需要重置的边界
+    if (currentIndex === 0) {
+      // 从克隆的最后一项重置到真实的最后一项
+      setTimeout(() => resetToRealPosition(totalItems), 700); // 等待动画完成
+    } else if (currentIndex === totalClonedItems - 1) {
+      // 从克隆的第一项重置到真实的第一项  
+      setTimeout(() => resetToRealPosition(1), 700); // 等待动画完成
+    }
+  }, [currentIndex, totalItems, totalClonedItems, resetToRealPosition, isResetting]);
+
+  // 自动播放逻辑（支持无缝循环）
   const startAutoPlay = useCallback(() => {
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
     }
     
-    if (isPlaying && !isPaused && totalItems > 1) {
+    if (isPlaying && !isPaused && !isResetting && totalItems > 1) {
       intervalRef.current = setInterval(() => {
-        setCurrentIndex(prev => (prev + 1) % totalItems);
+        setCurrentIndex(prev => prev + 1);
       }, autoPlayInterval);
     }
-  }, [isPlaying, isPaused, totalItems, autoPlayInterval]);
+  }, [isPlaying, isPaused, isResetting, totalItems, autoPlayInterval]);
 
   const stopAutoPlay = useCallback(() => {
     if (intervalRef.current) {
@@ -190,6 +251,27 @@ export default function HeroCarousel({
     return stopAutoPlay;
   }, [startAutoPlay, stopAutoPlay]);
 
+  // 当items改变时重置currentIndex
+  useEffect(() => {
+    if (totalItems > 1) {
+      // 有多项时，从第1项开始（第0项是克隆的最后一项）
+      setCurrentIndex(1);
+    } else if (totalItems === 1) {
+      // 只有一项时，使用原始数组，从第0项开始
+      setCurrentIndex(0);
+    } else {
+      // 没有项目
+      setCurrentIndex(0);
+    }
+  }, [totalItems]);
+
+  // 确保容器样式初始化
+  useEffect(() => {
+    if (containerRef.current) {
+      containerRef.current.style.transition = 'transform 0.7s ease-in-out';
+    }
+  }, []);
+
   // 鼠标悬停暂停
   const handleMouseEnter = useCallback(() => {
     setIsPaused(true);
@@ -199,20 +281,30 @@ export default function HeroCarousel({
     setIsPaused(false);
   }, []);
 
-  // 手动导航
-  const goToSlide = useCallback((index: number) => {
-    setCurrentIndex(index);
+  // 手动导航（支持无缝循环）
+  const goToSlide = useCallback((realIndex: number) => {
+    if (totalItems <= 1) return;
+    
+    // 转换为克隆数组中的索引
+    const targetIndex = realIndex + 1; // 加1因为第0项是克隆项
+    setCurrentIndex(targetIndex);
     setIsPaused(true);
     setTimeout(() => setIsPaused(false), 3000);
-  }, []);
+  }, [totalItems]);
 
   const goToPrevious = useCallback(() => {
-    goToSlide(currentIndex === 0 ? totalItems - 1 : currentIndex - 1);
-  }, [currentIndex, totalItems, goToSlide]);
+    if (totalItems <= 1) return;
+    setCurrentIndex(prev => prev - 1);
+    setIsPaused(true);
+    setTimeout(() => setIsPaused(false), 3000);
+  }, [totalItems]);
 
   const goToNext = useCallback(() => {
-    goToSlide((currentIndex + 1) % totalItems);
-  }, [currentIndex, totalItems, goToSlide]);
+    if (totalItems <= 1) return;
+    setCurrentIndex(prev => prev + 1);
+    setIsPaused(true);
+    setTimeout(() => setIsPaused(false), 3000);
+  }, [totalItems]);
 
   // 处理项目点击
   const handleItemClick = useCallback((item: HeroItem) => {
@@ -309,7 +401,16 @@ export default function HeroCarousel({
     };
   }, [touchStart, touchEnd, totalItems, goToNext, goToPrevious]);
 
-  const currentItem = validItems[currentIndex];
+  const currentItem = clonedItems[currentIndex] || null;
+
+  // 计算当前真实的活跃索引（用于指示器）
+  const getCurrentRealIndex = useCallback(() => {
+    if (totalItems <= 1) return 0;
+    
+    if (currentIndex === 0) return totalItems - 1; // 克隆的最后一项对应真实最后一项
+    if (currentIndex === totalClonedItems - 1) return 0; // 克隆的第一项对应真实第一项
+    return currentIndex - 1; // 真实项（减1因为第0项是克隆的）
+  }, [currentIndex, totalItems, totalClonedItems]);
 
   return (
     <section className={`${getGridClassName()} ${className}`}>
@@ -325,13 +426,14 @@ export default function HeroCarousel({
       >
         {/* 轮播容器 */}
         <div 
+          ref={containerRef}
           className="flex transition-transform duration-700 ease-in-out h-full"
           style={{ transform: `translateX(-${currentIndex * 100}%)` }}
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
         >
-          {validItems.map((item, index) => (
+          {clonedItems.map((item, index) => (
             <div
               key={`${item.id}-${index}`}
               className="w-full flex-shrink-0 relative cursor-pointer group"
@@ -490,7 +592,7 @@ export default function HeroCarousel({
                   actualHeightMode === 'takeover' 
                     ? 'w-4 h-4' : 'w-3 h-3'
                 } ${
-                  index === currentIndex
+                  index === getCurrentRealIndex()
                     ? 'bg-white scale-125'
                     : 'bg-white/50 hover:bg-white/75'
                 }`}
