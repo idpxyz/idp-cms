@@ -87,12 +87,11 @@ export default function SearchPage() {
     const q = searchParams.get('q') || '';
     const p = parseInt(searchParams.get('page') || '1');
     const since = searchParams.get('since') || undefined;
-    const category = searchParams.get('category') || undefined;
     const orderBy = searchParams.get('orderBy') as FilterType['orderBy'] || undefined;
     
     setQuery(q);
     setPage(p);
-    setFilters({ since, orderBy, category });
+    setFilters({ since, orderBy });
     
     if (q) {
       performSearch(q, p, { since, orderBy });
@@ -134,7 +133,6 @@ export default function SearchPage() {
         };
         params.set('sort', sortMap[searchFilters.orderBy] || 'rel');
       }
-      if (searchFilters.category) params.set('category', searchFilters.category);
 
       const response = await fetch(`/api/search?${params.toString()}`);
       const data: SearchResponse = await response.json();

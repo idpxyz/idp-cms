@@ -1,15 +1,12 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
-import { endpoints } from '@/lib/config/endpoints';
-import { getMainSite } from '@/lib/config/sites';
+import React from 'react';
 
 export interface SearchFilters {
   channel?: string;
   region?: string;
   since?: string;
   orderBy?: 'relevance' | 'date' | 'popularity';
-  category?: string; // 新增：分类单选（slug）
 }
 
 interface SearchFiltersProps {
@@ -24,60 +21,6 @@ export default function SearchFilters({
   className = "",
 }: SearchFiltersProps) {
 
-  // 加载分类选项（热门，按文章数排序，最多50个）
-  type CategoryOption = { slug: string; name: string; count?: number };
-  const [categoryOptions, setCategoryOptions] = useState<CategoryOption[]>([]);
-  const [loadingCats, setLoadingCats] = useState<boolean>(false);
-  const didFetchRef = useRef(false);
-  useEffect(() => {
-    if (didFetchRef.current) return; // React StrictMode 下防止重复请求
-    didFetchRef.current = true;
-
-    let mounted = true;
-    const load = async () => {
-      try {
-        setLoadingCats(true);
-        // 使用前端API代理路径
-        const url = endpoints.buildUrl(
-          '/api/categories',
-          {
-            site: getMainSite().hostname,
-            format: 'flat',
-            limit: '50',
-          }
-        );
-        const res = await fetch(url, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          },
-          next: { revalidate: 300 }
-        });
-        if (!res.ok) {
-          console.warn('Categories fetch non-OK:', res.status);
-          if (mounted) setCategoryOptions([]);
-          return;
-        }
-        const data = await res.json();
-        const results = Array.isArray(data?.results) ? data.results : [];
-        // 使用简化的响应格式，暂时不包含articles_count
-        const mapped: CategoryOption[] = results.map((c: any) => ({ 
-          slug: c.slug, 
-          name: c.name, 
-          count: c.articles_count || 0 // 设置默认值，因为简化版本暂时没有count
-        }));
-        if (mounted) setCategoryOptions(mapped);
-      } catch (e) {
-        console.error('Failed to load categories:', e);
-        if (mounted) setCategoryOptions([]);
-      } finally {
-        if (mounted) setLoadingCats(false);
-      }
-    };
-    load();
-    return () => { mounted = false; };
-  }, []);
 
   const handleFilterChange = (key: keyof SearchFilters, value: string) => {
     const newFilters = { ...filters };
@@ -101,26 +44,6 @@ export default function SearchFilters({
         {/* 简化的筛选条件 */}
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-6">
-            {/* 分类（单选） */}
-            <div className="flex items-center space-x-2">
-              <span className="text-sm text-gray-500">分类:</span>
-              <select
-                value={filters.category || 'all'}
-                onChange={(e) => handleFilterChange('category', e.target.value)}
-                className="text-sm border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="all">全部</option>
-                {loadingCats ? (
-                  <option disabled>加载中...</option>
-                ) : (
-                  categoryOptions.map(opt => (
-                    <option key={opt.slug} value={opt.slug}>
-                      {opt.name}{typeof opt.count === 'number' ? ` (${opt.count})` : ''}
-                    </option>
-                  ))
-                )}
-              </select>
-            </div>
             {/* 排序 */}
             <div className="flex items-center space-x-2">
               <span className="text-sm text-gray-500">排序:</span>
