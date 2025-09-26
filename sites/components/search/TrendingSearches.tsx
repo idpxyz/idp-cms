@@ -15,6 +15,7 @@ interface TrendingSearchesProps {
   className?: string;
   timeWindow?: '5m' | '1h' | '24h';
   limit?: number;
+  onTimeWindowChange?: (window: '5m' | '1h' | '24h') => void;
 }
 
 export default function TrendingSearches({
@@ -22,6 +23,7 @@ export default function TrendingSearches({
   className = "",
   timeWindow = '1h',
   limit = 10,
+  onTimeWindowChange,
 }: TrendingSearchesProps) {
   const [trending, setTrending] = useState<TrendingSearch[]>([]);
   const [loading, setLoading] = useState(true);
@@ -127,12 +129,8 @@ export default function TrendingSearches({
             <select
               value={timeWindow}
               onChange={(e) => {
-                // 检查是否在客户端环境
-                if (typeof window !== 'undefined') {
-                  const currentParams = new URLSearchParams(window.location.search);
-                  currentParams.set('window', e.target.value);
-                  window.location.search = currentParams.toString();
-                }
+                const newWindow = e.target.value as '5m' | '1h' | '24h';
+                onTimeWindowChange?.(newWindow);
               }}
               className="text-xs border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
             >
