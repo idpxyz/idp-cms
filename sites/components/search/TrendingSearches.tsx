@@ -28,6 +28,8 @@ export default function TrendingSearches({
   const [trending, setTrending] = useState<TrendingSearch[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [actualWindow, setActualWindow] = useState<string | null>(null);
+  const [isFallback, setIsFallback] = useState(false);
 
   useEffect(() => {
     fetchTrendingSearches();
@@ -50,6 +52,8 @@ export default function TrendingSearches({
       
       if (data.success) {
         setTrending(data.data || []);
+        setActualWindow(data.actual_window);
+        setIsFallback(data.is_fallback || false);
       } else {
         throw new Error(data.error || 'Unknown error');
       }
@@ -65,6 +69,18 @@ export default function TrendingSearches({
     } finally {
       setLoading(false);
     }
+  };
+
+  // 获取时间窗口显示文本
+  const getWindowDisplayText = (window: string) => {
+    const windowMap: Record<string, string> = {
+      '5m': '5分钟',
+      '1h': '1小时', 
+      '24h': '24小时',
+      '72h': '72小时',
+      'default': '默认'
+    };
+    return windowMap[window] || window;
   };
 
   const getChangeIcon = (change: TrendingSearch['change']) => {
@@ -142,6 +158,20 @@ export default function TrendingSearches({
           </div>
         </div>
       </div>
+      
+      {/* 降级提示 */}
+      {isFallback && actualWindow && actualWindow !== 'default' && (
+        <div className="px-4 py-2 bg-amber-50 border-b border-amber-200">
+          <div className="flex items-center space-x-2">
+            <svg className="w-4 h-4 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+            </svg>
+            <span className="text-sm text-amber-700">
+              {getWindowDisplayText(timeWindow)}数据不足，显示{getWindowDisplayText(actualWindow)}数据
+            </span>
+          </div>
+        </div>
+      )}
       
       <div className="p-4">
         {error && (

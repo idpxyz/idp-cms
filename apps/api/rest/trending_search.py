@@ -55,17 +55,15 @@ def trending_search(request):
         if cached_result:
             return Response(cached_result)
         
-        # 获取热搜数据
-        trending_data = get_trending_from_clickhouse(site, channel, window, limit)
-        
-        if not trending_data:
-            # 降级：提供默认热搜
-            trending_data = get_default_trending(limit)
+        # 获取热搜数据（带智能降级）
+        trending_data, actual_window = get_trending_with_fallback(site, channel, window, limit)
         
         result = {
             "success": True,
             "data": trending_data,
             "window": window,
+            "actual_window": actual_window,  # 实际使用的时间窗口
+            "is_fallback": actual_window != window,  # 是否使用了降级数据
             "site": site,
             "channel": channel
         }
@@ -80,8 +78,38 @@ def trending_search(request):
         return Response({
             "success": False,
             "data": get_default_trending(limit),
-            "error": "热搜服务暂时不可用"
+            "error": "热搜服务暂时不可用",
+            "window": window,
+            "actual_window": "default",
+            "is_fallback": True
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+def get_trending_with_fallback(site, channel, window, limit):
+    """
+    智能热搜数据获取，带降级策略
+    
+    降级策略：
+    1. 优先返回请求的时间窗口数据
+    2. 如果24h没有数据，尝试72h
+    3. 如果72h也没有，返回默认热搜
+    4. 返回数据和实际使用的时间窗口
+    """
+    # 尝试获取原始请求的数据
+    trending_data = get_trending_from_clickhouse(site, channel, window, limit)
+    if trending_data:
+        return trending_data, window
+    
+    # 如果是24h且没有数据，尝试72h降级
+    if window == '24h':
+        logger.info(f"24h无热搜数据，尝试降级到72h - site:{site}, channel:{channel}")
+        trending_data = get_trending_from_clickhouse(site, channel, '72h', limit)
+        if trending_data:
+            return trending_data, '72h'
+    
+    # 所有策略都失败，返回默认数据
+    logger.info(f"所有时间窗口都无数据，使用默认热搜 - window:{window}, site:{site}")
+    return get_default_trending(limit), 'default'
 
 
 def get_trending_from_clickhouse(site, channel, window, limit):
