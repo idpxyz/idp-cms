@@ -30,7 +30,7 @@ def trending_search(request):
     参数：
     - site: 站点标识（可选）
     - channel: 频道过滤（可选）
-    - window: 时间窗口 - 5m/1h/24h/72h（默认24h）
+    - window: 时间窗口 - 5m/1h/24h/72h（必需参数）
     - limit: 返回数量（默认10）
     
     返回：
@@ -39,8 +39,15 @@ def trending_search(request):
     try:
         site = request.query_params.get("site", "")
         channel = request.query_params.get("channel", "")
-        window = request.query_params.get("window", "24h")
+        window = request.query_params.get("window")
         limit = min(int(request.query_params.get("limit", 10)), 50)
+        
+        # 参数验证
+        if not window or window not in ['5m', '1h', '24h', '72h']:
+            return Response({
+                "success": False,
+                "error": "参数错误：window参数必须是 5m, 1h, 24h, 72h 中的一个"
+            }, status=status.HTTP_400_BAD_REQUEST)
         
         # 缓存键
         cache_key = f"trending_search:{site}:{channel}:{window}:{limit}"
@@ -91,7 +98,7 @@ def get_trending_from_clickhouse(site, channel, window, limit):
             "24h": 1440,
             "72h": 4320
         }
-        minutes = window_map.get(window, 1440)
+        minutes = window_map[window]  # 已通过参数验证，直接使用
         
         # 构建查询
         where_conditions = [
