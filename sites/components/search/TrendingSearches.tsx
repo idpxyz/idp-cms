@@ -21,7 +21,7 @@ interface TrendingSearchesProps {
 export default function TrendingSearches({
   onSearchClick,
   className = "",
-  timeWindow = '1h',
+  timeWindow = '24h',
   limit = 10,
   onTimeWindowChange,
 }: TrendingSearchesProps) {
