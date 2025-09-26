@@ -80,7 +80,12 @@ class ArticleIndexer:
             "url": url,
             "title": getattr(page, "title", ""),
             "summary": getattr(page, "summary", getattr(page, "excerpt", "")),
-            "body": getattr(page, "search_description", None) or getattr(page, "introduction", "") or "",
+            "body": self._extract_body_text(page),
+            # 🎯 新增重要搜索字段
+            "excerpt": getattr(page, "excerpt", ""),  # 专门的文章摘要
+            "search_description": getattr(page, "search_description", ""),  # SEO描述
+            "seo_title": getattr(page, "seo_title", ""),  # SEO标题
+            "topics": self._extract_topics(page),  # 主题标签
             "author": getattr(page, "author_name", ""),
             "tags": tags,
             "categories": categories,
@@ -92,6 +97,14 @@ class ArticleIndexer:
             "region": getattr(page, "region", "global"),
             "first_published_at": publish_at,
             "publish_time": publish_at,
+            # 🔥 新增统计字段用于排序和过滤
+            "view_count": getattr(page, "view_count", 0),
+            "comment_count": getattr(page, "comment_count", 0),
+            "like_count": getattr(page, "like_count", 0),
+            "favorite_count": getattr(page, "favorite_count", 0),
+            "reading_time": getattr(page, "reading_time", 0),
+            "updated_at": getattr(page, "updated_at", None),
+            "source_type": getattr(page, "source_type", "internal"),
             "pop_1h": 0.0, "pop_24h": 0.0, "ctr_1h": 0.0, "ctr_24h": 0.0,
             "quality_score": 1.0,
             "lang": lang_code,
@@ -106,6 +119,45 @@ class ArticleIndexer:
             doc = self._add_hotness_tags(doc, page)
         
         return doc
+    
+    def _extract_body_text(self, page) -> str:
+        """
+        从页面中提取body文本内容
+        """
+        try:
+            # 首先尝试从实际的body字段获取内容
+            if hasattr(page, 'body') and page.body:
+                import re
+                # 从RichTextField中移除HTML标签，提取纯文本
+                text_content = re.sub(r'<[^>]+>', '', str(page.body))
+                # 清理多余的空白
+                text_content = ' '.join(text_content.split())
+                if text_content:
+                    return text_content[:2000]  # 限制长度，避免索引过大
+            
+            # 回退到原有逻辑
+            return getattr(page, "search_description", None) or getattr(page, "introduction", "") or ""
+        except Exception:
+            # 出错时返回空字符串，不影响索引过程
+            return ""
+    
+    def _extract_topics(self, page) -> list:
+        """
+        从页面中提取topics主题标签
+        """
+        topics = []
+        try:
+            if hasattr(page, 'topics') and page.topics:
+                for topic in page.topics.all():
+                    if hasattr(topic, 'name'):
+                        topics.append(topic.name)
+                    elif hasattr(topic, 'title'):
+                        topics.append(topic.title)
+                    else:
+                        topics.append(str(topic))
+        except Exception:
+            pass
+        return topics
     
     def _add_hotness_tags(self, doc: dict, page) -> dict:
         """

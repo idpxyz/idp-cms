@@ -38,7 +38,14 @@ def search_os(request):
             must.append({
                 "multi_match": {
                     "query": q,
-                    "fields": ["title^5", "summary^2", "body"],
+                    "fields": [
+                        "title^5",           # 标题最高权重
+                        "seo_title^4",       # 🎯 SEO标题高权重
+                        "summary^2",         # 摘要中等权重
+                        "excerpt^2",         # 🎯 专门摘要中等权重
+                        "body",              # 正文标准权重
+                        "search_description" # 🎯 SEO描述标准权重
+                    ],
                     "type": "best_fields"
                 }
             })

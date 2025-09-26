@@ -54,11 +54,11 @@ export default function TrendingSearches({
     } catch (err) {
       console.warn('Failed to fetch trending searches:', err);
       setError('加载失败');
-      // 使用默认数据
+      // 使用默认数据 - 去除无意义后缀
       setTrending([
-        { text: '今日头条', rank: 1, change: 'hot', score: 1000, count: 100 },
-        { text: '科技新闻', rank: 2, change: 'up', score: 800, count: 80 },
-        { text: '财经资讯', rank: 3, change: 'up', score: 600, count: 60 },
+        { text: '人工智能', rank: 1, change: 'hot', score: 1000, count: 100 },
+        { text: '新能源汽车', rank: 2, change: 'up', score: 800, count: 80 },
+        { text: '房价走势', rank: 3, change: 'up', score: 600, count: 60 },
       ]);
     } finally {
       setLoading(false);

@@ -147,18 +147,18 @@ def get_trending_from_clickhouse(site, channel, window, limit):
 
 
 def get_default_trending(limit):
-    """获取默认热搜列表"""
+    """获取默认热搜列表 - 基于常见搜索主题，去除无意义后缀"""
     default_trending = [
-        {"text": "今日头条", "rank": 1, "change": "hot", "score": 1000, "count": 100},
-        {"text": "科技新闻", "rank": 2, "change": "up", "score": 800, "count": 80},
-        {"text": "财经资讯", "rank": 3, "change": "up", "score": 600, "count": 60},
-        {"text": "体育赛事", "rank": 4, "change": "stable", "score": 500, "count": 50},
-        {"text": "娱乐八卦", "rank": 5, "change": "down", "score": 400, "count": 40},
-        {"text": "社会新闻", "rank": 6, "change": "stable", "score": 350, "count": 35},
-        {"text": "国际要闻", "rank": 7, "change": "up", "score": 300, "count": 30},
-        {"text": "军事动态", "rank": 8, "change": "stable", "score": 250, "count": 25},
-        {"text": "健康养生", "rank": 9, "change": "new", "score": 200, "count": 20},
-        {"text": "教育资讯", "rank": 10, "change": "stable", "score": 150, "count": 15},
+        {"text": "人工智能", "rank": 1, "change": "hot", "score": 1000, "count": 100},
+        {"text": "新能源汽车", "rank": 2, "change": "up", "score": 800, "count": 80},
+        {"text": "房价走势", "rank": 3, "change": "up", "score": 600, "count": 60},
+        {"text": "疫情防控", "rank": 4, "change": "stable", "score": 500, "count": 50},
+        {"text": "股市行情", "rank": 5, "change": "down", "score": 400, "count": 40},
+        {"text": "在线教育", "rank": 6, "change": "stable", "score": 350, "count": 35},
+        {"text": "5G技术", "rank": 7, "change": "up", "score": 300, "count": 30},
+        {"text": "就业政策", "rank": 8, "change": "stable", "score": 250, "count": 25},
+        {"text": "环保减排", "rank": 9, "change": "new", "score": 200, "count": 20},
+        {"text": "医疗改革", "rank": 10, "change": "stable", "score": 150, "count": 15},
     ]
     
     return default_trending[:limit]
