@@ -13,9 +13,9 @@ interface TrendingSearch {
 interface TrendingSearchesProps {
   onSearchClick: (query: string) => void;
   className?: string;
-  timeWindow?: '5m' | '1h' | '24h';
+  timeWindow?: '5m' | '1h' | '24h' | '72h';
   limit?: number;
-  onTimeWindowChange?: (window: '5m' | '1h' | '24h') => void;
+  onTimeWindowChange?: (window: '5m' | '1h' | '24h' | '72h') => void;
 }
 
 export default function TrendingSearches({
@@ -129,7 +129,7 @@ export default function TrendingSearches({
             <select
               value={timeWindow}
               onChange={(e) => {
-                const newWindow = e.target.value as '5m' | '1h' | '24h';
+                const newWindow = e.target.value as '5m' | '1h' | '24h' | '72h';
                 onTimeWindowChange?.(newWindow);
               }}
               className="text-xs border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
@@ -137,6 +137,7 @@ export default function TrendingSearches({
               <option value="5m">5分钟</option>
               <option value="1h">1小时</option>
               <option value="24h">24小时</option>
+              <option value="72h">72小时</option>
             </select>
           </div>
         </div>

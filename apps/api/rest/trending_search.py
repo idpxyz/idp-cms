@@ -30,7 +30,7 @@ def trending_search(request):
     参数：
     - site: 站点标识（可选）
     - channel: 频道过滤（可选）
-    - window: 时间窗口 - 5m/1h/24h（默认1h）
+    - window: 时间窗口 - 5m/1h/24h/72h（默认1h）
     - limit: 返回数量（默认10）
     
     返回：
@@ -88,7 +88,8 @@ def get_trending_from_clickhouse(site, channel, window, limit):
         window_map = {
             "5m": 5,
             "1h": 60, 
-            "24h": 1440
+            "24h": 1440,
+            "72h": 4320
         }
         minutes = window_map.get(window, 60)
         

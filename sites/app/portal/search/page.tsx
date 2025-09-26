@@ -79,7 +79,7 @@ export default function SearchPage() {
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState<FilterType>({});
   const [pageSize] = useState(10); // 每页显示数量
-  const [timeWindow, setTimeWindow] = useState<'5m' | '1h' | '24h'>('1h'); // 热搜榜时间窗口
+  const [timeWindow, setTimeWindow] = useState<'5m' | '1h' | '24h' | '72h'>('1h'); // 热搜榜时间窗口
   
   const { addToHistory } = useSearchHistory();
 
@@ -89,7 +89,7 @@ export default function SearchPage() {
     const p = parseInt(searchParams.get('page') || '1');
     const since = searchParams.get('since') || undefined;
     const orderBy = searchParams.get('orderBy') as FilterType['orderBy'] || undefined;
-    const window = searchParams.get('window') as '5m' | '1h' | '24h' || '1h';
+    const window = searchParams.get('window') as '5m' | '1h' | '24h' | '72h' || '1h';
     
     setQuery(q);
     setPage(p);
@@ -214,7 +214,7 @@ export default function SearchPage() {
   }, [router, filters]);
 
   // 处理时间窗口变化
-  const handleTimeWindowChange = useCallback((newWindow: '5m' | '1h' | '24h') => {
+  const handleTimeWindowChange = useCallback((newWindow: '5m' | '1h' | '24h' | '72h') => {
     const params = new URLSearchParams(searchParams.toString());
     params.set('window', newWindow);
     router.push(`/portal/search?${params.toString()}`);
