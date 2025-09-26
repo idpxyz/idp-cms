@@ -10,8 +10,6 @@ from rest_framework import status
 from django.core.cache import cache
 from django.conf import settings
 from clickhouse_driver import Client
-from datetime import datetime, timedelta
-import json
 
 logger = logging.getLogger(__name__)
 
