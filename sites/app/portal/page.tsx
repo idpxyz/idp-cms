@@ -15,21 +15,11 @@ import { getTopStoriesDefaultHours } from "@/lib/config/content-timing";
 
 // 获取要在首页显示的频道条带（简化版）
 function getHomepageChannelStrips(channels: any[]): any[] {
-  console.log('🔍 调试: 所有频道数据:', channels.map(ch => ({
-    name: ch.name,
-    slug: ch.slug,
-    show_in_homepage: ch.show_in_homepage
-  })));
-
   const filteredChannels = channels
     .filter((channel: any) => {
       // 🎯 完全由后台控制 - 移除硬编码的频道排除逻辑
       // 只依赖后台配置的 show_in_homepage 字段
-      const shouldShow = channel.show_in_homepage === true;
-      if (!shouldShow) {
-        console.log(`❌ 频道 ${channel.name} 不在首页显示 (show_in_homepage: ${channel.show_in_homepage})`);
-      }
-      return shouldShow;
+      return channel.show_in_homepage === true;
     })
     .sort((a: any, b: any) => {
       // 按首页显示顺序排序，如果没有则使用原始order
@@ -40,7 +30,6 @@ function getHomepageChannelStrips(channels: any[]): any[] {
     // 🎯 移除硬编码数量限制 - 完全由后台控制
     // 运营人员通过设置 show_in_homepage 来控制显示的频道数量
 
-  console.log(`✅ 首页显示的频道 (${filteredChannels.length}个):`, filteredChannels.map(ch => ch.name));
   return filteredChannels;
 }
 
@@ -64,8 +53,6 @@ async function getChannels() {
     if (response.ok) {
       const data = await response.json();
       
-      console.log('🔍 API返回的原始频道数据:', data);
-      
       // 直接返回数据库中的真实频道，不添加虚拟频道
       const channels = data.channels || [];
       const realChannels = channels.map((ch: any) => ({
@@ -73,7 +60,6 @@ async function getChannels() {
         id: ch.slug // 使用slug作为ID，保持与前端期望的字符串ID一致
       }));
       
-      console.log('🔍 真实频道数据:', realChannels);
       return realChannels;
     } else {
       if (response.status === 429) {
