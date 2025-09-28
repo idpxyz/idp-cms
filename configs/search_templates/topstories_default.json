@@ -35,10 +35,17 @@
       },
       "functions": [
         {
+          "field_value_factor": {
+            "field": "weight",
+            "factor": 0.1,
+            "missing": 1
+          }
+        },
+        {
           "exp": {
             "publish_time": {
               "origin": "now",
-              "scale": "6h",
+              "scale": "12h",
               "decay": 0.5
             }
           }
@@ -53,12 +60,13 @@
         {
           "field_value_factor": {
             "field": "quality_score",
-            "factor": 1
+            "factor": 1,
+            "missing": 1
           }
         }
       ],
       "score_mode": "sum",
-      "boost_mode": "multiply"
+      "boost_mode": "sum"
     }
   }
 }

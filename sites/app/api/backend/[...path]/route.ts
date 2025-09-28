@@ -67,8 +67,9 @@ async function handleRequest(
     // 重构API路径
     const apiPath = path.join('/');
     
-    // 构建后端API URL - 确保以斜杠结尾（Django APPEND_SLASH要求）
-    const backendUrl = endpoints.getCmsEndpoint(`/api/${apiPath}${apiPath.endsWith('/') ? '' : '/'}`);
+    // 构建后端API URL - 移除末尾斜杠以修复topstories API问题
+    const cleanPath = apiPath.endsWith('/') ? apiPath.slice(0, -1) : apiPath;
+    const backendUrl = endpoints.getCmsEndpoint(`/api/${cleanPath}`);
     
     // 提取查询参数
     const url = new URL(request.url);
@@ -209,6 +210,9 @@ function getCacheStrategy(apiPath: string) {
   } else if (apiPath.includes('comments')) {
     // 评论数据，包含用户交互状态，不应该缓存
     return { revalidate: 0 };
+  } else if (apiPath.includes('topstories') || apiPath.includes('hero')) {
+    // 头条和轮播数据，短缓存确保及时更新
+    return { revalidate: 10 };
   } else if (apiPath.includes('articles') || apiPath.includes('news')) {
     // 文章内容，中等缓存
     return { revalidate: 300 };

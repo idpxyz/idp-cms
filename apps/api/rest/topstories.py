@@ -43,15 +43,17 @@ def _slugify(text: str) -> str:
 
 
 def _compute_topstory_score(item: dict) -> float:
-    """计算TopStory评分"""
+    """计算TopStory评分 - 增强版：优先显示新内容"""
     pop_1h = float(item.get("pop_1h", 0.0))
     pop_24h = float(item.get("pop_24h", 0.0))
     quality = float(item.get("quality_score", 1.0))
+    weight = float(item.get("weight", 0.0))  # 编辑权重
     
-    # 新鲜度：按发布时间指数衰减（12h半衰期）
+    # 新鲜度：缩短半衰期，让新文章优势更明显（6h半衰期）
     recency = 1.0
+    hours_ago = 0
     try:
-        pt = item.get("publish_at") or item.get("publish_time")
+        pt = item.get("publish_at") or item.get("publish_time") or item.get("first_published_at")
         if isinstance(pt, str) and len(pt) >= 10:
             ts = pt.replace("Z", "+00:00")
             dt = datetime.fromisoformat(ts)
@@ -59,12 +61,32 @@ def _compute_topstory_score(item: dict) -> float:
                 dt = dt.replace(tzinfo=dt_timezone.utc)
             now = datetime.now(dt_timezone.utc)
             hours_ago = (now - dt).total_seconds() / 3600
-            recency = math.exp(-hours_ago * math.log(2) / 12)  # 12h半衰期
+            recency = math.exp(-hours_ago * math.log(2) / 6)  # 🎯 缩短到6h半衰期
     except Exception:
         recency = 0.5
+        hours_ago = 24  # 默认认为24小时前
     
-    # 综合评分：爆发度 + 质量 + 新鲜度
-    score = (pop_1h * 0.4 + pop_24h * 0.3) * quality * recency
+    # 热度评分：基于用户行为数据
+    popularity_score = pop_1h * 0.4 + pop_24h * 0.3
+    
+    # 编辑权重评分：归一化到0-1，权重200+为满分
+    editorial_score = min(weight / 200.0, 1.0)
+    
+    # 🎯 新文章额外加成：24小时内的文章获得额外权重
+    freshness_bonus = 1.0
+    if hours_ago <= 24:  # 24小时内
+        if hours_ago <= 6:   # 6小时内，最高加成
+            freshness_bonus = 1.5
+        elif hours_ago <= 12:  # 12小时内，中等加成
+            freshness_bonus = 1.3
+        else:  # 24小时内，轻微加成
+            freshness_bonus = 1.2
+    
+    # 综合评分：提高新鲜度权重，确保新文章优先显示
+    # 基础分 + 新鲜度加成，然后乘以质量系数
+    base_score = popularity_score + editorial_score * 0.5
+    score = base_score * quality * recency * freshness_bonus
+    
     return max(0.0, score)
 
 
@@ -260,7 +282,21 @@ def topstories(request):
             used_channels = set()
             used_topics = set()
             
-            for item in clustered:
+            # 🎯 优先处理高权重文章（权重>100的重要文章）
+            high_priority_items = [item for item in clustered if item.get("weight", 0) > 100]
+            regular_items = [item for item in clustered if item.get("weight", 0) <= 100]
+            
+            # 先添加高权重文章，不受多样性限制
+            for item in high_priority_items[:3]:  # 最多3篇高权重文章
+                final_items.append(item)
+                if len(final_items) >= size:
+                    break
+            
+            # 然后按多样性规则添加常规文章
+            for item in regular_items:
+                if len(final_items) >= size:
+                    break
+                    
                 # 处理channel可能是字符串或字典的情况
                 channel_obj = item.get("channel", {})
                 if isinstance(channel_obj, dict):
@@ -275,25 +311,24 @@ def topstories(request):
                 else:
                     topic = str(topic_obj) if topic_obj else ""
                 
-                # 限制同频道、同主题的数量
+                # 限制同频道、同主题的数量（但不影响已添加的高权重文章）
                 def get_channel_slug(x):
                     ch = x.get("channel", {})
                     return ch.get("slug", "") if isinstance(ch, dict) else str(ch) if ch else ""
-                
+
                 def get_topic_slug(x):
                     tp = x.get("topic", {})
                     return tp.get("slug", "") if isinstance(tp, dict) else str(tp) if tp else ""
-                
-                channel_count = sum(1 for x in final_items if get_channel_slug(x) == channel)
-                topic_count = sum(1 for x in final_items if get_topic_slug(x) == topic)
+
+                # 只对常规权重文章统计多样性
+                regular_final_items = [x for x in final_items if x.get("weight", 0) <= 100]
+                channel_count = sum(1 for x in regular_final_items if get_channel_slug(x) == channel)
+                topic_count = sum(1 for x in regular_final_items if get_topic_slug(x) == topic)
                 
                 if channel_count < 2 and topic_count < 2:
                     final_items.append(item)
                 elif len(final_items) < size * 0.8:  # 80%填满后放宽限制
                     final_items.append(item)
-                
-                if len(final_items) >= size:
-                    break
                     
         else:
             # 中低多样性：主要按评分排序

@@ -50,7 +50,7 @@ export interface ContentTimingConfig {
  */
 export const DEFAULT_CONTENT_TIMING: ContentTimingConfig = {
   topStories: {
-    defaultHours: 720,          // 🎯 统一设置：TopStories默认72小时
+    defaultHours: 24*7,          // 🎯 统一设置：TopStories默认72小时
     minHours: 24,              // 最少24小时
     retryHours: 168,           // 重试时用7天
     maxHours: 720,             // 最多30天
