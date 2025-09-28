@@ -40,11 +40,9 @@ export async function getHeroItems(limit: number = 5): Promise<HeroItem[]> {
         .filter((item: any) => item.image_url) // 确保有封面图
         .map((item: any) => transformToHeroItem(item));
       
-      console.log(`✅ Loaded ${heroItems.length} hero items from dedicated API`);
       return heroItems;
     }
     
-    console.log('📝 No hero items found from dedicated API');
     return [];
   } catch (error) {
     console.error('🚫 Failed to fetch hero content from dedicated API:', error);

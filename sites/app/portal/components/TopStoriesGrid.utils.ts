@@ -165,7 +165,6 @@ export async function getTopStories(
       }
     }
     
-    console.log(`🔍 Fetching TopStories from dedicated API: ${apiUrl}`);
     
     // 智能缓存策略
     const response = await fetch(apiUrl, {
@@ -184,7 +183,6 @@ export async function getTopStories(
     const contentType = response.headers.get('X-Content-Type') || data.content_type || 'normal';
     const cacheStrategy = response.headers.get('X-Cache-Strategy') || 'topstories-v4';
     
-    console.log(`📊 TopStories API response: ${data.items?.length || 0} items, cache: ${cacheStrategy}`);
     
     if (data.items && data.items.length > 0) {
       const topStories = data.items.map((item: any) => transformToTopStoryItem(item));
@@ -194,7 +192,6 @@ export async function getTopStories(
         ModernFrontendCache.set(cacheKey, topStories, contentType);
       }
       
-      console.log(`✅ Processed ${topStories.length} TopStories items`);
       return topStories;
     }
     // 第一次无数据，尝试扩大时间窗、放宽多样性

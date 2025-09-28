@@ -53,22 +53,9 @@ export default function MostReadModule({ onArticleClick, limit = 8, excludeClust
         url: item.url || `/portal/article/${item.slug || item.id}` // 确保有url
       }));
       
-      console.log('📊 MostReadModule Data Processing:', { 
-        rawItemsLength: rawItems.length,
-        arrLength: arr.length, 
-        loadMore, 
-        prevLength: items.length,
-        firstItemTitle: arr[0]?.title,
-        firstItemExcerpt: arr[0]?.excerpt
-      });
       
       setItems(prev => {
         const newItems = loadMore ? [...prev, ...arr] : (arr.length > 0 ? arr : prev);
-        console.log('✅ MostReadModule Items Updated:', { 
-          from: prev.length, 
-          to: newItems.length,
-          action: loadMore ? 'append' : 'replace'
-        });
         return newItems;
       });
       setCursor(res.next_cursor || undefined);

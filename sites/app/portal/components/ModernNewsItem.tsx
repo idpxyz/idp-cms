@@ -133,18 +133,11 @@ const ModernNewsItem: React.FC<ModernNewsItemProps> = ({
               loading={index <= 3 ? 'eager' : 'lazy'}
               onError={() => {
                 if (news.image_url && !imageError) {
-                  console.log('🖼️ Original image failed, using placeholder:', news.image_url);
                   setImageError(true);
-                } else {
-                  console.log('🖼️ Placeholder image failed:', placeholderImageUrl);
                 }
               }}
               onLoad={() => {
-                if (news.image_url && !imageError) {
-                  console.log('✅ Original image loaded:', news.image_url);
-                } else {
-                  console.log('✅ Placeholder image loaded:', placeholderImageUrl);
-                }
+                // Image loaded successfully
               }}
             />
             
