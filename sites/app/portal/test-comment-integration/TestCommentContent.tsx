@@ -85,11 +85,6 @@ export default function TestCommentContent() {
           onCommentCountChange={(count) => {
             console.log('评论数量变化:', count);
           }}
-          articleInfo={{
-            title: "评论系统集成测试文章",
-            slug: "test-comment-integration",
-            channel: "科技"
-          }}
         />
       </div>
 

@@ -12,17 +12,19 @@ async function getTagArticles(slug: string, page = 1, size = 20) {
   }
 }
 
-export default async function TagDetailPage({ params, searchParams }: { params: { slug: string }, searchParams: { page?: string }}) {
-  const page = Number(searchParams?.page || 1) || 1;
+export default async function TagDetailPage({ params, searchParams }: { params: Promise<{ slug: string }>, searchParams: Promise<{ page?: string }>}) {
+  const { slug } = await params;
+  const { page: pageParam } = await searchParams;
+  const page = Number(pageParam || 1) || 1;
   const size = 20;
-  const data = await getTagArticles(params.slug, page, size);
+  const data = await getTagArticles(slug, page, size);
   const items = Array.isArray(data?.hits) ? data.hits : [] as Array<any>;
   const total = Number(data?.total || items.length);
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
       <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-xl font-bold">#{decodeURIComponent(params.slug)}</h1>
+        <h1 className="text-xl font-bold">#{decodeURIComponent(slug)}</h1>
         <Link href="/portal/tags" className="text-sm text-gray-600 hover:text-red-600">返回标签</Link>
       </div>
 
@@ -46,7 +48,7 @@ export default async function TagDetailPage({ params, searchParams }: { params: 
 
       {total > page * size && (
         <div className="mt-4 text-center">
-          <Link href={`/portal/tags/${encodeURIComponent(params.slug)}?page=${page + 1}`} className="text-sm px-3 py-1.5 rounded border border-gray-300 hover:border-red-300 hover:text-red-600">
+          <Link href={`/portal/tags/${encodeURIComponent(slug)}?page=${page + 1}`} className="text-sm px-3 py-1.5 rounded border border-gray-300 hover:border-red-300 hover:text-red-600">
             下一页
           </Link>
         </div>

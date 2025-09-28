@@ -1009,9 +1009,9 @@ IDP CMS 是一套面向媒体机构、内容平台与政企门户的**现代化�
 
 **如需了解更多信息或申请产品演示，请联系我们：**
 
-📧 **商务咨询**：sales@idp-cms.com  
+📧 **商务咨询**：sales@idp.xyz  
 📞 **技术支持**：400-xxx-xxxx  
-🌐 **官方网站**：https://www.idp-cms.com  
+🌐 **官方网站**：https://www.idp.xyz  
 📍 **公司地址**：北京市朝阳区xxx大厦xxx层
 
 **我们提供：**

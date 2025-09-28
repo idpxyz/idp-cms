@@ -81,11 +81,13 @@ export function CategoryProvider({ children, initialCategories = [] }: CategoryP
   // 获取当前分类slug
   const currentCategorySlug = useMemo(() => {
     // 从URL路径中提取分类slug
-    const categoryMatch = pathname.match(/\/category\/([^\/]+)/);
-    if (categoryMatch) return categoryMatch[1];
+    if (pathname) {
+      const categoryMatch = pathname.match(/\/category\/([^\/]+)/);
+      if (categoryMatch) return categoryMatch[1];
+    }
     
     // 从查询参数中获取
-    return searchParams.get('category') || '';
+    return searchParams?.get('category') || '';
   }, [pathname, searchParams]);
 
   // 获取分类数据

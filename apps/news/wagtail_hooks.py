@@ -660,3 +660,56 @@ def _render_pure_python_suggestions(suggestions):
     ''')
     
     return ''.join(suggestion_buttons) + script_html
+
+
+# ========== 自定义富文本编辑器功能 ==========
+
+from wagtail.admin.rich_text.editors.draftail.features import InlineStyleFeature
+from wagtail.admin.rich_text.converters.html_to_contentstate import InlineStyleElementHandler
+
+
+@hooks.register('register_rich_text_features')
+def register_underline_feature(features):
+    """注册下划线功能"""
+    feature_name = 'underline'
+    type_ = 'UNDERLINE'
+    tag = 'u'
+
+    control = {
+        'type': type_,
+        'label': 'U',
+        'description': '下划线',
+    }
+
+    features.register_editor_plugin(
+        'draftail', feature_name, InlineStyleFeature(control)
+    )
+
+    db_conversion = {
+        'from_database_format': {tag: InlineStyleElementHandler(type_)},
+        'to_database_format': {'style_map': {type_: tag}},
+    }
+    
+    features.register_converter_rule('contentstate', feature_name, db_conversion)
+
+
+
+
+# 为下划线功能添加CSS样式
+@hooks.register('insert_global_admin_css')
+def underline_rich_text_css():
+    """为下划线功能添加CSS样式"""
+    return format_html("""
+    <style>
+    /* 下划线样式 - 编辑器内和前端显示 */
+    .DraftEditor-root u {{ text-decoration: underline !important; }}
+    .rich-text u {{ text-decoration: underline; }}
+    
+    /* 确保下划线在所有情况下都能正确显示 */
+    .rich-text u, .DraftEditor-root u {{
+        text-decoration-line: underline;
+        text-decoration-style: solid;
+    }}
+    </style>
+    """)
+  

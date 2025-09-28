@@ -4,14 +4,15 @@ import { getMainSite } from "@/lib/config/sites";
 
 export const runtime = "nodejs";
 
-export async function GET(request: NextRequest, { params }: { params: { slug: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
   try {
     const { searchParams } = new URL(request.url);
     const size = searchParams.get("size") || "20";
     const page = searchParams.get("page") || "1";
     const site = searchParams.get("site") || getMainSite().hostname;
 
-    const djangoUrlObj = new URL(endpoints.getCmsEndpoint(`/api/tags/${params.slug}/`));
+    const { slug } = await params;
+    const djangoUrlObj = new URL(endpoints.getCmsEndpoint(`/api/tags/${slug}/`));
     djangoUrlObj.searchParams.set("size", size);
     djangoUrlObj.searchParams.set("page", page);
     djangoUrlObj.searchParams.set("site", site);

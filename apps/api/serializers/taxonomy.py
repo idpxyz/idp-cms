@@ -89,7 +89,7 @@ class TopicSerializer(serializers.ModelSerializer):
     def get_articles_count(self, obj):
         """获取专题文章数量"""
         from apps.news.models import ArticlePage
-        return ArticlePage.objects.filter(topic=obj, live=True).count()
+        return ArticlePage.objects.filter(topics=obj, live=True).count()
     
     def get_cover_image_url(self, obj):
         """获取封面图片URL"""
@@ -184,7 +184,7 @@ class TopicDetailSerializer(TopicSerializer):
     def get_recent_articles(self, obj):
         """获取最近的专题文章"""
         from apps.news.models import ArticlePage
-        recent_articles = ArticlePage.objects.filter(topic=obj, live=True).order_by('-first_published_at')[:10]
+        recent_articles = ArticlePage.objects.filter(topics=obj, live=True).order_by('-first_published_at')[:10]
         return [{
             'id': article.id,
             'title': article.title,

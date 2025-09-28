@@ -418,24 +418,33 @@ def topic_detail_db(request, slug):
         
         # 5. 查询专题
         try:
+            from django.db.models import Q
             now = timezone.now()
             topic = Topic.objects.prefetch_related(
                 'sites',
-                'articles'
-            ).get(
+                'template'
+            ).filter(
                 slug=slug, 
                 sites=site, 
-                is_active=True,
-                # 检查时间范围
-                **{
-                    f'{Q(start_date__isnull=True) | Q(start_date__lte=now)}': True,
-                    f'{Q(end_date__isnull=True) | Q(end_date__gte=now)}': True,
-                }
-            )
-        except Topic.DoesNotExist:
+                is_active=True
+            ).filter(
+                # 检查时间范围 - 开始时间为空或已开始
+                Q(start_date__isnull=True) | Q(start_date__lte=now)
+            ).filter(
+                # 结束时间为空或未结束
+                Q(end_date__isnull=True) | Q(end_date__gte=now)
+            ).first()
+            
+            if not topic:
+                return Response({
+                    "error": f"Topic '{slug}' not found or not available"
+                }, status=status.HTTP_404_NOT_FOUND)
+        
+        except Exception as e:
+            logger.error(f"Error retrieving topic '{slug}': {str(e)}")
             return Response({
-                "error": f"Topic '{slug}' not found or not available"
-            }, status=status.HTTP_404_NOT_FOUND)
+                "error": "Internal server error"
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
         # 6. 序列化
         serializer = TopicDetailSerializer(
@@ -707,6 +716,141 @@ def topic_detail_trending(request, slug: str):
 
 
 # ==================== 向后兼容的端点别名 ====================
+
+@api_view(["GET"])
+@TOPIC_RATE_LIMIT
+@monitor_cache_performance("topic_articles")
+def topic_articles_db(request, slug):
+    """
+    获取专题的相关文章（基于数据库 Topic 模型）
+    
+    支持参数：
+    - site: 站点标识
+    - limit: 文章数量限制（默认12）
+    - ordering: 排序方式（默认-first_published_at）
+    - tags: 标签过滤
+    """
+    try:
+        # 1. 验证站点参数
+        site = validate_site_parameter(request)
+        if not site:
+            return Response({
+                "error": "Invalid site parameter"
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # 2. 获取查询参数
+        limit = int(request.query_params.get('limit', '12'))
+        ordering = request.query_params.get('ordering', '-first_published_at')
+        tags_filter = request.query_params.get('tags')
+        
+        # 3. 查询专题
+        try:
+            from django.db.models import Q
+            now = timezone.now()
+            topic = Topic.objects.prefetch_related('sites').filter(
+                slug=slug, 
+                sites=site, 
+                is_active=True
+            ).filter(
+                Q(start_date__isnull=True) | Q(start_date__lte=now)
+            ).filter(
+                Q(end_date__isnull=True) | Q(end_date__gte=now)
+            ).first()
+            
+            if not topic:
+                return Response({
+                    "results": [],
+                    "count": 0,
+                    "error": f"Topic '{slug}' not found or not available"
+                }, status=status.HTTP_404_NOT_FOUND)
+        
+        except Exception as e:
+            logger.error(f"Error retrieving topic '{slug}': {str(e)}")
+            return Response({
+                "error": "Internal server error"
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        # 4. 构建文章查询集
+        from apps.news.models import ArticlePage
+        articles_queryset = ArticlePage.objects.filter(
+            topics=topic, 
+            live=True
+        )
+        
+        # 5. 应用标签过滤
+        if tags_filter:
+            articles_queryset = articles_queryset.filter(tags__name__icontains=tags_filter)
+        
+        # 6. 应用排序
+        if ordering:
+            try:
+                articles_queryset = articles_queryset.order_by(ordering)
+            except Exception:
+                # 如果排序字段无效，使用默认排序
+                articles_queryset = articles_queryset.order_by('-first_published_at')
+        else:
+            # 默认排序：特色文章优先，然后按权重和发布时间
+            articles_queryset = articles_queryset.order_by(
+                '-is_featured',
+                '-weight', 
+                '-first_published_at'
+            )
+        
+        # 7. 应用限制（在排序和过滤之后）
+        articles_queryset = articles_queryset[:limit]
+        
+        # 8. 序列化文章数据（简化版本，避免标签序列化问题）
+        articles_data = []
+        for article in articles_queryset:
+            article_dict = {
+                "id": article.id,
+                "title": article.title,
+                "slug": article.slug,
+                "excerpt": article.excerpt,
+                "author_name": article.author_name,
+                "first_published_at": article.first_published_at.isoformat() if article.first_published_at else None,
+                "is_featured": article.is_featured,
+                "weight": article.weight,
+                "reading_time": getattr(article, 'reading_time', None),
+                "view_count": getattr(article, 'view_count', 0),
+            }
+            
+            # 安全地获取封面图片
+            if hasattr(article, 'cover') and article.cover:
+                try:
+                    article_dict["cover_url"] = article.cover.get_rendition('original').url
+                except:
+                    article_dict["cover_url"] = None
+            else:
+                article_dict["cover_url"] = None
+            
+            articles_data.append(article_dict)
+        
+        response_data = {
+            "results": articles_data,
+            "count": len(articles_data),
+            "topic": {
+                "slug": topic.slug,
+                "title": topic.title,
+                "summary": topic.summary
+            }
+        }
+        
+        # 9. 设置响应头
+        response = Response(response_data)
+        response['Cache-Control'] = 'public, max-age=300'  # 5分钟缓存
+        response['Surrogate-Key'] = f'topic-articles topic-{slug} site-{site.id}'
+        
+        return response
+        
+    except Exception as e:
+        logger.error(f"Topic articles API error: {str(e)}", exc_info=True)
+        return Response({
+            "results": [],
+            "count": 0,
+            "error": "Internal server error"
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 # 保持原有路由的向后兼容
 topics = topics_trending  # 原有的 topics 端点指向 trending

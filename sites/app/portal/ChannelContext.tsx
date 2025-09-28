@@ -138,7 +138,7 @@ export function ChannelProvider({ children, initialChannels }: ChannelProviderPr
       return '';
     }
     // 其他页面使用channel参数，默认为recommend
-    return searchParams.get('channel') || 'recommend';
+    return searchParams?.get('channel') || 'recommend';
   }, [pathname, searchParams]);
   
   // 统一的频道切换函数
@@ -147,7 +147,7 @@ export function ChannelProvider({ children, initialChannels }: ChannelProviderPr
     
     // 保留现有的 tags 查询参数
     const params = new URLSearchParams();
-    const currentTags = searchParams.get('tags');
+    const currentTags = searchParams ?.get('tags');
     if (channelSlug && channelSlug !== 'recommend') params.set('channel', channelSlug);
     if (currentTags) params.set('tags', currentTags);
     const qs = params.toString();

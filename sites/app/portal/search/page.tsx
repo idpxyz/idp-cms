@@ -85,11 +85,11 @@ export default function SearchPage() {
 
   // 从URL参数初始化状态
   useEffect(() => {
-    const q = searchParams.get('q') || '';
-    const p = parseInt(searchParams.get('page') || '1');
-    const since = searchParams.get('since') || undefined;
-    const orderBy = searchParams.get('orderBy') as FilterType['orderBy'] || undefined;
-    const window = searchParams.get('window') as '5m' | '1h' | '24h' | '72h' || '24h';
+    const q = searchParams?.get('q') || '';
+    const p = parseInt(searchParams?.get('page') || '1');
+    const since = searchParams?.get('since') || undefined;
+    const orderBy = searchParams?.get('orderBy') as FilterType['orderBy'] || undefined;
+    const window = searchParams?.get('window') as '5m' | '1h' | '24h' | '72h' || '24h';
     
     setQuery(q);
     setPage(p);
@@ -195,7 +195,7 @@ export default function SearchPage() {
 
   // 处理分页
   const handlePageChange = useCallback((newPage: number) => {
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams(searchParams?.toString() || '');
     params.set('page', newPage.toString());
     router.push(`/portal/search?${params.toString()}`);
   }, [router, searchParams]);
@@ -215,7 +215,7 @@ export default function SearchPage() {
 
   // 处理时间窗口变化
   const handleTimeWindowChange = useCallback((newWindow: '5m' | '1h' | '24h' | '72h') => {
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams(searchParams?.toString() || '');
     params.set('window', newWindow);
     router.push(`/portal/search?${params.toString()}`);
   }, [router, searchParams]);

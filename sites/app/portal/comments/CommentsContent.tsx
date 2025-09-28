@@ -12,7 +12,7 @@ export default function CommentsContent() {
   const {
     comments,
     isLoading: commentsLoading,
-    deleteComment,
+    deleteUserComment,
     deleteMultipleComments,
     toggleCommentLike,
     getCommentsByStatus,
@@ -36,7 +36,7 @@ export default function CommentsContent() {
   const handleDeleteComment = async (commentId: string) => {
     if (window.confirm('确定要删除这条评论吗？此操作不可撤销。')) {
       setIsDeleting(true);
-      deleteComment(commentId);
+      deleteUserComment(commentId);
       setSelectedComments(prev => {
         const newSet = new Set(prev);
         newSet.delete(commentId);
@@ -168,16 +168,16 @@ export default function CommentsContent() {
               <div className="text-sm text-gray-600">审核中</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-gray-900">{stats.totalLikes}</div>
-              <div className="text-sm text-gray-600">获赞总数</div>
+              <div className="text-2xl font-bold text-red-600">{stats.rejected}</div>
+              <div className="text-sm text-gray-600">已拒绝</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-gray-900">{stats.totalReplies}</div>
-              <div className="text-sm text-gray-600">回复总数</div>
+              <div className="text-2xl font-bold text-blue-600">{stats.thisMonth}</div>
+              <div className="text-sm text-gray-600">本月评论</div>
             </div>
             <div className="text-center">
-              <div className="text-lg font-bold text-gray-900">{stats.mostActiveChannel}</div>
-              <div className="text-sm text-gray-600">活跃频道</div>
+              <div className="text-2xl font-bold text-purple-600">{stats.thisWeek}</div>
+              <div className="text-sm text-gray-600">本周评论</div>
             </div>
           </div>
         )}

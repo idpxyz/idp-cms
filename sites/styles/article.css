@@ -6,7 +6,8 @@
    文章内容样式优化
    ============================================================================= */
 
-.article-content {
+.article-content,
+.article-body .rich-text {
   /* 基础排版 */
   font-size: 18px;
   line-height: 1.75;
@@ -24,22 +25,24 @@
 }
 
 /* 段落样式 */
-.article-content p {
+.article-content p,
+.article-body .rich-text p {
   margin-bottom: 1.5em;
   max-width: none; /* 移除宽度限制，充分利用容器空间 */
 }
 
-.article-content p:last-child {
+.article-content p:last-child,
+.article-body .rich-text p:last-child {
   margin-bottom: 0;
 }
 
 /* 标题样式 */
-.article-content h1,
-.article-content h2,
-.article-content h3,
-.article-content h4,
-.article-content h5,
-.article-content h6 {
+.article-content h1, .article-body .rich-text h1,
+.article-content h2, .article-body .rich-text h2,
+.article-content h3, .article-body .rich-text h3,
+.article-content h4, .article-body .rich-text h4,
+.article-content h5, .article-body .rich-text h5,
+.article-content h6, .article-body .rich-text h6 {
   font-weight: 700;
   line-height: 1.4;
   margin-top: 2em;
@@ -65,15 +68,18 @@
   font-size: 1.125em;
 }
 
-/* 链接样式 */
+/* 链接样式 - 修正选择器匹配HTML结构 */
+.article-body .rich-text a,
 .article-content a {
   color: #dc2626; /* red-600 */
   text-decoration: underline;
   text-decoration-color: rgba(220, 38, 38, 0.3);
   text-underline-offset: 3px;
   transition: all 0.2s ease;
+  cursor: pointer; /* 确保链接显示点击手势 */
 }
 
+.article-body .rich-text a:hover,
 .article-content a:hover {
   color: #b91c1c; /* red-700 */
   text-decoration-color: rgba(185, 28, 28, 0.8);
@@ -316,3 +322,35 @@
     transition: none;
   }
 }
+
+/* =============================================================================
+   富文本内容样式继承 - 确保.rich-text内容继承所有样式
+   ============================================================================= */
+
+/* 确保所有.article-content的选择器同时应用到.rich-text */
+.article-body .rich-text h1 { font-size: 2em; }
+.article-body .rich-text h2 { font-size: 1.5em; border-bottom: 2px solid #f3f4f6; padding-bottom: 0.5em; }
+.article-body .rich-text h3 { font-size: 1.25em; }
+.article-body .rich-text h4 { font-size: 1.125em; }
+
+.article-body .rich-text ul,
+.article-body .rich-text ol { margin: 1.5em 0; padding-left: 2em; }
+.article-body .rich-text li { margin-bottom: 0.5em; line-height: 1.6; }
+
+.article-body .rich-text blockquote {
+  margin: 2em 0; padding: 1.5em 2em; border-left: 4px solid #dc2626;
+  background: #fef2f2; font-style: italic; position: relative;
+}
+
+.article-body .rich-text code {
+  background: #f3f4f6; color: #374151; padding: 0.2em 0.4em; border-radius: 3px;
+  font-size: 0.9em; font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+}
+
+.article-body .rich-text strong,
+.article-body .rich-text b { font-weight: 700; color: #111827; }
+
+.article-body .rich-text em,
+.article-body .rich-text i { font-style: italic; }
+
+.article-body .rich-text u { text-decoration: underline; }

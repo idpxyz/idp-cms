@@ -21,6 +21,7 @@ class NewsRichTextFeatures:
         "blockquote", "hr"
     ]
     
+    
     # 标准新闻编辑器配置
     STANDARD_FEATURES = [
         # === 基础文本格式 ===
@@ -43,6 +44,9 @@ class NewsRichTextFeatures:
         # === 高级格式 ===
         "superscript", "subscript",  # 上标下标 - 科学新闻
         
+        # === 自定义样式 ===
+        "underline",  # 下划线 - 自定义实现 ✅
+        
         # === 链接管理 ===
         "link",
     ]
@@ -59,6 +63,7 @@ class NewsRichTextFeatures:
         # "news-fact-box",   # 事实框
         # "news-related",    # 相关新闻块
     ]
+    
     
     # 多媒体增强配置
     MULTIMEDIA_FEATURES = ADVANCED_FEATURES + [

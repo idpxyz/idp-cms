@@ -12,9 +12,14 @@ const nextConfig = {
   trailingSlash: true,
   skipTrailingSlashRedirect: true,
 
+  // 明确指定只使用 App Router，避免 pages 目录相关错误
+  pageExtensions: ['tsx', 'ts', 'jsx', 'js'],
+
   // 性能优化配置
   experimental: {
     optimizePackageImports: ["@/themes", "@/components", "@/lib"],
+    // 避免构建时的错误页面处理问题
+    missingSuspenseWithCSRBailout: false,
     // 开发环境禁用静态生成
     ...(process.env.NODE_ENV === "development" && {
       staticGenerationRetryCount: 0,

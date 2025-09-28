@@ -25,7 +25,7 @@ from apps.api.rest.test_api import test_headlines, test_hot
 from apps.api.rest.topics import (
     topics, topic_detail,  # 保留向后兼容（指向 trending）
     topics_trending, topic_detail_trending,  # 聚类算法热门话题
-    topics_list, topic_detail_db  # 基于数据库的 Topic 模型
+    topics_list, topic_detail_db, topic_articles_db  # 基于数据库的 Topic 模型
 )
 from apps.api.rest.categories import (
     categories_list, category_detail, categories_tree
@@ -128,6 +128,7 @@ urlpatterns = [
     path("api/topics/trending/<slug:slug>/", topic_detail_trending, name="api-topic-detail-trending"),
     path("api/topics/db/", topics_list, name="api-topics-db-list"),  # 数据库 Topic 模型
     path("api/topics/db/<slug:slug>/", topic_detail_db, name="api-topic-detail-db"),
+    path("api/topics/db/<slug:slug>/articles/", topic_articles_db, name="api-topic-articles-db"),
     path("api/topics/", topics, name="api-topics"),  # 向后兼容，指向 trending
     path("api/topics/<slug:slug>/", topic_detail, name="api-topic-detail"),  # 向后兼容
     

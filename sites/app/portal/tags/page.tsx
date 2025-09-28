@@ -23,7 +23,7 @@ export default async function TagsIndexPage() {
         <p className="text-gray-500 text-sm">暂无标签</p>
       ) : (
         <div className="flex flex-wrap gap-2">
-          {tags.map((t) => (
+          {tags.map((t: { name: string; slug: string; count?: number }) => (
             <Link
               key={t.slug || t.name}
               href={`/portal/tags/${encodeURIComponent(t.slug || t.name)}`}

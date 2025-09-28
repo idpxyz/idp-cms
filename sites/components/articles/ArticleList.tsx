@@ -470,7 +470,7 @@ const ArticleList: React.FC<ArticleListProps> = ({
   };
 
   const handlePageChange = (page: number) => {
-    setFilters(prev => ({ ...prev, page }));
+    setFilters((prev: ArticleListOptions) => ({ ...prev, page }));
     // 滚动到顶部
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };

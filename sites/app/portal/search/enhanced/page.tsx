@@ -62,12 +62,12 @@ export default function EnhancedSearchPage() {
 
   // 从URL参数初始化状态
   useEffect(() => {
-    const q = searchParams.get('q') || '';
-    const p = parseInt(searchParams.get('page') || '1');
-    const channel = searchParams.get('channel') || undefined;
-    const region = searchParams.get('region') || undefined;
-    const since = searchParams.get('since') || undefined;
-    const orderBy = searchParams.get('orderBy') as FilterType['orderBy'] || undefined;
+    const q = searchParams?.get('q') || '';
+    const p = parseInt(searchParams?.get('page') || '1');
+    const channel = searchParams?.get('channel') || undefined;
+    const region = searchParams?.get('region') || undefined;
+    const since = searchParams?.get('since') || undefined;
+    const orderBy = searchParams?.get('orderBy') as FilterType['orderBy'] || undefined;
     
     setQuery(q);
     setPage(p);
@@ -165,7 +165,7 @@ export default function EnhancedSearchPage() {
 
   // 处理分页
   const handlePageChange = useCallback((newPage: number) => {
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams(searchParams?.toString() || '');
     params.set('page', newPage.toString());
     router.push(`/portal/search/enhanced?${params.toString()}`);
   }, [router, searchParams]);

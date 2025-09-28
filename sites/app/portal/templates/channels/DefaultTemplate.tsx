@@ -22,7 +22,7 @@ const DefaultTemplate: React.FC<ChannelTemplateProps> = ({
   return (
     <PageContainer>
       {/* 简洁的头部 */}
-      <Section space="lg">
+      {/* <Section space="lg">
         <div className="bg-white rounded-xl p-6 border border-gray-200">
           <h1 className="page-title mb-4">
             {channel.name}
@@ -33,7 +33,7 @@ const DefaultTemplate: React.FC<ChannelTemplateProps> = ({
             </p>
           )}
         </div>
-      </Section>
+      </Section> */}
 
       {/* 频道内容 */}
       <Section space="lg">

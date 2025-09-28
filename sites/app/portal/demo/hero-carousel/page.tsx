@@ -68,7 +68,7 @@ const mockTakeoverItems = [
     is_breaking: true,
     is_live: true,
     is_event_mode: true,
-    media_type: 'video' as const,
+    media_type: 'image' as const,
     tags: ['直播', '发布会', '政策'],
   },
   {

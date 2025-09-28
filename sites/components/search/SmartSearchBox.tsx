@@ -28,7 +28,7 @@ export default function SmartSearchBox({
 
   // 从URL参数初始化搜索查询词
   useEffect(() => {
-    const urlQuery = searchParams.get('q') || '';
+    const urlQuery = searchParams?.get('q') || '';
     if (urlQuery !== query) {
       setQuery(urlQuery);
     }

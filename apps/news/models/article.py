@@ -437,8 +437,8 @@ class ArticlePage(Page):
     
     @property
     def topic_slug(self):
-        """向后兼容属性：获取专题的 slug"""
-        return self.topic.slug if self.topic else ''
+        """向后兼容属性：获取第一个专题的slug"""
+        return self.topics.first().slug if self.topics.exists() else ''
     
     def get_categories_list(self):
         """获取分类列表"""
