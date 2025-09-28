@@ -440,13 +440,13 @@ export default function HeroCarousel({
               onClick={() => handleItemClick(item)}
             >
               {/* 背景图片 */}
-              <div className="absolute inset-0">
+              <div className="absolute inset-0 overflow-hidden">
                 <>
                   <Image
                     src={item.image_url || getTopStoryPlaceholderImage(item)}
                       alt={item.title}
                       fill
-                      className={`object-cover transition-opacity duration-300 ${
+                      className={`object-cover transition-all duration-300 group-hover:scale-105 ${
                         imageLoaded[index] ? 'opacity-100' : 'opacity-0'
                       }`}
                       priority={index <= 2}
@@ -531,8 +531,6 @@ export default function HeroCarousel({
                 </div>
               </div>
 
-              {/* Hover 覆盖效果 */}
-              <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
             </div>
           ))}
         </div>
