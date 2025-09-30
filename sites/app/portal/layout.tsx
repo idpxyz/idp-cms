@@ -5,7 +5,7 @@ import { getMainSite } from "@/lib/config/sites";
 import PortalClassicLayout from "@/layouts/layout-portal-classic";
 import { ChannelProvider } from "./ChannelContext";
 import { CategoryProvider } from "./CategoryContext";
-import ChannelNavigation from "./ChannelNavigation";
+import ChannelNavigation from "./components/ChannelNavigation";
 import { getBreakingNews } from "./components/BreakingTicker.utils";
 import { getChannels } from "./utils/channels";
 
