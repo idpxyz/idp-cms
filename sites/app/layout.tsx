@@ -21,14 +21,18 @@ export default function RootLayout({
   return (
     <html lang="zh-CN" suppressHydrationWarning>
       <head>
-        {/* 🚀 LCP优化：尽早标记JS加载完成，显示完整轮播 */}
+        {/* 🚀 LCP优化：延迟切换到客户端轮播，确保SSR首图被测量为LCP */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
               (function() {
                 if (typeof window !== 'undefined') {
-                  window.addEventListener('DOMContentLoaded', function() {
-                    document.documentElement.classList.add('js-loaded');
+                  // 等待window.load（所有资源加载完成）+ 额外延迟
+                  // 确保SSR首图有足够时间被浏览器识别为LCP
+                  window.addEventListener('load', function() {
+                    setTimeout(function() {
+                      document.documentElement.classList.add('js-loaded');
+                    }, 500);
                   });
                 }
               })();
