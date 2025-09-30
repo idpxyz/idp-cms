@@ -124,7 +124,7 @@ export default async function PortalPage({ searchParams }: { searchParams?: Prom
       {/* Hero 区域 - SSR优化LCP */}
       {heroItems && heroItems.length > 0 && (
         <PageContainer padding="md">
-          <div className="mb-6 relative">
+          <div className="mb-6">
             {/* 🚀 SSR首图：服务端立即渲染，优化LCP */}
             {heroItems[0] && (
               <div 
@@ -170,31 +170,19 @@ export default async function PortalPage({ searchParams }: { searchParams?: Prom
               />
             </div>
             
-            {/* CSS：平滑切换SSR首图和客户端轮播 */}
+            {/* CSS：简单可靠的显示/隐藏切换 */}
             <style dangerouslySetInnerHTML={{
               __html: `
-                .hero-ssr-preload {
-                  opacity: 1;
-                  transition: opacity 0.3s ease-out;
-                }
-                
                 .hero-client-carousel {
-                  opacity: 0;
-                  transition: opacity 0.3s ease-in;
-                  max-height: 0;
-                  overflow: hidden;
+                  display: none;
                 }
                 
                 .js-loaded .hero-ssr-preload {
-                  opacity: 0;
-                  max-height: 0;
-                  overflow: hidden;
+                  display: none;
                 }
                 
                 .js-loaded .hero-client-carousel {
-                  opacity: 1;
-                  max-height: none;
-                  overflow: visible;
+                  display: block;
                 }
               `
             }} />
