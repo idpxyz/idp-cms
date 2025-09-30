@@ -180,23 +180,21 @@ export default async function PortalPage({ searchParams }: { searchParams?: Prom
                 
                 .hero-client-carousel {
                   opacity: 0;
-                  position: absolute;
-                  top: 0;
-                  left: 0;
-                  right: 0;
-                  pointer-events: none;
                   transition: opacity 0.3s ease-in;
+                  max-height: 0;
+                  overflow: hidden;
                 }
                 
                 .js-loaded .hero-ssr-preload {
                   opacity: 0;
-                  pointer-events: none;
+                  max-height: 0;
+                  overflow: hidden;
                 }
                 
                 .js-loaded .hero-client-carousel {
                   opacity: 1;
-                  position: relative;
-                  pointer-events: auto;
+                  max-height: none;
+                  overflow: visible;
                 }
               `
             }} />
