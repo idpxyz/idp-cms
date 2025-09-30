@@ -33,13 +33,12 @@ function ChannelNavigation({
   const searchParams = useSearchParams();
   const { 
     channels: contextChannels, 
-    loading, 
-    error, 
     currentChannelSlug, 
     switchChannel,
     getCurrentChannel 
   } = useChannels();
   
+  // ✅ 简化：统一使用context数据（服务端已提供）
   const channels = propChannels || contextChannels;
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isClient, setIsClient] = useState(false);
@@ -161,20 +160,19 @@ function ChannelNavigation({
   }, [displayChannels, visibleCount, isClient, enablePersonalization, personalizedChannels, currentChannelSlug]);
 
   // 🎯 新架构：简化的调试工具 - 修复水合不匹配
+  // ✅ Debug助手（简化版）
   useEffect(() => {
     if (isClient) {
       (window as any).debugChannelNav = {
         currentChannelSlug,
         channels: channels.map(ch => ({ id: ch.id, name: ch.name, slug: ch.slug })),
-        loading,
-        error,
         getCurrentChannel,
         testChannelSwitch: (channelSlug: string) => {
           switchChannel(channelSlug);
         }
       };
     }
-  }, [isClient, currentChannelSlug, channels, loading, error, getCurrentChannel, switchChannel]);
+  }, [isClient, currentChannelSlug, channels, getCurrentChannel, switchChannel]);
 
   // 🎯 修复水合不匹配：先标记客户端已加载
   useEffect(() => {
@@ -369,21 +367,22 @@ function ChannelNavigation({
   }, [currentChannelSlug, switchChannel]);
   
 
-  // 🎯 修复水合不匹配：使用真实channels数据渲染占位符，确保高度一致
+  // 🎯 修复水合不匹配：SSR版本使用与客户端完全相同的频道列表和样式
+  // 确保SSR和hydration后的DOM结构完全一致，实现零闪烁过渡
   if (!isClient) {
-    // 如果有channels数据，渲染真实的频道按钮（禁用状态）
-    if (channels.length > 0) {
+    if (channels.length > 0 && visibleChannels.length > 0) {
       return (
         <section className="bg-white border-b border-gray-200 sticky z-30" style={{ top: "var(--sticky-offset)" }}>
           <div className="max-w-7xl mx-auto px-4">
             <div className="flex items-center space-x-4 py-3 md:py-3.5">
               <div className="flex space-x-4">
-                {/* 使用真实频道数据，确保占位符和hydration后的内容完全一致 */}
-                {channels.slice(0, 8).map((channel) => (
+                {/* SSR静态版本：使用与客户端完全相同的visibleChannels */}
+                {visibleChannels.map((channel) => (
                   <div key={channel.slug} className="relative">
                     <button
                       disabled
-                      className="flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium text-gray-600 hover:text-red-500 hover:bg-gray-50 whitespace-nowrap"
+                      className="flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium text-gray-600 whitespace-nowrap relative transition-all duration-300"
+                      style={{ cursor: 'default', pointerEvents: 'none' }}
                     >
                       {channel.name}
                     </button>
@@ -396,18 +395,17 @@ function ChannelNavigation({
       );
     }
     
-    // 如果没有channels数据，返回null避免占据空间
     return null;
   }
 
-  // 如果没有频道数据且不在加载中，显示错误提示
-  if (!loading && channels.length === 0) {
+  // ✅ 简化：如果没有频道数据，显示提示（通常不会发生，因为服务端已提供）
+  if (channels.length === 0) {
     return (
       <section className="bg-white border-b border-gray-200 sticky z-30" style={{ top: "var(--sticky-offset)" }}>
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex items-center justify-center py-3 md:py-3.5">
             <div className="text-gray-500 text-sm">
-              {error ? `频道加载失败: ${error}` : '暂无频道数据'}
+              暂无频道数据
             </div>
           </div>
         </div>
@@ -450,10 +448,13 @@ function ChannelNavigation({
   };
 
   return (
-    <section className="bg-white border-b border-gray-200 sticky z-30" style={{ top: "var(--sticky-offset)" }}>
+    <section 
+      className="bg-white border-b border-gray-200 sticky z-30" 
+      style={{ top: "var(--sticky-offset)" }}
+    >
       <div className="max-w-7xl mx-auto px-4">
         <div
-          className="flex items-center space-x-4 py-3 md:py-3.5 transition-all duration-200"
+          className="flex items-center space-x-4 py-3 md:py-3.5"
           ref={containerRef}
         >
           {/* 主要频道 - 根据容器宽度动态显示 */}
@@ -469,7 +470,7 @@ function ChannelNavigation({
                     onClick={() => handleChannelClick(channel.slug)}
                     onMouseEnter={(e) => handleChannelMouseEnter(channel, e)}
                     onMouseLeave={handleChannelMouseLeave}
-                    className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap relative ${
+                    className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap relative transition-all duration-300 ${
                       currentChannelSlug === channel.slug
                         ? "bg-red-500 text-white shadow-lg"
                         : isHighWeight
@@ -480,7 +481,7 @@ function ChannelNavigation({
                   >
                     {channel.name}
                     {isTopRecommended && (
-                      <span className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full"></span>
+                      <span className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full transition-opacity duration-300"></span>
                     )}
                   </button>
                 </div>

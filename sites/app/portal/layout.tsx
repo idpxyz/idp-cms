@@ -50,7 +50,7 @@ export default async function PortalLayout({ children }: PortalLayoutProps) {
   ]);
 
   return (
-    <ChannelProvider initialChannels={initialChannels || undefined}>
+    <ChannelProvider initialChannels={initialChannels}>
       <CategoryProvider>
         <PortalClassicLayout 
           siteSettings={siteSettings}
