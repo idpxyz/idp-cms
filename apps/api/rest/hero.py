@@ -78,11 +78,16 @@ def hero_items(request):
             image_url = None
             if article.cover:
                 try:
-                    # 获取适合的图片尺寸
-                    image_url = article.cover.get_rendition('width-800').url
+                    # 🚀 使用WebP格式的Hero规格以优化性能
+                    # hero_desktop: 1200x600 WebP @ 85% quality (~300-500KB)
+                    image_url = article.cover.get_rendition('fill-1200x600|format-webp|webpquality-85').url
                 except:
-                    # 如果渲染失败，使用原图
-                    image_url = article.cover.file.url if article.cover.file else None
+                    # 如果WebP渲染失败，尝试使用旧的规格作为备用
+                    try:
+                        image_url = article.cover.get_rendition('width-800').url
+                    except:
+                        # 最后备用：使用原图
+                        image_url = article.cover.file.url if article.cover.file else None
             
             # 跳过没有封面图的文章
             if not image_url:

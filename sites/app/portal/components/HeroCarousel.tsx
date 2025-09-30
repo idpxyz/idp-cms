@@ -450,6 +450,7 @@ export default function HeroCarousel({
                         imageLoaded[index] ? 'opacity-100' : 'opacity-0'
                       }`}
                       priority={true}
+                      unoptimized={true}
                       onLoad={() => handleImageLoad(index)}
                       sizes={hasRightRail ? "(min-width: 1280px) 60vw, (min-width: 1024px) 70vw, (min-width: 768px) 85vw, 100vw" : "(min-width: 1280px) 90vw, (min-width: 768px) 95vw, 100vw"}
                     />

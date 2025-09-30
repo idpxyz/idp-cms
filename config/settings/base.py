@@ -263,6 +263,26 @@ if EnvValidator.get_str("MINIO_ENDPOINT"):
     
     # 指定Wagtail图片使用我们的自定义存储
     WAGTAILIMAGES_STORAGE = "apps.core.storages.PublicMediaStorage"
+    
+    # 🚀 WebP格式优化配置
+    WAGTAILIMAGES_FORMAT_CONVERSIONS = {
+        'webp': 'webp',  # 生成WebP格式
+        'jpeg': 'jpeg',  # 保留JPEG支持（备用）
+        'png': 'png',    # 保留PNG支持（需要透明度时）
+    }
+    
+    # 设置WebP为优先格式
+    WAGTAILIMAGES_OUTPUT_FORMAT_QUALITY = {
+        'webp': 85,   # WebP质量85%（在文件大小和质量间平衡）
+        'jpeg': 85,   # JPEG质量85%
+        'png': 100,   # PNG保持无损
+    }
+    
+    # 默认使用WebP格式（除非原图是PNG且需要透明度）
+    WAGTAILIMAGES_AVIF_QUALITY = 85  # 如果支持AVIF，也配置一下
+    
+    # 为Hero图片配置特定的rendition规格（使用WebP）
+    WAGTAILIMAGES_WEBP_QUALITY = 85
 else:
     # 本地存储配置（开发环境备用）
     STORAGES = {

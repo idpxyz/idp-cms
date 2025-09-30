@@ -51,6 +51,35 @@ export async function getHeroItems(limit: number = 5): Promise<HeroItem[]> {
 }
 
 /**
+ * 转换图片URL为浏览器可访问的格式
+ * 将后端返回的绝对URL转换为相对路径或代理路径
+ */
+function convertImageUrl(url: string): string {
+  if (!url) return '';
+  
+  try {
+    // 如果URL包含 /api/media/proxy/，提取路径部分通过前端代理访问
+    if (url.includes('/api/media/proxy/')) {
+      const path = url.split('/api/media/proxy/')[1];
+      // 使用前端的media代理路径
+      return `/api/media-proxy/${path}`;
+    }
+    
+    // 如果是完整的HTTP URL，转换为相对路径
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      const urlObj = new URL(url);
+      return urlObj.pathname + urlObj.search;
+    }
+    
+    // 已经是相对路径，直接返回
+    return url;
+  } catch (error) {
+    console.warn('Failed to convert image URL:', url, error);
+    return url;
+  }
+}
+
+/**
  * 转换OpenSearch数据为Hero项目格式
  */
 function transformToHeroItem(item: any): HeroItem {
@@ -62,7 +91,7 @@ function transformToHeroItem(item: any): HeroItem {
     id: item.article_id || item.id?.toString() || '',
     title: item.title || '',
     excerpt: item.excerpt || item.summary || '',
-    image_url: item.image_url || '',
+    image_url: convertImageUrl(item.image_url || ''),
     publish_time: item.publish_time || '',
     author: item.author || '',
     source: item.source || '本站',
