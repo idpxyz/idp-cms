@@ -163,7 +163,7 @@ export class ChannelService {
         id: ch.slug // 使用slug作为ID，保持一致性
       }));
       
-      console.log('📡 Channels fetched (or cached):', transformedChannels.length);
+      // console.log('📡 Channels fetched (or cached):', transformedChannels.length);
       return transformedChannels;
 
     } catch (error) {
@@ -230,12 +230,12 @@ export class ChannelService {
     try {
       // 构建个性化API URL
       const currentSite = getMainSite().hostname;
-      console.log(`🌐 当前站点: ${currentSite}`);
+      // console.log(`🌐 当前站点: ${currentSite}`);
       const apiUrl = endpoints.buildUrl(
         endpoints.getCmsEndpoint('/api/channels/personalized'),
         { site: currentSite }
       );
-      console.log(`📡 请求个性化API: ${apiUrl}`);
+      // console.log(`📡 请求个性化API: ${apiUrl}`);
       
       // 🔑 构建headers，转发用户信息
       const headers: HeadersInit = {
@@ -326,8 +326,8 @@ export class ChannelService {
         ...ch
       }));
       
-      console.log(`📡 SSR个性化频道: ${channels.length}个 (策略: ${data.strategy}, 置信度: ${data.confidence})`);
-      console.log(`🔍 频道列表:`, channels.map(ch => `${ch.name}(${ch.slug})`).join(', '));
+      // console.log(`📡 SSR个性化频道: ${channels.length}个 (策略: ${data.strategy}, 置信度: ${data.confidence})`);
+      // console.log(`🔍 频道列表:`, channels.map(ch => `${ch.name}(${ch.slug})`).join(', '));
       return channels;
       
     } catch (error) {

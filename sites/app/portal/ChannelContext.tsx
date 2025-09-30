@@ -39,11 +39,12 @@ export function ChannelProvider({ children, initialChannels }: ChannelProviderPr
   
   // ✅ 简化：直接使用服务端传入的数据，不做缓存检查
   // 🔍 调试：打印接收到的频道数据
-  if (typeof window !== 'undefined' && initialChannels.length > 0) {
-    console.log(`📋 ChannelProvider 接收到 ${initialChannels.length} 个频道:`, 
-      initialChannels.map(ch => `${ch.name}(${ch.slug})`).join(', ')
-    );
-  }
+  // 已移除频道日志输出，减少控制台噪音
+  // if (typeof window !== 'undefined' && initialChannels.length > 0) {
+  //   console.log(`📋 ChannelProvider 接收到 ${initialChannels.length} 个频道:`, 
+  //     initialChannels.map(ch => `${ch.name}(${ch.slug})`).join(', ')
+  //   );
+  // }
   
   const [channels] = useState<Channel[]>(initialChannels || []);
 
