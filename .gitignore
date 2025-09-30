@@ -12,6 +12,8 @@ eggs/
 .eggs/
 lib/
 lib64/
+# Exception: sites/lib/ contains Next.js application code (not Python virtualenv)
+!sites/lib/
 parts/
 sdist/
 var/

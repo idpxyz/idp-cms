@@ -5,16 +5,7 @@
  * 参考：HeroCarousel.utils.ts, ChannelStrip.utils.ts
  */
 
-export interface Channel {
-  id: string;
-  name: string;
-  slug: string;
-  order?: number;
-  priority?: number;
-  homepage_order?: number;
-  show_in_homepage?: boolean;
-  [key: string]: any;
-}
+import type { Channel } from '@/lib/api';
 
 /**
  * 响应式断点配置

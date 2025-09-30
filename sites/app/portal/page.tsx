@@ -10,7 +10,7 @@ import ChannelStrip from "./components/ChannelStrip";
 import ChannelPageRenderer from "./components/ChannelPageRenderer";
 import { getTopStories } from "./components/TopStoriesGrid.utils";
 import { getTopStoriesDefaultHours } from "@/lib/config/content-timing";
-import { getChannels } from "./utils/channels";
+import { getChannels } from "@/lib/api";
 
 // 获取要在首页显示的频道条带（简化版）
 function getHomepageChannelStrips(channels: any[]): any[] {

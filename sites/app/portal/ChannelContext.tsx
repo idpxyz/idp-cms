@@ -15,25 +15,7 @@
 
 import React, { createContext, useContext, useState, ReactNode, useCallback, useMemo } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-
-interface Channel {
-  id: string;
-  name: string;
-  slug: string;
-  order?: number;
-  
-  // 🆕 首页显示配置（简化版）
-  show_in_homepage?: boolean;      // 是否在首页显示频道条带
-  homepage_order?: number;         // 首页显示顺序
-  
-  // 🎨 模板配置（新版）
-  template?: {                     // 关联的模板信息
-    id: number;
-    name: string;
-    slug: string;
-    file_name: string;
-  } | null;
-}
+import type { Channel } from '@/lib/api';
 
 interface ChannelContextType {
   channels: Channel[];

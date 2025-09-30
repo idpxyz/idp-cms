@@ -3,12 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { getChannelMegaMenuCategories, getChannelMegaMenuHotArticles, MegaMenuCategory, MegaMenuHotArticle } from './MegaMenu.utils';
-
-interface Channel {
-  id: string;
-  name: string;
-  slug: string;
-}
+import type { Channel } from '@/lib/api';
 
 interface MobileChannelMenuProps {
   channels: Channel[];

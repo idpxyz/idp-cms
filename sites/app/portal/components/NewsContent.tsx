@@ -72,11 +72,7 @@ const customStyles = `
   }
 `;
 
-interface Channel {
-  id: string;
-  name: string;
-  slug: string;
-}
+import type { Channel } from '@/lib/api';
 
 interface NewsContentProps {
   channels: Channel[];

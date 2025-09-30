@@ -7,7 +7,7 @@ import { ChannelProvider } from "./ChannelContext";
 import { CategoryProvider } from "./CategoryContext";
 import ChannelNavigation from "./components/ChannelNavigation";
 import { getBreakingNews } from "./components/BreakingTicker.utils";
-import { getChannels } from "./utils/channels";
+import { getChannels } from "@/lib/api";
 
 export const metadata: Metadata = {
   title: "党报头条 - 倾听人民的声音",
