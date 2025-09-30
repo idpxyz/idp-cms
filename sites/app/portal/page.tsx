@@ -134,8 +134,7 @@ export default async function PortalPage({ searchParams }: { searchParams?: Prom
                   width: '100%',
                   aspectRatio: '2/1',
                   maxHeight: 'min(45vh, 600px)',
-                  overflow: 'hidden',
-                  borderRadius: '0.5rem'
+                  overflow: 'hidden'
                 }}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
