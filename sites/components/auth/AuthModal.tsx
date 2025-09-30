@@ -206,6 +206,7 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login' }: Au
                 onChange={handleInputChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
                 placeholder="请输入邮箱地址"
+                autoComplete={mode === 'login' ? 'email' : 'email'}
                 required
               />
             </div>
@@ -224,6 +225,7 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login' }: Au
                   onChange={handleInputChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
                   placeholder="请输入用户名"
+                  autoComplete="username"
                   required
                 />
               </div>
@@ -242,6 +244,7 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login' }: Au
                 onChange={handleInputChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
                 placeholder="请输入密码"
+                autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
                 required
               />
             </div>
@@ -260,6 +263,7 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login' }: Au
                   onChange={handleInputChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
                   placeholder="请再次输入密码"
+                  autoComplete="new-password"
                   required
                 />
               </div>

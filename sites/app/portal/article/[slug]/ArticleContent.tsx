@@ -721,7 +721,7 @@ export default function ArticleContent({
               alt={article.title}
               fill
               className="object-cover"
-              sizes="100vw"
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 1200px"
               priority
             />
             {/* 图片上的渐变遮罩 */}

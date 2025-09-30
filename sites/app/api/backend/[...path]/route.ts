@@ -67,8 +67,19 @@ async function handleRequest(
     // 重构API路径
     const apiPath = path.join('/');
     
-    // 构建后端API URL - 移除末尾斜杠以修复topstories API问题
-    const cleanPath = apiPath.endsWith('/') ? apiPath.slice(0, -1) : apiPath;
+    // 构建后端API URL
+    // 对于认证相关API，保留尾部斜杠（Django APPEND_SLASH要求POST请求必须有尾杠）
+    let cleanPath = apiPath;
+    const isAuthApi = apiPath.includes('auth/') || apiPath.includes('register') || apiPath.includes('login');
+    
+    if (!isAuthApi && cleanPath.endsWith('/')) {
+      // 非认证API，移除尾部斜杠（避免某些API的问题）
+      cleanPath = cleanPath.slice(0, -1);
+    } else if (isAuthApi && !cleanPath.endsWith('/')) {
+      // 认证API，确保有尾部斜杠
+      cleanPath = `${cleanPath}/`;
+    }
+    
     const backendUrl = endpoints.getCmsEndpoint(`/api/${cleanPath}`);
     
     // 提取查询参数

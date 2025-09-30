@@ -449,11 +449,9 @@ export default function HeroCarousel({
                       className={`object-cover transition-all duration-300 group-hover:scale-105 ${
                         imageLoaded[index] ? 'opacity-100' : 'opacity-0'
                       }`}
-                      priority={index <= 2}
-                      fetchPriority={index <= 2 ? 'high' : 'auto'}
-                      loading={index <= 2 ? 'eager' : 'lazy'}
+                      priority={true}
                       onLoad={() => handleImageLoad(index)}
-                      sizes={hasRightRail ? "(min-width: 1024px) 66vw, 100vw" : "100vw"}
+                      sizes={hasRightRail ? "(min-width: 1280px) 60vw, (min-width: 1024px) 70vw, (min-width: 768px) 85vw, 100vw" : "(min-width: 1280px) 90vw, (min-width: 768px) 95vw, 100vw"}
                     />
                     {!imageLoaded[index] && (
                       <div className="absolute inset-0 bg-gray-200 animate-pulse flex items-center justify-center">

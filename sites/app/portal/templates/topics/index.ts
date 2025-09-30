@@ -60,7 +60,34 @@ export function getTopicTemplate(topic: any) {
     }
   }
   
-  // 🎯 第二优先级：基于专题标签的映射
+
+  // 🎯 第二优先级：基于专题slug的特殊映射
+  if (topic?.slug) {
+    // 国庆节、周年庆等国家级专题
+    if (topic.slug.includes('prc-') || 
+        topic.slug.includes('anniversary') || 
+        topic.slug.includes('national-day') ||
+        topic.slug.includes('党的') ||
+        topic.slug.includes('建党')) {
+      return NationalTopicTemplate;
+    }
+    
+    // 突发事件专题
+    if (topic.slug.includes('emergency') || 
+        topic.slug.includes('breaking') ||
+        topic.slug.includes('disaster')) {
+      return BreakingTopicTemplate;
+    }
+    
+    // 纪念日、历史回顾专题
+    if (topic.slug.includes('memorial') ||
+        topic.slug.includes('commemorate') ||
+        topic.slug.includes('历史')) {
+      return TimelineTopicTemplate;
+    }
+  }
+  
+  // 🎯 第三优先级：基于专题标签的映射
   if (topic?.tags && Array.isArray(topic.tags)) {
     for (const tag of topic.tags) {
       const templateName = typeof tag === 'string' ? tag : tag.name;
@@ -70,7 +97,7 @@ export function getTopicTemplate(topic: any) {
     }
   }
   
-  // 🎯 第三优先级：基于专题重要程度和状态的默认映射
+  // 🎯 第四优先级：基于专题重要程度和状态的默认映射
   if (topic?.is_breaking) {
     return BreakingTopicTemplate;
   }
