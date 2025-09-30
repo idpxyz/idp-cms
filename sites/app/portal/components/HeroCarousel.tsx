@@ -446,18 +446,11 @@ export default function HeroCarousel({
                     src={item.image_url || getTopStoryPlaceholderImage(item)}
                       alt={item.title}
                       fill
-                      className={`object-cover transition-all duration-300 group-hover:scale-105 ${
-                        imageLoaded[index] ? 'opacity-100' : 'opacity-0'
-                      }`}
+                      className="object-cover transition-all duration-300 group-hover:scale-105"
                       priority={index === 0}
                       onLoad={() => handleImageLoad(index)}
                       sizes={hasRightRail ? "(min-width: 1280px) 60vw, (min-width: 1024px) 70vw, (min-width: 768px) 85vw, 100vw" : "(min-width: 1280px) 90vw, (min-width: 768px) 95vw, 100vw"}
                     />
-                    {!imageLoaded[index] && (
-                      <div className="absolute inset-0 bg-gray-200 animate-pulse flex items-center justify-center">
-                        <div className="w-12 h-12 border-4 border-red-500 border-t-transparent rounded-full animate-spin"></div>
-                      </div>
-                    )}
                   </>
                 
                 {/* 渐变遮罩 - 更轻柔的颜色 */}
