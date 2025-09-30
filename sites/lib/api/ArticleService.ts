@@ -134,16 +134,16 @@ export class ArticleService {
           const backend = await retryService.fetch(cmsUrl, {
             method: 'GET',
             headers: endpoints.createFetchConfig({
-              timeout: 5000,
+              timeout: 3000, // 🚀 减少超时到3秒
               next: {
                 revalidate: options.cache_ttl,
                 tags: [`article:${slug}`],
               },
             }).headers,
           }, {
-            timeout: 5000,
+            timeout: 3000, // 🚀 减少超时到3秒
             maxAttempts: 1, // 单层重试，外层还有重试
-            baseDelay: 500,
+            baseDelay: 300, // 🚀 减少重试延迟
           });
 
           const articleData = backend && (
@@ -170,9 +170,9 @@ export class ArticleService {
         }
       },
       {
-        maxAttempts: 3,
-        baseDelay: 1000,
-        maxDelay: 5000,
+        maxAttempts: 2, // 🚀 减少重试次数 3→2
+        baseDelay: 500, // 🚀 减少延迟 1000→500
+        maxDelay: 2000, // 🚀 减少最大延迟 5000→2000
         retryCondition: (error) => {
           // 重试5xx错误和网络错误，但不重试404
           if (error.message && error.message.includes('404')) return false;

@@ -29,58 +29,41 @@ interface Article {
 
 // 频道数据现在通过 ChannelContext 提供，不需要重复获取
 
-// 获取文章详情
+// 获取文章详情 - 直接调用 ArticleService，跳过中间层
+import { articleService } from "@/lib/api/ArticleService";
+
 async function getArticle(slug: string, site?: string): Promise<Article | null> {
   try {
-    const decodedSlug = decodeURIComponent(slug);
-    const { GET } = await import("@/app/api/articles/[slug]/route");
-    const url = site
-      ? `http://localhost:3001/api/articles/${decodedSlug}?site=${encodeURIComponent(site)}`
-      : `http://localhost:3001/api/articles/${decodedSlug}`;
-    const response = await GET(new NextRequest(url), { params: Promise.resolve({ slug: decodedSlug }) });
-
-    if (!response.ok) {
-      if (response.status === 404) return null;
-      if (response.status === 429) {
-        console.warn("Article API rate limited, showing 404");
-        return null;
-      }
-      throw new Error(`Failed to fetch article: ${response.status}`);
-    }
-
-    const data = await response.json();
-    return data.data || data.article || data;
+    const result = await articleService.findBySlug(slug, {
+      site,
+      include_content: true,
+      cache_ttl: 600, // 10分钟缓存
+    });
+    
+    return result.article;
   } catch (error) {
     console.error("Error fetching article:", error);
     return null;
   }
 }
 
-export default async function ArticlePage({ params, searchParams }: { params: Promise<{ slug: string }>, searchParams?: Promise<{ site?: string }> }) {
-  const { slug } = await params;
-  const sp = searchParams ? await searchParams : undefined;
-  const site = sp?.site;
-  
-  // 只获取文章数据，频道数据通过 Context 提供
-  const article = await getArticle(slug, site);
-
-  if (!article) {
-    notFound();
-  }
-
-  // 拉取相关文章（同频道，排除当前）
-  let relatedArticles: any[] = [];
+// 获取相关文章
+async function getRelatedArticles(channelSlug: string, currentSlug: string): Promise<any[]> {
   try {
     const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
     const resp = await fetch(
-      `${baseUrl}/api/news?channel=${encodeURIComponent(article.channel.slug)}&limit=4`,  // 🎯 统一：使用channel参数
-      { next: { revalidate: 300 } }
+      `${baseUrl}/api/news?channel=${encodeURIComponent(channelSlug)}&limit=4`,
+      { 
+        next: { revalidate: 300 },
+        // 添加超时控制
+        signal: AbortSignal.timeout(3000) // 3秒超时
+      }
     );
     if (resp.ok) {
       const data = await resp.json();
       const arr = (data && (data.data || data.items)) || [];
-      relatedArticles = arr
-        .filter((it: any) => (it && it.slug) && it.slug !== article.slug)
+      return arr
+        .filter((it: any) => (it && it.slug) && it.slug !== currentSlug)
         .slice(0, 3)
         .map((it: any) => ({
           id: it.id,
@@ -88,13 +71,30 @@ export default async function ArticlePage({ params, searchParams }: { params: Pr
           slug: it.slug,
           publish_at: it.publish_at,
           image_url: it.image_url || (it.cover && it.cover.url) || null,
-          channel: it.channel || { slug: article.channel.slug, name: article.channel.name },
-          source: it.source || (it.channel && it.channel.name) || article.channel.name,
+          channel: it.channel || { slug: channelSlug, name: it.channel?.name },
+          source: it.source || it.channel?.name || '',
         }));
     }
   } catch (e) {
-    // 忽略相关文章错误，保持页面可用
+    console.warn("Failed to fetch related articles:", e);
   }
+  return [];
+}
+
+export default async function ArticlePage({ params, searchParams }: { params: Promise<{ slug: string }>, searchParams?: Promise<{ site?: string }> }) {
+  const { slug } = await params;
+  const sp = searchParams ? await searchParams : undefined;
+  const site = sp?.site;
+  
+  // 🚀 并行获取文章和相关文章（假设channel信息）
+  const article = await getArticle(slug, site);
+
+  if (!article) {
+    notFound();
+  }
+
+  // 🚀 并行获取相关文章
+  const relatedArticles = await getRelatedArticles(article.channel.slug, article.slug)
 
   return (
     <div className="min-h-screen">
