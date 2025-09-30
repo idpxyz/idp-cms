@@ -102,7 +102,7 @@ function ChannelNavigation({
   // activeChannel 直接从 Context 获取
 
   // 🎯 新架构：简化的响应式布局 - 修复水合不匹配
-  const [visibleCount, setVisibleCount] = useState(6);
+  const [visibleCount, setVisibleCount] = useState(8);
   const containerRef = useRef<HTMLDivElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -234,7 +234,7 @@ function ChannelNavigation({
       resizeObserver.observe(containerRef.current);
     }
     
-    // 初始计算
+    // 初始计算（延迟执行，确保DOM已渲染）
     setTimeout(calculateVisibleCount, 0);
     
     return () => {
@@ -367,16 +367,19 @@ function ChannelNavigation({
   }, [currentChannelSlug, switchChannel]);
   
 
-  // 🎯 修复水合不匹配：SSR版本使用与客户端完全相同的频道列表和样式
-  // 确保SSR和hydration后的DOM结构完全一致，实现零闪烁过渡
+  // 🎯 修复水合不匹配：SSR版本立即显示频道，避免空白
+  // 使用与客户端相同的初始visibleCount（8个），保证一致性
   if (!isClient) {
     if (channels.length > 0 && visibleChannels.length > 0) {
       return (
-        <section className="bg-white border-b border-gray-200 sticky z-30" style={{ top: "var(--sticky-offset)" }}>
+        <section 
+          className="bg-white border-b border-gray-200 sticky z-30" 
+          style={{ top: "var(--sticky-offset)" }}
+        >
           <div className="max-w-7xl mx-auto px-4">
             <div className="flex items-center space-x-4 py-3 md:py-3.5">
               <div className="flex space-x-4">
-                {/* SSR静态版本：使用与客户端完全相同的visibleChannels */}
+                {/* SSR静态版本：立即显示，使用初始8个频道 */}
                 {visibleChannels.map((channel) => (
                   <div key={channel.slug} className="relative">
                     <button
