@@ -1,9 +1,9 @@
 import React from "react";
 import { notFound } from "next/navigation";
+import { NextRequest } from "next/server";
 import ArticleContent from "./ArticleContent";
 import PageContainer from "@/components/layout/PageContainer";
 import Section from "@/components/layout/Section";
-import { articleService } from "@/lib/api/ArticleService";
 
 interface Article {
   id: number;
@@ -29,16 +29,27 @@ interface Article {
 
 // 频道数据现在通过 ChannelContext 提供，不需要重复获取
 
-// 获取文章详情 - 直接调用 ArticleService，跳过中间层
+// 获取文章详情
 async function getArticle(slug: string, site?: string): Promise<Article | null> {
   try {
-    const result = await articleService.findBySlug(slug, {
-      site,
-      include_content: true,
-      cache_ttl: 600, // 10分钟缓存
-    });
-    
-    return result.article;
+    const decodedSlug = decodeURIComponent(slug);
+    const { GET } = await import("@/app/api/articles/[slug]/route");
+    const url = site
+      ? `http://localhost:3001/api/articles/${decodedSlug}?site=${encodeURIComponent(site)}`
+      : `http://localhost:3001/api/articles/${decodedSlug}`;
+    const response = await GET(new NextRequest(url), { params: Promise.resolve({ slug: decodedSlug }) });
+
+    if (!response.ok) {
+      if (response.status === 404) return null;
+      if (response.status === 429) {
+        console.warn("Article API rate limited, showing 404");
+        return null;
+      }
+      throw new Error(`Failed to fetch article: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data.data || data.article || data;
   } catch (error) {
     console.error("Error fetching article:", error);
     return null;
