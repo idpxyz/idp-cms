@@ -173,19 +173,6 @@ export default function ChannelNavigation({
           visible.add(channel.slug);
         }
       });
-
-      // 🔧 只在实际变化时更新，避免不必要的重渲染
-      setVisibleChannelSlugs(prev => {
-        // 比较两个 Set 是否相同
-        if (prev.size !== visible.size) return visible;
-        
-        // 使用 Array.from 避免 TypeScript 迭代器错误
-        const visibleArray = Array.from(visible);
-        for (const slug of visibleArray) {
-          if (!prev.has(slug)) return visible;
-        }
-        return prev; // 没变化，返回原对象
-      });
     };
 
     // 初始检测
@@ -294,8 +281,8 @@ export default function ChannelNavigation({
               </div>
             )}
 
-            {/* 🎯 其他频道 - 根据宽度自适应显示 */}
-            <div className="hidden md:block flex-1 min-w-0 relative" ref={containerRef}>
+            {/* 🎯 其他频道 - 移动端和桌面端都根据宽度自适应显示 */}
+            <div className="flex-1 min-w-0 relative" ref={containerRef}>
               {/* 频道容器 - 只显示可见频道 */}
               <div className="overflow-hidden">
                 <div className="flex space-x-2">
@@ -389,18 +376,20 @@ export default function ChannelNavigation({
               </div>
             </div>
 
-            {/* 移动端菜单按钮 */}
-            <div className="flex-shrink-0 md:hidden">
-              <button
-                onClick={() => setIsMobileMenuOpen(true)}
-                className="flex items-center justify-center w-10 h-10 rounded-full text-gray-600 hover:text-red-500 hover:bg-gray-50 transition-all"
-                aria-label="打开频道菜单"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
-              </button>
-            </div>
+            {/* 移动端汉堡菜单按钮（当有隐藏频道时） */}
+            {hiddenChannels.length > 0 && (
+              <div className="flex-shrink-0 md:hidden ml-2">
+                <button
+                  onClick={() => setIsMobileMenuOpen(true)}
+                  className="flex items-center justify-center w-10 h-10 rounded-full text-gray-600 hover:text-red-500 hover:bg-gray-50 transition-all"
+                  aria-label="打开频道菜单"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                  </svg>
+                </button>
+              </div>
+            )}
 
           </div>
         </div>
@@ -420,11 +409,11 @@ export default function ChannelNavigation({
         />
       )}
 
-      {/* 移动端菜单 */}
+      {/* 移动端菜单 - 只显示隐藏的频道 */}
       <MobileChannelMenu
         isOpen={isMobileMenuOpen}
         onClose={() => setIsMobileMenuOpen(false)}
-        channels={sortedChannels}
+        channels={hiddenChannels}
         currentChannelSlug={currentChannelSlug}
       />
 
