@@ -86,8 +86,7 @@ export default async function PortalPage({ searchParams }: { searchParams?: Prom
               rel="preload"
               as="image"
               href={heroItems[0].image_url}
-              // @ts-ignore
-              fetchpriority="high"
+              fetchPriority="high"
             />
           )}
           
