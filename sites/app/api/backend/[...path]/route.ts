@@ -68,15 +68,17 @@ async function handleRequest(
     const apiPath = path.join('/');
     
     // 构建后端API URL
-    // 对于认证相关API，保留尾部斜杠（Django APPEND_SLASH要求POST请求必须有尾杠）
+    // 对于认证相关API和用户数据API，保留尾部斜杠（Django APPEND_SLASH要求POST请求必须有尾杠）
     let cleanPath = apiPath;
     const isAuthApi = apiPath.includes('auth/') || apiPath.includes('register') || apiPath.includes('login');
+    const isUserDataApi = apiPath.includes('history/') || apiPath.includes('favorite') || apiPath.includes('comment');
+    const needsTrailingSlash = isAuthApi || isUserDataApi;
     
-    if (!isAuthApi && cleanPath.endsWith('/')) {
-      // 非认证API，移除尾部斜杠（避免某些API的问题）
+    if (!needsTrailingSlash && cleanPath.endsWith('/')) {
+      // 非特殊API，移除尾部斜杠
       cleanPath = cleanPath.slice(0, -1);
-    } else if (isAuthApi && !cleanPath.endsWith('/')) {
-      // 认证API，确保有尾部斜杠
+    } else if (needsTrailingSlash && !cleanPath.endsWith('/')) {
+      // 特殊API，确保有尾部斜杠
       cleanPath = `${cleanPath}/`;
     }
     

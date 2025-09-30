@@ -21,9 +21,24 @@ export function middleware(request: NextRequest) {
   const hostname = host.split(":")[0]; // 移除端口号
   const pathname = request.nextUrl.pathname;
 
-  // 如果是API请求，不重写路由
+  // 🔑 提取设备ID、会话ID和用户ID from cookies用于个性化推荐
+  const deviceId = request.cookies.get("device_id")?.value;
+  const sessionId = request.cookies.get("session_id")?.value;
+  const userId = request.cookies.get("user_id")?.value;
+
+  // 如果是API请求，添加用户信息headers后直接返回
   if (request.nextUrl.pathname.startsWith("/api/")) {
-    return NextResponse.next();
+    const response = NextResponse.next();
+    if (deviceId) {
+      response.headers.set("x-device-id", deviceId);
+    }
+    if (sessionId) {
+      response.headers.set("x-session-id", sessionId);
+    }
+    if (userId) {
+      response.headers.set("x-user-id", userId);
+    }
+    return response;
   }
 
   // 特殊路径不重写（直接访问的页面）
@@ -51,6 +66,11 @@ export function middleware(request: NextRequest) {
         response.headers.set("x-theme-key", localThemeConfig.theme_key);
         response.headers.set("x-layout-key", localThemeConfig.layout_key);
         response.headers.set("x-theme-version", "1.0.0");
+
+        // 🔑 添加用户信息用于个性化
+        if (deviceId) response.headers.set("x-device-id", deviceId);
+        if (sessionId) response.headers.set("x-session-id", sessionId);
+        if (userId) response.headers.set("x-user-id", userId);
 
         return response;
       }
@@ -81,6 +101,11 @@ export function middleware(request: NextRequest) {
     response.headers.set("x-layout-key", portalThemeConfig.layout_key);
     response.headers.set("x-theme-version", "1.0.0");
 
+    // 🔑 添加用户信息用于个性化
+    if (deviceId) response.headers.set("x-device-id", deviceId);
+    if (sessionId) response.headers.set("x-session-id", sessionId);
+    if (userId) response.headers.set("x-user-id", userId);
+
     return response;
   }
 
@@ -101,6 +126,11 @@ export function middleware(request: NextRequest) {
   response.headers.set("x-theme-key", themeConfig.theme_key);
   response.headers.set("x-layout-key", themeConfig.layout_key);
   response.headers.set("x-theme-version", "1.0.0"); // 默认版本
+
+  // 🔑 添加用户信息用于个性化
+  if (deviceId) response.headers.set("x-device-id", deviceId);
+  if (sessionId) response.headers.set("x-session-id", sessionId);
+  if (userId) response.headers.set("x-user-id", userId);
 
   return response;
 }

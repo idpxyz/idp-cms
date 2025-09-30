@@ -26,7 +26,12 @@ class AnonymousRecommendationEngine:
     
     def get_device_fingerprint(self, request) -> str:
         """生成设备指纹"""
-        # 使用User-Agent + IP + 其他设备特征
+        # 优先使用前端传来的设备ID（如果有）
+        device_id = request.headers.get('X-Device-ID')
+        if device_id:
+            return device_id
+        
+        # 否则使用User-Agent + IP生成设备指纹
         user_agent = request.META.get('HTTP_USER_AGENT', '')
         ip = self._get_client_ip(request)
         
@@ -51,16 +56,65 @@ class AnonymousRecommendationEngine:
             session_id = f"anon_{int(time.time() * 1000)}"
         return session_id
     
-    def get_anonymous_user_profile(self, device_id: str, session_id: str, site: str) -> Dict:
-        """获取匿名用户画像"""
-        cache_key = f"anon_profile_{device_id}_{site}"
-        profile = cache.get(cache_key)
+    def get_user_id(self, request) -> str:
+        """获取用户ID（登录用户）"""
+        # 优先从 header 获取
+        user_id = request.headers.get('X-User-ID')
+        if user_id:
+            return user_id
         
-        if profile is None:
-            profile = self._build_anonymous_profile(device_id, session_id, site)
-            cache.set(cache_key, profile, self.cache_timeout)
+        # 尝试从 cookie 获取
+        if hasattr(request, 'COOKIES'):
+            user_id = request.COOKIES.get('user_id', '')
+            if user_id:
+                return user_id
+        
+        return ''
+    
+    def is_logged_in_user(self, user_id: str) -> bool:
+        """判断是否是真实登录用户（非自动生成的匿名ID）"""
+        if not user_id:
+            return False
+        
+        # ✅ 登录用户ID格式：webuser_{id} 或 webuser_{username}
+        if user_id.startswith('webuser_'):
+            return True
+        
+        # 匿名ID格式：user_xxx_timestamp
+        # 其他以 user_ 开头的都认为是匿名用户
+        if user_id.startswith('user_'):
+            return False
+        
+        # 兼容旧数据或其他格式，默认认为是匿名用户
+        return False
+    
+    def get_user_profile(self, user_id: str, device_id: str, session_id: str, site: str) -> Dict:
+        """获取用户画像（支持登录和匿名用户）"""
+        # 判断是否是登录用户
+        is_logged_in = self.is_logged_in_user(user_id)
+        
+        if is_logged_in:
+            # 登录用户：使用 user_id 作为缓存键
+            cache_key = f"user_profile_{user_id}_{site}"
+            profile = cache.get(cache_key)
+            
+            if profile is None:
+                profile = self._build_logged_in_profile(user_id, device_id, session_id, site)
+                cache.set(cache_key, profile, self.cache_timeout)
+        else:
+            # 匿名用户：使用 device_id 作为缓存键
+            cache_key = f"anon_profile_{device_id}_{site}"
+            profile = cache.get(cache_key)
+            
+            if profile is None:
+                profile = self._build_anonymous_profile(device_id, session_id, site)
+                cache.set(cache_key, profile, self.cache_timeout)
         
         return profile
+    
+    def get_anonymous_user_profile(self, device_id: str, session_id: str, site: str) -> Dict:
+        """获取匿名用户画像（向后兼容）"""
+        return self.get_user_profile('', device_id, session_id, site)
     
     def _build_anonymous_profile(self, device_id: str, session_id: str, site: str) -> Dict:
         """构建匿名用户画像"""
@@ -88,6 +142,89 @@ class AnonymousRecommendationEngine:
         
         return profile
     
+    def _build_logged_in_profile(self, user_id: str, device_id: str, session_id: str, site: str) -> Dict:
+        """构建登录用户画像（支持跨设备）"""
+        # 1. 获取用户跨设备历史（权重更高）
+        user_history = self._get_user_behavior_history(user_id, site)
+        
+        # 2. 获取当前设备历史（辅助）
+        device_history = self._get_device_behavior_history(device_id, site)
+        
+        # 3. 获取当前会话行为
+        session_behavior = self._get_session_behavior(session_id, site)
+        
+        # 4. 获取站点热门趋势
+        site_trends = self._get_site_trends(site)
+        
+        # 5. 合并历史数据（用户历史70% + 设备历史30%）
+        combined_history = self._merge_user_device_history(user_history, device_history)
+        
+        # 6. 构建用户画像
+        profile = {
+            "user_type": "logged_in",  # 标记为登录用户
+            "user_id": user_id,
+            "device_id": device_id,
+            "session_id": session_id,
+            "interests": self._extract_interests(combined_history, session_behavior),
+            "preferred_channels": self._get_preferred_channels(combined_history, site_trends),
+            "content_preferences": self._get_content_preferences(combined_history),
+            "recency_preference": self._get_recency_preference(combined_history),
+            "diversity_level": self._get_diversity_level(combined_history),
+            "confidence_score": self._calculate_confidence_score(
+                combined_history, 
+                session_behavior,
+                boost=0.2  # 登录用户置信度加成20%
+            ),
+            "devices_count": len(set(h.get('devices_used', 1) for h in user_history)) if user_history else 1
+        }
+        
+        return profile
+    
+    def _merge_user_device_history(self, user_history: List[Dict], device_history: List[Dict]) -> List[Dict]:
+        """合并用户级别和设备级别的历史数据"""
+        # 创建频道映射
+        channel_data = {}
+        
+        # 添加用户历史（权重0.7）
+        for item in user_history:
+            channel = item['channel']
+            channel_data[channel] = {
+                'channel': channel,
+                'view_count': item['view_count'] * 0.7,
+                'avg_dwell': item['avg_dwell'],
+                'last_view': item['last_view'],
+                'unique_articles': item.get('unique_articles', 0),
+                'devices_used': item.get('devices_used', 1)
+            }
+        
+        # 添加设备历史（权重0.3）
+        for item in device_history:
+            channel = item['channel']
+            if channel in channel_data:
+                # 合并数据
+                channel_data[channel]['view_count'] += item['view_count'] * 0.3
+                # 使用较大的停留时间
+                channel_data[channel]['avg_dwell'] = max(
+                    channel_data[channel]['avg_dwell'],
+                    item['avg_dwell']
+                )
+            else:
+                # 新频道
+                channel_data[channel] = {
+                    'channel': channel,
+                    'view_count': item['view_count'] * 0.3,
+                    'avg_dwell': item['avg_dwell'],
+                    'last_view': item['last_view'],
+                    'unique_articles': item.get('unique_articles', 0),
+                    'devices_used': 1
+                }
+        
+        # 转换回列表并排序
+        merged = list(channel_data.values())
+        merged.sort(key=lambda x: x['view_count'], reverse=True)
+        
+        return merged
+    
     def _get_device_behavior_history(self, device_id: str, site: str) -> List[Dict]:
         """获取设备历史行为"""
         try:
@@ -100,7 +237,7 @@ class AnonymousRecommendationEngine:
                 COUNT(DISTINCT article_id) as unique_articles
             FROM events 
             WHERE device_id = '{device_id}' 
-            AND site = '{site}' 
+            AND site LIKE '{site}%' 
             AND event = 'view'
             AND ts >= now() - INTERVAL 7 DAY
             GROUP BY channel
@@ -124,6 +261,44 @@ class AnonymousRecommendationEngine:
             print(f"Error getting device history: {e}")
             return []
     
+    def _get_user_behavior_history(self, user_id: str, site: str) -> List[Dict]:
+        """获取用户跨设备历史行为（登录用户）"""
+        try:
+            query = f"""
+            SELECT 
+                channel,
+                COUNT(*) as view_count,
+                AVG(dwell_ms) as avg_dwell,
+                MAX(ts) as last_view,
+                COUNT(DISTINCT article_id) as unique_articles,
+                COUNT(DISTINCT device_id) as devices_used
+            FROM events 
+            WHERE user_id = '{user_id}' 
+            AND site LIKE '{site}%' 
+            AND event = 'view'
+            AND ts >= now() - INTERVAL 30 DAY
+            GROUP BY channel
+            ORDER BY view_count DESC
+            LIMIT 20
+            """
+            
+            result = self.breaker.call(self.ch_client.execute, query)
+            
+            return [
+                {
+                    "channel": row[0],
+                    "view_count": row[1],
+                    "avg_dwell": row[2],
+                    "last_view": row[3],
+                    "unique_articles": row[4],
+                    "devices_used": row[5]
+                }
+                for row in result
+            ]
+        except Exception as e:
+            print(f"Error getting user history: {e}")
+            return []
+    
     def _get_session_behavior(self, session_id: str, site: str) -> List[Dict]:
         """获取当前会话行为"""
         try:
@@ -136,7 +311,7 @@ class AnonymousRecommendationEngine:
                 ts
             FROM events 
             WHERE session_id = '{session_id}' 
-            AND site = '{site}' 
+            AND site LIKE '{site}%' 
             AND ts >= now() - INTERVAL 1 HOUR
             ORDER BY ts DESC
             LIMIT 50
@@ -168,7 +343,7 @@ class AnonymousRecommendationEngine:
                 AVG(dwell_ms) as avg_dwell,
                 COUNT(DISTINCT device_id) as unique_devices
             FROM events 
-            WHERE site = '{site}' 
+            WHERE site LIKE '{site}%' 
             AND event = 'view'
             AND ts >= now() - INTERVAL 24 HOUR
             GROUP BY channel
@@ -294,8 +469,14 @@ class AnonymousRecommendationEngine:
         else:
             return "low"
     
-    def _calculate_confidence_score(self, device_history: List[Dict], session_behavior: List[Dict]) -> float:
-        """计算推荐置信度"""
+    def _calculate_confidence_score(self, device_history: List[Dict], session_behavior: List[Dict], boost: float = 0.0) -> float:
+        """计算推荐置信度
+        
+        Args:
+            device_history: 设备或合并后的历史数据
+            session_behavior: 当前会话行为
+            boost: 置信度加成（登录用户）
+        """
         confidence = 0.0
         
         # 基于历史数据量
@@ -306,7 +487,10 @@ class AnonymousRecommendationEngine:
         if session_behavior:
             confidence += min(len(session_behavior) / 5, 1.0) * 0.6
         
-        return min(confidence, 1.0)
+        # 添加加成
+        confidence = min(confidence + boost, 1.0)
+        
+        return confidence
     
     def get_active_channels(self, site_id: int) -> List[str]:
         """从数据库获取活跃频道列表"""
@@ -417,15 +601,16 @@ class AnonymousRecommendationEngine:
 
 
 def get_anonymous_recommendation_config(request, site: str) -> Dict:
-    """获取匿名用户推荐配置"""
+    """获取用户推荐配置（支持登录和匿名用户）"""
     engine = AnonymousRecommendationEngine()
     
-    # 获取设备指纹和会话ID
+    # 获取用户标识信息
+    user_id = engine.get_user_id(request)  # 新增：获取登录用户ID
     device_id = engine.get_device_fingerprint(request)
     session_id = engine.get_session_id(request)
     
-    # 获取用户画像
-    profile = engine.get_anonymous_user_profile(device_id, session_id, site)
+    # 获取用户画像（自动判断登录/匿名）
+    profile = engine.get_user_profile(user_id, device_id, session_id, site)
     
     # 获取推荐策略 - 需要将site字符串转换为Site对象
     from wagtail.models import Site
@@ -441,6 +626,8 @@ def get_anonymous_recommendation_config(request, site: str) -> Dict:
     return {
         "profile": profile,
         "strategy": strategy,
+        "user_id": user_id,  # 新增：返回用户ID
         "device_id": device_id,
-        "session_id": session_id
+        "session_id": session_id,
+        "is_logged_in": engine.is_logged_in_user(user_id)  # 新增：标记是否登录
     }

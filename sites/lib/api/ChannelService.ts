@@ -205,6 +205,139 @@ export class ChannelService {
   }
 
   /**
+   * 获取服务端个性化频道（SSR专用）
+   * 
+   * 🎯 核心特性：
+   * - 在服务端调用后端个性化API
+   * - 转发用户cookies和headers
+   * - 自动降级到静态频道（API失败时）
+   * - 使用React cache优化
+   * 
+   * @param requestHeaders - Next.js headers() 返回的headers对象
+   * @returns 个性化排序的频道列表
+   * 
+   * @example
+   * ```typescript
+   * import { headers } from 'next/headers';
+   * 
+   * const headersList = headers();
+   * const channels = await channelService.getPersonalizedChannelsSSR(headersList);
+   * ```
+   */
+  getPersonalizedChannelsSSR = cache(async (
+    requestHeaders?: Headers | Map<string, string> | { [key: string]: string }
+  ): Promise<Channel[]> => {
+    try {
+      // 构建个性化API URL
+      const currentSite = getMainSite().hostname;
+      console.log(`🌐 当前站点: ${currentSite}`);
+      const apiUrl = endpoints.buildUrl(
+        endpoints.getCmsEndpoint('/api/channels/personalized'),
+        { site: currentSite }
+      );
+      console.log(`📡 请求个性化API: ${apiUrl}`);
+      
+      // 🔑 构建headers，转发用户信息
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      };
+      
+      // 转发cookies和相关headers
+      if (requestHeaders) {
+        // 处理不同类型的headers
+        let cookieValue: string | null = null;
+        let userAgentValue: string | null = null;
+        let forwardedForValue: string | null = null;
+        let deviceIdValue: string | null = null;
+        let sessionIdValue: string | null = null;
+        let userIdValue: string | null = null;
+        
+        if (requestHeaders instanceof Headers) {
+          cookieValue = requestHeaders.get('cookie');
+          userAgentValue = requestHeaders.get('user-agent');
+          forwardedForValue = requestHeaders.get('x-forwarded-for');
+          deviceIdValue = requestHeaders.get('x-device-id');
+          sessionIdValue = requestHeaders.get('x-session-id');
+          userIdValue = requestHeaders.get('x-user-id');
+        } else if (requestHeaders instanceof Map) {
+          cookieValue = requestHeaders.get('cookie') || null;
+          userAgentValue = requestHeaders.get('user-agent') || null;
+          forwardedForValue = requestHeaders.get('x-forwarded-for') || null;
+          deviceIdValue = requestHeaders.get('x-device-id') || null;
+          sessionIdValue = requestHeaders.get('x-session-id') || null;
+          userIdValue = requestHeaders.get('x-user-id') || null;
+        } else {
+          cookieValue = requestHeaders['cookie'] || null;
+          userAgentValue = requestHeaders['user-agent'] || null;
+          forwardedForValue = requestHeaders['x-forwarded-for'] || null;
+          deviceIdValue = requestHeaders['x-device-id'] || null;
+          sessionIdValue = requestHeaders['x-session-id'] || null;
+          userIdValue = requestHeaders['x-user-id'] || null;
+        }
+        
+        if (cookieValue) {
+          headers['Cookie'] = cookieValue;
+        }
+        if (userAgentValue) {
+          headers['User-Agent'] = userAgentValue;
+        }
+        if (forwardedForValue) {
+          headers['X-Forwarded-For'] = forwardedForValue;
+        }
+        // 🔑 转发用户标识信息用于个性化推荐
+        if (deviceIdValue) {
+          headers['X-Device-ID'] = deviceIdValue;
+        }
+        if (sessionIdValue) {
+          headers['X-Session-ID'] = sessionIdValue;
+        }
+        if (userIdValue) {
+          headers['X-User-ID'] = userIdValue;
+        }
+      }
+      
+      const response = await fetch(apiUrl, {
+        headers,
+        // 🔧 增加超时时间到5秒，开发环境可能较慢
+        signal: AbortSignal.timeout(5000),
+        next: { 
+          revalidate: 300, // 5分钟缓存，与后端一致
+          tags: ['personalized-channels'] 
+        },
+      });
+      
+      if (!response.ok) {
+        console.warn(`⚠️ 个性化API返回 ${response.status}，降级到静态频道`);
+        return await this.getChannels(); // 降级到静态
+      }
+      
+      const data = await response.json();
+      
+      // 转换为Channel格式
+      const channels: Channel[] = (data.channels || []).map((ch: any) => ({
+        id: ch.slug || ch.id,
+        name: ch.name,
+        slug: ch.slug,
+        order: ch.order,
+        show_in_homepage: ch.show_in_homepage,
+        homepage_order: ch.homepage_order,
+        template: ch.template,
+        ...ch
+      }));
+      
+      console.log(`📡 SSR个性化频道: ${channels.length}个 (策略: ${data.strategy}, 置信度: ${data.confidence})`);
+      console.log(`🔍 频道列表:`, channels.map(ch => `${ch.name}(${ch.slug})`).join(', '));
+      return channels;
+      
+    } catch (error) {
+      console.error('❌ SSR个性化失败:', error);
+      // 降级到静态频道
+      return await this.getChannels();
+    }
+  });
+
+  /**
    * 错误处理
    */
   private handleError(error: any, operation: string): ChannelServiceError {
@@ -239,3 +372,4 @@ export const channelService = ChannelService.getInstance();
 export const getChannels = channelService.getChannels;
 export const getChannelBySlug = channelService.getChannelBySlug.bind(channelService);
 export const getHomepageChannels = channelService.getHomepageChannels.bind(channelService);
+export const getPersonalizedChannelsSSR = channelService.getPersonalizedChannelsSSR;

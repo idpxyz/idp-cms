@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { setLoggedInUserId, clearLoggedInUserId } from '@/lib/tracking/user-session';
 
 // 用户类型定义
 export interface User {
@@ -281,6 +282,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             isLoading: false,
             isAuthenticated: true,
           });
+          
+          // ✅ 恢复登录用户的个性化ID
+          setLoggedInUserId(result.user.id);
+          console.log(`✅ 恢复用户会话：${result.user.username}，已设置个性化ID`);
         } else {
           // Token无效，清除本地存储
           removeStoredToken();
@@ -289,6 +294,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             isLoading: false,
             isAuthenticated: false,
           });
+          
+          // ✅ Token无效时清除个性化ID
+          clearLoggedInUserId();
         }
       } else {
         setAuthState({
@@ -314,6 +322,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isLoading: false,
         isAuthenticated: true,
       });
+      
+      // ✅ 设置登录用户ID用于个性化推荐
+      setLoggedInUserId(result.user.id);
+      console.log(`✅ 用户 ${result.user.username} 登录成功，已设置个性化ID`);
     }
     
     return result;
@@ -331,6 +343,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isLoading: false,
         isAuthenticated: true,
       });
+      
+      // ✅ 设置登录用户ID用于个性化推荐
+      setLoggedInUserId(result.user.id);
+      console.log(`✅ 用户 ${result.user.username} 注册成功，已设置个性化ID`);
     }
     
     return result;
@@ -344,6 +360,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isLoading: false,
       isAuthenticated: false,
     });
+    
+    // ✅ 清除登录用户ID，恢复为匿名用户
+    clearLoggedInUserId();
+    console.log('✅ 用户已登出，已恢复匿名ID');
   };
 
   // 更新个人资料

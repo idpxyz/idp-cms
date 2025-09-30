@@ -40,24 +40,18 @@ def personalized_channels(request):
         
         # 获取所有可用频道
         try:
-            # 首先尝试通过hostname查找
+            # 通过hostname查找
             all_channels = list(Channel.objects.filter(
                 sites__hostname=site,
                 is_active=True
-            ).values('id', 'name', 'slug', 'order').order_by('order'))
+            ).values('id', 'name', 'slug', 'order', 'show_in_homepage', 'homepage_order').order_by('order'))
             
-            # 如果没有找到，尝试使用默认站点
+            # 🚫 移除降级到默认站点的逻辑，避免显示不属于当前站点的频道
             if not all_channels:
-                from wagtail.models import Site as WagtailSite
-                default_site = WagtailSite.objects.filter(is_default_site=True).first()
-                if default_site:
-                    all_channels = list(Channel.objects.filter(
-                        sites__id=default_site.id,
-                        is_active=True
-                    ).values('id', 'name', 'slug', 'order', 'show_in_homepage', 'homepage_order', 'template').order_by('order'))
+                logger.warning(f"站点 {site} 没有关联任何频道，请在Django后台为该站点配置频道")
                     
         except Exception as channel_error:
-            logger.warning(f"频道查询失败: {channel_error}")
+            logger.error(f"频道查询失败: {channel_error}")
             all_channels = []
         
         # 根据策略类型进行个性化排序

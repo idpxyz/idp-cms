@@ -19,6 +19,8 @@ function generateDeviceId(): string {
   // 尝试从localStorage获取现有设备ID
   const existingDeviceId = localStorage.getItem("device_id");
   if (existingDeviceId) {
+    // 同步到 cookie，让 SSR 也能使用
+    document.cookie = `device_id=${existingDeviceId}; path=/; max-age=${365 * 24 * 60 * 60}`; // 1年
     return existingDeviceId;
   }
 
@@ -26,6 +28,8 @@ function generateDeviceId(): string {
   const deviceId =
     "dev_" + Math.random().toString(36).substr(2, 9) + "_" + Date.now();
   localStorage.setItem("device_id", deviceId);
+  // 同步到 cookie
+  document.cookie = `device_id=${deviceId}; path=/; max-age=${365 * 24 * 60 * 60}`;
   return deviceId;
 }
 
@@ -70,6 +74,8 @@ function generateUserId(): string {
   // 尝试从localStorage获取现有用户ID
   const existingUserId = localStorage.getItem("user_id");
   if (existingUserId) {
+    // 同步到 cookie，让 SSR 也能使用
+    document.cookie = `user_id=${existingUserId}; path=/; max-age=${365 * 24 * 60 * 60}`; // 1年
     return existingUserId;
   }
 
@@ -77,6 +83,8 @@ function generateUserId(): string {
   const userId =
     "user_" + Math.random().toString(36).substr(2, 12) + "_" + Date.now();
   localStorage.setItem("user_id", userId);
+  // 同步到 cookie
+  document.cookie = `user_id=${userId}; path=/; max-age=${365 * 24 * 60 * 60}`;
   return userId;
 }
 
@@ -126,4 +134,42 @@ export function clearSession(): void {
   if (typeof window === "undefined") return;
 
   sessionStorage.removeItem("session_data");
+}
+
+/**
+ * 设置登录用户ID（用户登录后调用）
+ * @param webUserId - WebUser 的 ID 或 username
+ */
+export function setLoggedInUserId(webUserId: string | number): void {
+  if (typeof window === "undefined") return;
+
+  // 使用 webuser_ 前缀，避免与匿名ID混淆
+  const userId = `webuser_${webUserId}`;
+
+  // 存储到 localStorage
+  localStorage.setItem("user_id", userId);
+
+  // 存储到 cookie（SSR 可访问）
+  document.cookie = `user_id=${userId}; path=/; max-age=${
+    365 * 24 * 60 * 60
+  }`; // 1年
+
+  console.log(`✅ 已设置登录用户ID: ${userId}`);
+}
+
+/**
+ * 清除登录用户ID（用户登出后调用）
+ */
+export function clearLoggedInUserId(): void {
+  if (typeof window === "undefined") return;
+
+  // 清除 localStorage
+  localStorage.removeItem("user_id");
+
+  // 清除 cookie
+  document.cookie = "user_id=; path=/; max-age=0";
+
+  // 重新生成匿名ID
+  const newAnonymousId = generateUserId();
+  console.log(`✅ 已清除登录用户ID，生成新的匿名ID: ${newAnonymousId}`);
 }
