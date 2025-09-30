@@ -417,7 +417,7 @@ export default function HeroCarousel({
       {/* 主轮播区域 */}
       <div 
         ref={carouselRef}
-        className={`${getContentClassName()} ${getHeightClassName()} relative bg-white`}
+        className={`${getContentClassName()} ${getHeightClassName()} relative bg-white rounded-lg overflow-hidden`}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
         role="region"
