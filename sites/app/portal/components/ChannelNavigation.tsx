@@ -318,8 +318,8 @@ export default function ChannelNavigation({
                 </div>
               </div>
               
-              {/* "更多"按钮 - 绝对定位在滚动区域右侧，浮在内容上方 */}
-              <div className="absolute top-0 right-0 h-full flex items-center bg-gradient-to-l from-white via-white to-transparent pl-8">
+              {/* "更多"按钮 - 桌面端显示，绝对定位在滚动区域右侧 */}
+              <div className="hidden md:flex absolute top-0 right-0 h-full items-center bg-gradient-to-l from-white via-white to-transparent pl-8">
                 <div className="relative" ref={dropdownRef}>
                   <button
                     onClick={() => setShowMoreMenu(!showMoreMenu)}
