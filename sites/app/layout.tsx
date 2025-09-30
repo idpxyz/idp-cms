@@ -19,7 +19,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="zh-CN">
+    <html lang="zh-CN" suppressHydrationWarning>
       <head>
         {/* 🚀 LCP优化：尽早标记JS加载完成，显示完整轮播 */}
         <script
@@ -36,7 +36,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className={`${inter.className} bg-white`}>
+      <body className={`${inter.className} bg-white`} suppressHydrationWarning>
         {/* 性能优化：被动事件监听器 */}
         <PassiveEventOptimizer />
         {/* 主题令牌注入器 */}
