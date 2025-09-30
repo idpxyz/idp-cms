@@ -251,6 +251,7 @@ export default function FavoritesContent() {
                           width={128}
                           height={80}
                           className="w-full h-full object-cover"
+                          loading="lazy"
                           onError={(e) => {
                             // 图片加载失败时隐藏图片，显示占位符
                             e.currentTarget.style.display = 'none';
