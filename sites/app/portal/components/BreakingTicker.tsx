@@ -91,8 +91,18 @@ export default function BreakingTicker({
     }
   };
 
+  // 即使没有快讯，也保留容器高度，避免布局偏移
   if (items.length === 0) {
-    return null;
+    return (
+      <div className={`bg-red-600 text-white py-2 overflow-hidden ${className}`} style={{ minHeight: '40px' }}>
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="flex items-center opacity-0">
+            {/* 占位符，保持高度 */}
+            <span className="button-text">加载中...</span>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
