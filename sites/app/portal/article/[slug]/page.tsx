@@ -1,9 +1,9 @@
 import React from "react";
 import { notFound } from "next/navigation";
-import { NextRequest } from "next/server";
 import ArticleContent from "./ArticleContent";
 import PageContainer from "@/components/layout/PageContainer";
 import Section from "@/components/layout/Section";
+import { articleService } from "@/lib/api/ArticleService";
 
 interface Article {
   id: number;
@@ -30,8 +30,6 @@ interface Article {
 // 频道数据现在通过 ChannelContext 提供，不需要重复获取
 
 // 获取文章详情 - 直接调用 ArticleService，跳过中间层
-import { articleService } from "@/lib/api/ArticleService";
-
 async function getArticle(slug: string, site?: string): Promise<Article | null> {
   try {
     const result = await articleService.findBySlug(slug, {
