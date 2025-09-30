@@ -183,19 +183,21 @@ export default async function PortalPage({ searchParams }: { searchParams?: Prom
             </div>
             
             {/* CSS：客户端JS加载前显示SSR，加载后显示完整轮播 */}
-            <style jsx>{`
-              .hero-client-carousel {
-                display: none;
-              }
-              
-              :global(.js-loaded) .hero-ssr-preload {
-                display: none;
-              }
-              
-              :global(.js-loaded) .hero-client-carousel {
-                display: block;
-              }
-            `}</style>
+            <style dangerouslySetInnerHTML={{
+              __html: `
+                .hero-client-carousel {
+                  display: none;
+                }
+                
+                .js-loaded .hero-ssr-preload {
+                  display: none;
+                }
+                
+                .js-loaded .hero-client-carousel {
+                  display: block;
+                }
+              `
+            }} />
           </div>
         </PageContainer>
       )}
