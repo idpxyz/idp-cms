@@ -266,9 +266,9 @@ export default function ChannelNavigation({
       <section className="bg-white border-b border-gray-200 sticky z-30 relative" style={{ top: "var(--sticky-offset)" }}>
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex items-center py-3 md:py-3.5">
-            {/* 🔒 固定"推荐"频道 - 始终在最左侧可见 */}
+            {/* 🔒 固定"推荐"频道 - 移动端和桌面端都显示 */}
             {recommendChannel && (
-              <div className="hidden md:block flex-shrink-0 mr-2">
+              <div className="flex-shrink-0 mr-2">
                 <button
                   ref={(el) => {
                     if (el) {
