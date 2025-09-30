@@ -18,6 +18,8 @@ export interface MegaMenuProps {
   isOpen: boolean;
   onClose: () => void;
   triggerRef: React.RefObject<HTMLElement>;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
   className?: string;
 }
 
@@ -28,6 +30,8 @@ const MegaMenu: React.FC<MegaMenuProps> = ({
   isOpen,
   onClose,
   triggerRef,
+  onMouseEnter,
+  onMouseLeave,
   className = '',
 }) => {
   const [categories, setCategories] = useState<MegaMenuCategory[]>([]);
@@ -142,6 +146,8 @@ const MegaMenu: React.FC<MegaMenuProps> = ({
         left: `${menuPosition.left}px`,
         transform: 'translateX(-50%)',
       }}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
     >
       <div
         ref={menuRef}

@@ -409,6 +409,8 @@ export default function ChannelNavigation({
           channelId={megaMenuState.channelId}
           onClose={() => setMegaMenuState((prev) => ({ ...prev, isOpen: false }))}
           triggerRef={activeChannelRef}
+          onMouseEnter={cancelCloseMegaMenu}
+          onMouseLeave={closeMegaMenu}
         />
       )}
 
