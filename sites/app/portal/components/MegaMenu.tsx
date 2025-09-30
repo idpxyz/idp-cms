@@ -35,6 +35,35 @@ const MegaMenu: React.FC<MegaMenuProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>('');
   const menuRef = useRef<HTMLDivElement>(null);
+  const [menuPosition, setMenuPosition] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
+
+  // 计算 MegaMenu 位置 - 应该在频道导航栏的正下方
+  useEffect(() => {
+    if (!isOpen || !triggerRef.current) return;
+
+    const updatePosition = () => {
+      if (triggerRef.current) {
+        // 查找频道导航栏的 section 元素
+        const section = triggerRef.current.closest('section');
+        if (section) {
+          const rect = section.getBoundingClientRect();
+          setMenuPosition({
+            top: rect.bottom, // 导航栏底部（与底部边框对齐）
+            left: window.innerWidth / 2, // 屏幕中心
+          });
+        }
+      }
+    };
+
+    updatePosition();
+    window.addEventListener('resize', updatePosition);
+    window.addEventListener('scroll', updatePosition);
+
+    return () => {
+      window.removeEventListener('resize', updatePosition);
+      window.removeEventListener('scroll', updatePosition);
+    };
+  }, [isOpen, triggerRef]);
 
   // 获取 MegaMenu 数据
   useEffect(() => {
@@ -48,7 +77,7 @@ const MegaMenu: React.FC<MegaMenuProps> = ({
         const data = await getChannelMegaMenuData(channelSlug);
         setCategories(data.categories);
         setHotArticles(data.hotArticles);
-        console.log(`MegaMenu data loaded for ${channelSlug}:`, data);
+        // console.log(`MegaMenu data loaded for ${channelSlug}:`, data);
       } catch (err) {
         console.error(`Error loading MegaMenu data for ${channelSlug}:`, err);
         setError('加载失败');
@@ -106,7 +135,14 @@ const MegaMenu: React.FC<MegaMenuProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="megamenu-responsive absolute top-full left-1/2 transform -translate-x-1/2 z-50 mt-2">
+    <div 
+      className="megamenu-responsive fixed z-50"
+      style={{
+        top: `${menuPosition.top}px`,
+        left: `${menuPosition.left}px`,
+        transform: 'translateX(-50%)',
+      }}
+    >
       <div
         ref={menuRef}
         className={`max-w-7xl mx-auto bg-white shadow-2xl border border-gray-200 rounded-lg ${className}`}

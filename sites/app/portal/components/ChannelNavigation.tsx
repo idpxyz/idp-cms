@@ -248,7 +248,7 @@ export default function ChannelNavigation({
 
   return (
     <>
-      <section className="bg-white border-b border-gray-200 sticky z-30" style={{ top: "var(--sticky-offset)" }}>
+      <section className="bg-white border-b border-gray-200 sticky z-30 relative" style={{ top: "var(--sticky-offset)" }}>
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex items-center py-3 md:py-3.5">
             {/* 🔒 固定"推荐"频道 - 始终在最左侧可见 */}
