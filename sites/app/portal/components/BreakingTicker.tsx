@@ -91,13 +91,13 @@ export default function BreakingTicker({
     }
   };
 
-  // 即使没有快讯，也保留容器高度，避免布局偏移
+  // 即使没有快讯，也保留容器固定高度，避免布局偏移
   if (items.length === 0) {
     return (
-      <div className={`bg-red-600 text-white py-2 overflow-hidden ${className}`} style={{ minHeight: '40px' }}>
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="flex items-center opacity-0">
-            {/* 占位符，保持高度 */}
+      <div className={`bg-red-600 text-white overflow-hidden ${className}`} style={{ height: '40px' }}>
+        <div className="max-w-7xl mx-auto px-4 h-full">
+          <div className="flex items-center h-full opacity-0">
+            {/* 占位符，保持固定高度40px（等于py-2时的高度） */}
             <span className="button-text">加载中...</span>
           </div>
         </div>

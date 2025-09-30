@@ -369,9 +369,34 @@ function ChannelNavigation({
   }, [currentChannelSlug, switchChannel]);
   
 
-  // 🎯 修复水合不匹配：在客户端未加载前不渲染，避免重复
-  // 服务端已经传入initialChannels，客户端hydration会直接使用
+  // 🎯 修复水合不匹配：使用真实channels数据渲染占位符，确保高度一致
   if (!isClient) {
+    // 如果有channels数据，渲染真实的频道按钮（禁用状态）
+    if (channels.length > 0) {
+      return (
+        <section className="bg-white border-b border-gray-200 sticky z-30" style={{ top: "var(--sticky-offset)" }}>
+          <div className="max-w-7xl mx-auto px-4">
+            <div className="flex items-center space-x-4 py-3 md:py-3.5">
+              <div className="flex space-x-4">
+                {/* 使用真实频道数据，确保占位符和hydration后的内容完全一致 */}
+                {channels.slice(0, 8).map((channel) => (
+                  <div key={channel.slug} className="relative">
+                    <button
+                      disabled
+                      className="flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium text-gray-600 hover:text-red-500 hover:bg-gray-50 whitespace-nowrap"
+                    >
+                      {channel.name}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+      );
+    }
+    
+    // 如果没有channels数据，返回null避免占据空间
     return null;
   }
 

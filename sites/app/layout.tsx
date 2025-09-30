@@ -21,27 +21,44 @@ export default function RootLayout({
   return (
     <html lang="zh-CN" suppressHydrationWarning>
       <head>
-        {/* 🚀 LCP优化：延迟切换到客户端轮播，确保SSR首图被测量为LCP */}
+        {/* 🚀 LCP优化：智能检测Hero首图加载完成后切换 */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
               (function() {
                 if (typeof window !== 'undefined') {
-                  // 等待LCP测量完成后再切换
-                  // 使用requestIdleCallback确保不阻塞主线程
-                  window.addEventListener('load', function() {
-                    var delay = 300; // 缩短到300ms
-                    if (window.requestIdleCallback) {
-                      requestIdleCallback(function() {
-                        setTimeout(function() {
-                          document.documentElement.classList.add('js-loaded');
-                        }, delay);
-                      });
-                    } else {
-                      setTimeout(function() {
-                        document.documentElement.classList.add('js-loaded');
-                      }, delay);
+                  var switched = false;
+                  
+                  function switchToCarousel() {
+                    if (switched) return;
+                    switched = true;
+                    document.documentElement.classList.add('js-loaded');
+                  }
+                  
+                  // 等待DOM加载完成
+                  document.addEventListener('DOMContentLoaded', function() {
+                    var heroImg = document.querySelector('.hero-ssr-preload img');
+                    
+                    if (heroImg) {
+                      // 检查图片是否已加载
+                      function checkAndSwitch() {
+                        if (heroImg.complete && heroImg.naturalHeight > 0) {
+                          // 图片已加载，等待150ms后切换（确保LCP测量完成）
+                          setTimeout(switchToCarousel, 150);
+                        }
+                      }
+                      
+                      if (heroImg.complete) {
+                        checkAndSwitch();
+                      } else {
+                        heroImg.addEventListener('load', function() {
+                          setTimeout(switchToCarousel, 150);
+                        });
+                      }
                     }
+                    
+                    // 备用方案：最多等待2秒
+                    setTimeout(switchToCarousel, 2000);
                   });
                 }
               })();

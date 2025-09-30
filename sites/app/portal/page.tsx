@@ -1,6 +1,4 @@
 import React from "react";
-import { endpoints } from "@/lib/config/endpoints";
-import { getMainSite } from "@/lib/config/sites";
 import NewsContent from "./components/NewsContent";
 import PageContainer from "@/components/layout/PageContainer";
 import Section from "@/components/layout/Section";
@@ -12,6 +10,7 @@ import ChannelStrip from "./components/ChannelStrip";
 import ChannelPageRenderer from "./components/ChannelPageRenderer";
 import { getTopStories } from "./components/TopStoriesGrid.utils";
 import { getTopStoriesDefaultHours } from "@/lib/config/content-timing";
+import { getChannels } from "./utils/channels";
 
 // 获取要在首页显示的频道条带（简化版）
 function getHomepageChannelStrips(channels: any[]): any[] {
@@ -31,49 +30,6 @@ function getHomepageChannelStrips(channels: any[]): any[] {
     // 运营人员通过设置 show_in_homepage 来控制显示的频道数量
 
   return filteredChannels;
-}
-
-// 获取频道列表
-async function getChannels() {
-  try {
-    // 使用统一的端点管理器构建URL
-    const channelsUrl = endpoints.buildUrl(
-      endpoints.getCmsEndpoint('/api/channels/'),
-      { site: getMainSite().hostname }
-    );
-
-    // 使用统一的fetch配置
-    const fetchConfig = endpoints.createFetchConfig({
-      timeout: 15000,
-      next: { revalidate: 600 }, // 缓存10分钟
-    });
-
-    const response = await fetch(channelsUrl, fetchConfig);
-
-    if (response.ok) {
-      const data = await response.json();
-      
-      // 直接返回数据库中的真实频道，不添加虚拟频道
-      const channels = data.channels || [];
-      const realChannels = channels.map((ch: any) => ({
-        ...ch,
-        id: ch.slug // 使用slug作为ID，保持与前端期望的字符串ID一致
-      }));
-      
-      return realChannels;
-    } else {
-      if (response.status === 429) {
-      } else {
-        console.warn('Failed to fetch channels from backend, status:', response.status);
-      }
-    }
-  } catch (error) {
-    console.error('Error fetching channels from backend:', error);
-  }
-
-  // API调用失败时返回空数组，避免显示虚拟频道
-  console.warn('频道API调用失败，返回空频道列表');
-  return [];
 }
 
 export default async function PortalPage({ searchParams }: { searchParams?: Promise<{ channel?: string; tags?: string }> }) {
@@ -169,34 +125,19 @@ export default async function PortalPage({ searchParams }: { searchParams?: Prom
               />
             </div>
             
-            {/* CSS：平滑的交叉淡入淡出切换 */}
+            {/* CSS：简单可靠的显示/隐藏切换 */}
             <style dangerouslySetInnerHTML={{
               __html: `
-                .hero-ssr-preload {
-                  opacity: 1;
-                  transition: opacity 0.4s ease-out;
-                }
-                
                 .hero-client-carousel {
-                  position: absolute;
-                  top: 0;
-                  left: 0;
-                  right: 0;
-                  opacity: 0;
-                  pointer-events: none;
-                  transition: opacity 0.4s ease-in;
+                  display: none;
                 }
                 
                 .js-loaded .hero-ssr-preload {
-                  opacity: 0;
-                  transition-delay: 0.2s;
+                  display: none;
                 }
                 
                 .js-loaded .hero-client-carousel {
-                  position: relative;
-                  opacity: 1;
-                  pointer-events: auto;
-                  transition-delay: 0s;
+                  display: block;
                 }
               `
             }} />

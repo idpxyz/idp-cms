@@ -6,8 +6,8 @@ import PortalClassicLayout from "@/layouts/layout-portal-classic";
 import { ChannelProvider } from "./ChannelContext";
 import { CategoryProvider } from "./CategoryContext";
 import ChannelNavigation from "./ChannelNavigation";
-import { endpoints } from "@/lib/config/endpoints";
 import { getBreakingNews } from "./components/BreakingTicker.utils";
+import { getChannels } from "./utils/channels";
 
 export const metadata: Metadata = {
   title: "党报头条 - 倾听人民的声音",
@@ -28,45 +28,6 @@ export const metadata: Metadata = {
 
 interface PortalLayoutProps {
   children: React.ReactNode;
-}
-
-// 获取频道数据（服务端）- 使用更强的缓存策略
-async function getChannels() {
-  try {
-    const channelsUrl = endpoints.buildUrl(
-      endpoints.getCmsEndpoint('/api/channels/'),
-      { site: getMainSite().hostname }
-    );
-
-    const fetchConfig = endpoints.createFetchConfig({
-      timeout: 30000, // Increased to match other services
-      next: { 
-        revalidate: 7200, // 增加到2小时缓存
-        tags: ['channels']
-      },
-      // 添加额外的缓存策略
-      cache: 'force-cache',
-    });
-
-    const response = await fetch(channelsUrl, fetchConfig);
-
-    if (response.ok) {
-      const data = await response.json();
-      const channels = data.channels || [];
-      const realChannels = channels.map((ch: any) => ({
-        ...ch,
-        id: ch.slug // 使用slug作为ID，保持与前端期望的字符串ID一致
-      }));
-      console.log('Server-side channels fetched:', realChannels.length);
-      return realChannels;
-    }
-  } catch (error) {
-    console.error('Error fetching channels in layout:', error);
-  }
-  
-  // 返回空数组，避免显示虚拟频道
-  console.log('Using empty fallback channels in layout');
-  return [];
 }
 
 export default async function PortalLayout({ children }: PortalLayoutProps) {
