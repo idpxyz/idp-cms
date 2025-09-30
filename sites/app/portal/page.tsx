@@ -169,19 +169,34 @@ export default async function PortalPage({ searchParams }: { searchParams?: Prom
               />
             </div>
             
-            {/* CSS：简单可靠的显示/隐藏切换 */}
+            {/* CSS：平滑的交叉淡入淡出切换 */}
             <style dangerouslySetInnerHTML={{
               __html: `
+                .hero-ssr-preload {
+                  opacity: 1;
+                  transition: opacity 0.4s ease-out;
+                }
+                
                 .hero-client-carousel {
-                  display: none;
+                  position: absolute;
+                  top: 0;
+                  left: 0;
+                  right: 0;
+                  opacity: 0;
+                  pointer-events: none;
+                  transition: opacity 0.4s ease-in;
                 }
                 
                 .js-loaded .hero-ssr-preload {
-                  display: none;
+                  opacity: 0;
+                  transition-delay: 0.2s;
                 }
                 
                 .js-loaded .hero-client-carousel {
-                  display: block;
+                  position: relative;
+                  opacity: 1;
+                  pointer-events: auto;
+                  transition-delay: 0s;
                 }
               `
             }} />

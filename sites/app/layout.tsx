@@ -27,12 +27,21 @@ export default function RootLayout({
             __html: `
               (function() {
                 if (typeof window !== 'undefined') {
-                  // 等待window.load（所有资源加载完成）+ 额外延迟
-                  // 确保SSR首图有足够时间被浏览器识别为LCP
+                  // 等待LCP测量完成后再切换
+                  // 使用requestIdleCallback确保不阻塞主线程
                   window.addEventListener('load', function() {
-                    setTimeout(function() {
-                      document.documentElement.classList.add('js-loaded');
-                    }, 500);
+                    var delay = 300; // 缩短到300ms
+                    if (window.requestIdleCallback) {
+                      requestIdleCallback(function() {
+                        setTimeout(function() {
+                          document.documentElement.classList.add('js-loaded');
+                        }, delay);
+                      });
+                    } else {
+                      setTimeout(function() {
+                        document.documentElement.classList.add('js-loaded');
+                      }, delay);
+                    }
                   });
                 }
               })();
