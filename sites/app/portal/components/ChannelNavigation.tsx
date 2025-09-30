@@ -135,27 +135,6 @@ export default function ChannelNavigation({
   const visibleChannels = scrollableChannels.slice(0, visibleChannelCount);
   const hiddenChannels = scrollableChannels.slice(visibleChannelCount);
 
-  // 🎯 监听当前频道变化，确保选中的频道始终可见
-  useEffect(() => {
-    if (!currentChannelSlug) return;
-    
-    // 找到当前频道在 scrollableChannels 中的索引
-    const channelIndex = scrollableChannels.findIndex(ch => ch.slug === currentChannelSlug);
-    
-    if (channelIndex >= 0 && channelIndex >= visibleChannelCount) {
-      // 当前频道在隐藏区域，将其移到可见区域
-      setVisibleChannelCount(channelIndex + 1);
-      
-      // 滚动到该频道
-      setTimeout(() => {
-        const button = channelButtonRefs.current.get(currentChannelSlug);
-        if (button) {
-          button.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-        }
-      }, 150);
-    }
-  }, [currentChannelSlug, scrollableChannels, visibleChannelCount]);
-
   // ✅ 点击外部关闭"更多"菜单
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
