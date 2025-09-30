@@ -38,6 +38,13 @@ export function ChannelProvider({ children, initialChannels }: ChannelProviderPr
   const searchParams = useSearchParams();
   
   // ✅ 简化：直接使用服务端传入的数据，不做缓存检查
+  // 🔍 调试：打印接收到的频道数据
+  if (typeof window !== 'undefined' && initialChannels.length > 0) {
+    console.log(`📋 ChannelProvider 接收到 ${initialChannels.length} 个频道:`, 
+      initialChannels.map(ch => `${ch.name}(${ch.slug})`).join(', ')
+    );
+  }
+  
   const [channels] = useState<Channel[]>(initialChannels || []);
 
   // 🎯 新的统一频道管理逻辑

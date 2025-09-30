@@ -1,11 +1,11 @@
 /**
- * 频道导航组件 - 重构版
+ * 频道导航组件 - 纯SSR版
  * 
- * 🎯 设计原则：
- * 1. 简单 > 复杂：使用CSS断点而非JavaScript计算
- * 2. 可预测 > 动态：固定断点，用户体验一致
- * 3. CSS > JavaScript：零运行时开销
- * 4. 服务端 > 客户端：100% SSR/CSR一致
+ * 🎯 核心特性：
+ * 1. ✅ 零闪烁：频道已在服务端个性化排序
+ * 2. ✅ 简单高效：无客户端个性化逻辑
+ * 3. ✅ CSS驱动：响应式断点纯CSS实现
+ * 4. ✅ SSR/CSR一致：服务端渲染什么，客户端就显示什么
  * 
  * 📊 响应式断点（参考主流新闻网站）：
  * - 移动端 (<768px): 汉堡菜单
@@ -13,32 +13,28 @@
  * - 桌面 (1024-1279px): 6个频道
  * - 超大屏 (≥1280px): 8个频道
  * 
- * 参考项目中其他组件：HeroCarousel, ChannelStrip
+ * 数据来源：服务端已调用 getPersonalizedChannelsSSR()
  */
 
 "use client";
 
 import React, { useState, useRef, useCallback, useMemo, useEffect } from "react";
 import { useChannels } from "../ChannelContext";
-import { usePersonalizedChannels } from "@/lib/hooks/usePersonalizedChannels";
+import type { Channel } from "@/lib/api";
 import {
-  sortChannelsByPriority,
   reorderChannelsWithCurrentActive,
   getChannelItemClassName,
   RESPONSIVE_BREAKPOINTS,
-  type Channel,
 } from "./ChannelNavigation.utils";
 import MegaMenu from "./MegaMenu";
 import MobileChannelMenu from "./MobileChannelMenu";
 
 interface ChannelNavigationProps {
   channels?: Channel[];
-  enablePersonalization?: boolean;
 }
 
 export default function ChannelNavigation({
   channels: propChannels,
-  enablePersonalization = true,
 }: ChannelNavigationProps) {
   const {
     channels: contextChannels,
@@ -47,10 +43,10 @@ export default function ChannelNavigation({
     getCurrentChannel,
   } = useChannels();
 
+  // ✅ 使用已个性化排序的频道（来自SSR）
   const channels = propChannels || contextChannels;
 
   // 状态管理
-  const [isClient, setIsClient] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
@@ -72,64 +68,96 @@ export default function ChannelNavigation({
   });
   const [megaMenuTimer, setMegaMenuTimer] = useState<NodeJS.Timeout | null>(null);
 
-  // 个性化频道
-  const {
-    channels: personalizedChannels,
-    strategy,
-    confidence,
-  } = usePersonalizedChannels(channels, {
-    enabled: enablePersonalization && isClient,
-    fallbackToStatic: true,
-  });
+  // ✅ 极简方案：所有频道都显示，支持横向滚动（参考今日头条、腾讯新闻）
+  const sortedChannels = channels; // 直接使用SSR已个性化排序的频道
+  
+  // 🔒 分离"推荐"频道（固定）和其他频道（可滚动）
+  // 使用 useMemo 避免每次渲染都创建新的引用，防止 useEffect 无限循环
+  const recommendChannel = useMemo(
+    () => sortedChannels.find(ch => ch.slug === 'recommend'),
+    [sortedChannels]
+  );
+  const scrollableChannels = useMemo(
+    () => sortedChannels.filter(ch => ch.slug !== 'recommend'),
+    [sortedChannels]
+  );
+  
+  // "更多"菜单状态
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
+  
+  // 跟踪哪些频道在可视区域内
+  const [visibleChannelSlugs, setVisibleChannelSlugs] = useState<Set<string>>(new Set());
+  const channelButtonRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
 
-  // 选择使用个性化频道还是静态频道
-  const displayChannels = useMemo(() => {
-    if (enablePersonalization && isClient && personalizedChannels.length > 0) {
-      return personalizedChannels.map((pCh) => {
-        const original = channels.find((ch) => ch.slug === pCh.slug);
-        return original
-          ? { ...original, id: original.id || original.slug }
-          : { id: pCh.slug, name: pCh.name, slug: pCh.slug };
-      });
-    }
-    return channels || [];
-  }, [enablePersonalization, isClient, personalizedChannels, channels, strategy]);
-
-  // 按优先级排序并智能重排（当前频道优先）
-  const sortedChannels = useMemo(() => {
-    // 使用最大断点的数量（8个）作为可见数量
-    const maxVisibleCount = RESPONSIVE_BREAKPOINTS.xl.visibleCount;
-    return reorderChannelsWithCurrentActive(displayChannels, currentChannelSlug, maxVisibleCount);
-  }, [displayChannels, currentChannelSlug]);
-
-  // 分组：前10个用于显示（CSS控制显示数量），其余放入"更多"菜单
-  const visibleChannels = sortedChannels.slice(0, 10);
-  const moreChannels = sortedChannels.slice(10);
-
-  // 个性化权重
-  const channelWeights = useMemo(() => {
-    const weights: Record<string, number> = {};
-    personalizedChannels.forEach((ch) => {
-      weights[ch.slug] = ch.weight || 0;
-    });
-    return weights;
-  }, [personalizedChannels]);
-
-  // 客户端标记
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-
-  // 点击外部关闭下拉框
+  // ✅ 点击外部关闭"更多"菜单
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsDropdownOpen(false);
+        setShowMoreMenu(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  // 🔍 检测哪些频道在滚动容器的可视区域内
+  useEffect(() => {
+    const scrollContainer = document.querySelector('.channel-scroll-container');
+    if (!scrollContainer) return;
+
+    const updateVisibleChannels = () => {
+      const containerRect = scrollContainer.getBoundingClientRect();
+      const visible = new Set<string>();
+
+      // 🔒 "推荐"频道始终可见（因为它是固定的）
+      if (recommendChannel) {
+        visible.add(recommendChannel.slug);
+      }
+
+      // 只检查滚动容器内的频道
+      scrollableChannels.forEach((channel) => {
+        const button = channelButtonRefs.current.get(channel.slug);
+        if (!button) return;
+
+        const buttonRect = button.getBoundingClientRect();
+        // 检查按钮是否在容器的可视区域内（至少部分可见）
+        const isVisible = 
+          buttonRect.right > containerRect.left && 
+          buttonRect.left < containerRect.right;
+        
+        if (isVisible) {
+          visible.add(channel.slug);
+        }
+      });
+
+      // 🔧 只在实际变化时更新，避免不必要的重渲染
+      setVisibleChannelSlugs(prev => {
+        // 比较两个 Set 是否相同
+        if (prev.size !== visible.size) return visible;
+        
+        // 使用 Array.from 避免 TypeScript 迭代器错误
+        const visibleArray = Array.from(visible);
+        for (const slug of visibleArray) {
+          if (!prev.has(slug)) return visible;
+        }
+        return prev; // 没变化，返回原对象
+      });
+    };
+
+    // 初始检测
+    updateVisibleChannels();
+
+    // 监听滚动事件
+    scrollContainer.addEventListener('scroll', updateVisibleChannels);
+    
+    // 监听窗口大小变化
+    window.addEventListener('resize', updateVisibleChannels);
+
+    return () => {
+      scrollContainer.removeEventListener('scroll', updateVisibleChannels);
+      window.removeEventListener('resize', updateVisibleChannels);
+    };
+  }, [scrollableChannels, recommendChannel]);
 
   // MegaMenu 控制
   const openMegaMenu = useCallback((channel: Channel, buttonRef: HTMLButtonElement) => {
@@ -161,9 +189,38 @@ export default function ChannelNavigation({
     }
   }, [megaMenuTimer]);
 
-  const handleChannelClick = useCallback((channelSlug: string) => {
+  const handleChannelClick = useCallback((channelSlug: string, scrollToView: boolean = false) => {
     switchChannel(channelSlug);
     setMegaMenuState((prev) => ({ ...prev, isOpen: false }));
+    
+    // 如果需要滚动到视图中（从"更多"菜单点击）
+    if (scrollToView) {
+      // 延迟一小段时间，确保DOM已更新
+      setTimeout(() => {
+        const button = channelButtonRefs.current.get(channelSlug);
+        const scrollContainer = document.querySelector('.channel-scroll-container');
+        
+        if (button && scrollContainer) {
+          const containerRect = scrollContainer.getBoundingClientRect();
+          const buttonRect = button.getBoundingClientRect();
+          
+          // 检查按钮是否已经在可视区域内
+          const isVisible = 
+            buttonRect.left >= containerRect.left && 
+            buttonRect.right <= containerRect.right;
+          
+          if (!isVisible) {
+            // 只有不可见时才滚动，并且使用 'start' 而不是 'center'
+            // 这样可以确保"推荐"频道始终保持在最左侧可见
+            button.scrollIntoView({ 
+              behavior: 'smooth', 
+              block: 'nearest', 
+              inline: 'start' // 滚动到左侧刚好可见，而不是居中
+            });
+          }
+        }
+      }, 100);
+    }
   }, [switchChannel]);
 
   const handleChannelMouseEnter = useCallback((channel: Channel, e: React.MouseEvent<HTMLButtonElement>) => {
@@ -174,18 +231,7 @@ export default function ChannelNavigation({
     closeMegaMenu();
   }, [closeMegaMenu]);
 
-  // SSR时不渲染（等待客户端hydration）
-  if (!isClient) {
-    return (
-      <section className="bg-white border-b border-gray-200 sticky z-30" style={{ top: "var(--sticky-offset)" }}>
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="h-[52px]" /> {/* 占位，保持高度 */}
-        </div>
-      </section>
-    );
-  }
-
-  // 无频道数据
+  // ✅ 无频道数据检查（简化版，无SSR等待逻辑）
   if (channels.length === 0) {
     return (
       <section className="bg-white border-b border-gray-200 sticky z-30" style={{ top: "var(--sticky-offset)" }}>
@@ -198,75 +244,143 @@ export default function ChannelNavigation({
     );
   }
 
-  // 个性化状态指示器
-  const PersonalizationIndicator = () => {
-    if (!enablePersonalization || !isClient || strategy === 'static') return null;
-
-    if (strategy === 'personalized') {
-      return (
-        <div className="text-xs text-blue-600 flex items-center" title={`个性化置信度: ${Math.round(confidence * 100)}%`}>
-          <div className="w-2 h-2 bg-blue-500 rounded-full mr-1"></div>
-          个性化
-        </div>
-      );
-    }
-
-    if (strategy === 'hybrid') {
-      return (
-        <div className="text-xs text-green-600 flex items-center" title={`混合推荐置信度: ${Math.round(confidence * 100)}%`}>
-          <div className="w-2 h-2 bg-green-500 rounded-full mr-1"></div>
-          智能推荐
-        </div>
-      );
-    }
-
-    return null;
-  };
+  // ✅ 删除个性化状态指示器（已在SSR完成）
 
   return (
     <>
       <section className="bg-white border-b border-gray-200 sticky z-30" style={{ top: "var(--sticky-offset)" }}>
         <div className="max-w-7xl mx-auto px-4">
-          <div className="flex items-center space-x-4 py-3 md:py-3.5">
-            {/* 🎯 主要频道 - 使用CSS控制响应式显示 */}
-            <div className="hidden md:flex space-x-4 overflow-x-auto scrollbar-hide">
-              {visibleChannels.map((channel, index) => {
-                const weight = channelWeights[channel.slug] || 0;
-                const isHighWeight = weight > 0.05;
-                const isActive = currentChannelSlug === channel.slug;
+          <div className="flex items-center py-3 md:py-3.5">
+            {/* 🔒 固定"推荐"频道 - 始终在最左侧可见 */}
+            {recommendChannel && (
+              <div className="hidden md:block flex-shrink-0 mr-2">
+                <button
+                  ref={(el) => {
+                    if (el) {
+                      channelButtonRefs.current.set(recommendChannel.slug, el);
+                    } else {
+                      channelButtonRefs.current.delete(recommendChannel.slug);
+                    }
+                  }}
+                  onClick={() => handleChannelClick(recommendChannel.slug)}
+                  onMouseEnter={(e) => handleChannelMouseEnter(recommendChannel, e)}
+                  onMouseLeave={handleChannelMouseLeave}
+                  className={`
+                    px-4 py-2 rounded-full text-sm font-medium
+                    whitespace-nowrap transition-all duration-200
+                    ${currentChannelSlug === recommendChannel.slug
+                      ? "bg-red-500 text-white shadow-md"
+                      : "text-gray-700 hover:text-red-500 hover:bg-gray-50"
+                    }
+                  `}
+                >
+                  {recommendChannel.name}
+                </button>
+              </div>
+            )}
+
+            {/* 🎯 其他频道 - 横向滚动显示（参考今日头条/腾讯新闻） */}
+            <div className="hidden md:block flex-1 min-w-0 relative">
+              {/* 滚动容器 - 关键：右侧padding确保内容不会滚动到"更多"按钮下方 */}
+              <div className="overflow-x-auto scrollbar-hide channel-scroll-container pr-28">
+                <div className="flex space-x-2">
+                  {scrollableChannels.map((channel) => {
+                    const isActive = currentChannelSlug === channel.slug;
+
+                    return (
+                      <button
+                        key={channel.slug}
+                        ref={(el) => {
+                          if (el) {
+                            channelButtonRefs.current.set(channel.slug, el);
+                          } else {
+                            channelButtonRefs.current.delete(channel.slug);
+                          }
+                        }}
+                        onClick={() => handleChannelClick(channel.slug)}
+                        onMouseEnter={(e) => handleChannelMouseEnter(channel, e)}
+                        onMouseLeave={handleChannelMouseLeave}
+                        className={`
+                          flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium
+                          whitespace-nowrap transition-all duration-200
+                          ${isActive
+                            ? "bg-red-500 text-white shadow-md"
+                            : "text-gray-700 hover:text-red-500 hover:bg-gray-50"
+                          }
+                        `}
+                      >
+                        {channel.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              
+              {/* "更多"按钮 - 绝对定位在滚动区域右侧，浮在内容上方 */}
+              <div className="absolute top-0 right-0 h-full flex items-center bg-gradient-to-l from-white via-white to-transparent pl-8">
+                <div className="relative" ref={dropdownRef}>
+                  <button
+                    onClick={() => setShowMoreMenu(!showMoreMenu)}
+                    className="flex items-center space-x-1 px-3 py-2 rounded-full text-sm font-medium text-gray-600 hover:text-red-500 hover:bg-gray-50 transition-all"
+                    aria-label="更多频道"
+                  >
+                    <span>更多</span>
+                    <svg
+                      className={`w-4 h-4 transition-transform ${showMoreMenu ? "rotate-180" : ""}`}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+
+                  {showMoreMenu && (() => {
+                // 只显示不在可视区域内的频道
+                const hiddenChannels = sortedChannels.filter(
+                  ch => !visibleChannelSlugs.has(ch.slug)
+                );
+
+                if (hiddenChannels.length === 0) {
+                  return (
+                    <div className="absolute top-full right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 py-4 px-4 z-50">
+                      <p className="text-sm text-gray-500 text-center">所有频道都已显示</p>
+                    </div>
+                  );
+                }
 
                 return (
-                  <div key={channel.slug} className="relative">
-                    <button
-                      onClick={() => handleChannelClick(channel.slug)}
-                      onMouseEnter={(e) => handleChannelMouseEnter(channel, e)}
-                      onMouseLeave={handleChannelMouseLeave}
-                      className={`
-                        ${getChannelItemClassName(index)}
-                        flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium
-                        whitespace-nowrap transition-all duration-300
-                        ${isActive
-                          ? "bg-red-500 text-white shadow-lg"
-                          : isHighWeight
-                          ? "text-red-600 hover:text-red-700 hover:bg-red-50 border border-red-200"
-                          : "text-gray-600 hover:text-red-500 hover:bg-gray-50"
-                        }
-                      `}
-                      title={weight > 0 ? `推荐权重: ${(weight * 100).toFixed(1)}%` : undefined}
-                    >
-                      {channel.name}
-                      {isHighWeight && index < 3 && strategy === 'personalized' && (
-                        <span className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full"></span>
-                      )}
-                    </button>
+                  <div className="absolute top-full right-0 mt-2 w-64 max-h-96 overflow-y-auto bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50">
+                    <div className="px-4 py-2 border-b border-gray-100">
+                      <p className="text-xs text-gray-500">
+                        隐藏的频道 ({hiddenChannels.length}/{sortedChannels.length})
+                      </p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-1 p-2">
+                      {hiddenChannels.map((channel) => (
+                        <button
+                          key={channel.slug}
+                          onClick={() => {
+                            handleChannelClick(channel.slug, true); // 滚动到视图中
+                            setShowMoreMenu(false);
+                          }}
+                          className={`
+                            px-3 py-2 rounded text-sm text-left transition-colors
+                            ${currentChannelSlug === channel.slug
+                              ? "bg-red-50 text-red-600 font-medium"
+                              : "text-gray-700 hover:bg-gray-50 hover:text-red-500"
+                            }
+                          `}
+                        >
+                          {channel.name}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 );
-              })}
-            </div>
-
-            {/* 个性化状态指示器 */}
-            <div className="hidden md:flex flex-shrink-0">
-              <PersonalizationIndicator />
+                  })()}
+                </div>
+              </div>
             </div>
 
             {/* 移动端菜单按钮 */}
@@ -282,42 +396,6 @@ export default function ChannelNavigation({
               </button>
             </div>
 
-            {/* 更多频道下拉框 - 桌面端显示 */}
-            {moreChannels.length > 0 && (
-              <div className="relative hidden md:block" ref={dropdownRef}>
-                <button
-                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                  className="flex items-center space-x-1 px-4 py-2 rounded-full text-sm font-medium text-gray-600 hover:text-red-500 hover:bg-gray-50 transition-all"
-                >
-                  <span>更多</span>
-                  <svg
-                    className={`w-4 h-4 transition-transform ${isDropdownOpen ? "rotate-180" : ""}`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-
-                {isDropdownOpen && (
-                  <div className="absolute top-full right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
-                    {moreChannels.map((channel) => (
-                      <button
-                        key={channel.slug}
-                        onClick={() => {
-                          handleChannelClick(channel.slug);
-                          setIsDropdownOpen(false);
-                        }}
-                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-red-500 transition-colors"
-                      >
-                        {channel.name}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
           </div>
         </div>
       </section>
@@ -342,52 +420,20 @@ export default function ChannelNavigation({
         currentChannelSlug={currentChannelSlug}
       />
 
-      {/* 🎨 响应式CSS - 基于断点控制显示数量 */}
+      {/* 🎨 样式优化 */}
       <style jsx>{`
-        /* 移动端：全部隐藏（使用汉堡菜单） */
-        @media (max-width: 767px) {
-          .channel-item {
-            display: none !important;
-          }
-        }
-
-        /* 平板：显示前4个 */
-        @media (min-width: 768px) and (max-width: 1023px) {
-          .channel-item-4,
-          .channel-item-5,
-          .channel-item-6,
-          .channel-item-7,
-          .channel-item-8,
-          .channel-item-9 {
-            display: none;
-          }
-        }
-
-        /* 桌面：显示前6个 */
-        @media (min-width: 1024px) and (max-width: 1279px) {
-          .channel-item-6,
-          .channel-item-7,
-          .channel-item-8,
-          .channel-item-9 {
-            display: none;
-          }
-        }
-
-        /* 超大屏：显示前8个 */
-        @media (min-width: 1280px) {
-          .channel-item-8,
-          .channel-item-9 {
-            display: none;
-          }
-        }
-
-        /* 滚动条隐藏 */
+        /* 隐藏滚动条但保持滚动功能 */
         .scrollbar-hide {
           -ms-overflow-style: none;
           scrollbar-width: none;
         }
         .scrollbar-hide::-webkit-scrollbar {
           display: none;
+        }
+        
+        /* 平滑滚动 */
+        .scrollbar-hide {
+          scroll-behavior: smooth;
         }
       `}</style>
     </>

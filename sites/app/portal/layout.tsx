@@ -1,5 +1,6 @@
 import React from "react";
 import { Metadata } from "next";
+import { headers } from "next/headers";
 import { getSiteSettings } from "@/lib/api/client";
 import { getMainSite } from "@/lib/config/sites";
 import PortalClassicLayout from "@/layouts/layout-portal-classic";
@@ -7,7 +8,7 @@ import { ChannelProvider } from "./ChannelContext";
 import { CategoryProvider } from "./CategoryContext";
 import ChannelNavigation from "./components/ChannelNavigation";
 import { getBreakingNews } from "./components/BreakingTicker.utils";
-import { getChannels } from "@/lib/api";
+import { getPersonalizedChannelsSSR } from "@/lib/api";
 
 export const metadata: Metadata = {
   title: "党报头条 - 倾听人民的声音",
@@ -31,8 +32,11 @@ interface PortalLayoutProps {
 }
 
 export default async function PortalLayout({ children }: PortalLayoutProps) {
-  // 并行获取站点配置、频道数据和快讯数据
-  const [siteSettings, initialChannels, breakingNewsData] = await Promise.all([
+  // 🔑 获取request headers（包含用户cookies）
+  const headersList = await headers();
+  
+  // 并行获取站点配置、个性化频道数据和快讯数据
+  const [siteSettings, personalizedChannels, breakingNewsData] = await Promise.all([
     getSiteSettings(getMainSite().hostname, {
       // ❗️ 增加超时时间以应对开发环境中的服务器端请求拥塞
       timeout: 30000,
@@ -41,7 +45,11 @@ export default async function PortalLayout({ children }: PortalLayoutProps) {
       console.error("Failed to load site settings:", error);
       throw new Error(`无法加载站点配置: ${error instanceof Error ? error.message : '未知错误'}`);
     }),
-    getChannels(),
+    // 🚀 SSR个性化频道：后端算好，前端直接显示，零闪烁
+    getPersonalizedChannelsSSR(headersList).catch(error => {
+      console.error("Failed to fetch personalized channels:", error);
+      return []; // 降级已在函数内处理，这里作为最后防线
+    }),
     // 🚀 服务端预获取快讯数据，避免客户端延迟显示
     getBreakingNews(8).catch(error => {
       console.error("Failed to fetch breaking news:", error);
@@ -50,13 +58,13 @@ export default async function PortalLayout({ children }: PortalLayoutProps) {
   ]);
 
   return (
-    <ChannelProvider initialChannels={initialChannels}>
+    <ChannelProvider initialChannels={personalizedChannels}>
       <CategoryProvider>
         <PortalClassicLayout 
           siteSettings={siteSettings}
           initialBreakingNews={breakingNewsData}
         >
-          {/* 频道导航栏 - 在Layout级别，所有页面共享 */}
+          {/* 频道导航栏 - 在Layout级别，所有页面共享，已个性化排序 */}
           <ChannelNavigation />
           {children}
         </PortalClassicLayout>

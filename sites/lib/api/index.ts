@@ -37,5 +37,6 @@ export type {
 export { 
   getChannels, 
   getChannelBySlug, 
-  getHomepageChannels 
+  getHomepageChannels,
+  getPersonalizedChannelsSSR 
 } from './ChannelService';

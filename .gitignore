@@ -89,3 +89,22 @@ infra/local/theme_test_report_*.md
 # Data files
 data_consistency_report.json
 infra/local/plugins/
+
+# Test scripts and temporary files
+check_*.py
+test_*.py
+debug_*.py
+show_*.py
+fix_*.py
+setup_*.py
+find_*.py
+
+# Temporary documentation
+PERSONALIZATION_*.md
+TEST_*.md
+USER_*.md
+LOGGED_IN_*.md
+INTEGRATION_*.md
+FINAL_*.md
+WEBUSER_*.md
+FRONTEND_*.md
