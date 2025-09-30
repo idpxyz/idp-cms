@@ -88,6 +88,7 @@ export default function ChannelNavigation({
   const [visibleChannelCount, setVisibleChannelCount] = useState(scrollableChannels.length);
   const containerRef = useRef<HTMLDivElement>(null);
   const channelButtonRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
+  const measureRefs = useRef<Map<string, HTMLButtonElement>>(new Map()); // 用于测量所有频道的宽度
   
   // 计算可以显示多少个频道
   useEffect(() => {
@@ -104,7 +105,8 @@ export default function ChannelNavigation({
       
       // 累加每个按钮的宽度，直到超出可用宽度
       for (const channel of scrollableChannels) {
-        const button = channelButtonRefs.current.get(channel.slug);
+        // 优先从测量容器获取宽度，这样即使频道被隐藏也能正确计算
+        const button = measureRefs.current.get(channel.slug) || channelButtonRefs.current.get(channel.slug);
         if (button) {
           const buttonWidth = button.offsetWidth + 8; // 包含间距
           if (totalWidth + buttonWidth <= availableWidth) {
@@ -394,6 +396,31 @@ export default function ChannelNavigation({
           </div>
         </div>
       </section>
+
+      {/* 隐藏的测量容器 - 用于计算所有频道按钮的宽度 */}
+      <div 
+        className="fixed opacity-0 pointer-events-none -z-50" 
+        style={{ visibility: 'hidden' }}
+        aria-hidden="true"
+      >
+        <div className="flex space-x-2">
+          {scrollableChannels.map((channel) => (
+            <button
+              key={`measure-${channel.slug}`}
+              ref={(el) => {
+                if (el) {
+                  measureRefs.current.set(channel.slug, el);
+                } else {
+                  measureRefs.current.delete(channel.slug);
+                }
+              }}
+              className="px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap"
+            >
+              {channel.name}
+            </button>
+          ))}
+        </div>
+      </div>
 
       {/* MegaMenu */}
       {megaMenuState.isOpen && (
