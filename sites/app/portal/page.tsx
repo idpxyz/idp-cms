@@ -80,16 +80,6 @@ export default async function PortalPage({ searchParams }: { searchParams?: Prom
       {/* Hero 区域 - 纯客户端轮播 */}
       {heroItems && heroItems.length > 0 && (
         <PageContainer padding="none">
-          {/* 预加载首图，优化LCP */}
-          {heroItems[0] && (
-            <link
-              rel="preload"
-              as="image"
-              href={heroItems[0].image_url}
-              fetchPriority="high"
-            />
-          )}
-          
           <HeroCarousel 
             items={heroItems}
             autoPlay={true}
