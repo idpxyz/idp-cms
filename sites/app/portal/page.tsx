@@ -77,71 +77,30 @@ export default async function PortalPage({ searchParams }: { searchParams?: Prom
       {/* 频道导航栏现在在 Layout 中 */}
       {/* 快讯滚动条已移至 Layout 层，所有页面共享 */}
       
-      {/* Hero 区域 - SSR优化LCP */}
+      {/* Hero 区域 - 纯客户端轮播 */}
       {heroItems && heroItems.length > 0 && (
-        <PageContainer padding="md">
-          <div className="mb-6">
-            {/* 🚀 SSR首图：服务端立即渲染，优化LCP */}
-            {heroItems[0] && (
-              <div 
-                className="hero-ssr-preload"
-                style={{ 
-                  position: 'relative',
-                  width: '100%',
-                  aspectRatio: '2/1',
-                  maxHeight: 'min(45vh, 600px)',
-                  overflow: 'hidden'
-                }}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={heroItems[0].image_url}
-                  alt={heroItems[0].title}
-                  style={{
-                    position: 'absolute',
-                    inset: '0',
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'cover'
-                  }}
-                  loading="eager"
-                  fetchPriority="high"
-                  decoding="async"
-                />
-              </div>
-            )}
-            
-            {/* 客户端轮播组件：hydration后接管，隐藏SSR首图 */}
-            <div className="hero-client-carousel">
-              <HeroCarousel 
-                items={heroItems}
-                autoPlay={true}
-                autoPlayInterval={6000}
-                showDots={true}
-                showArrows={true}
-                heightMode="standard"
-                hasRightRail={false}
-                maxHeightVh={45}
-              />
-            </div>
-            
-            {/* CSS：简单可靠的显示/隐藏切换 */}
-            <style dangerouslySetInnerHTML={{
-              __html: `
-                .hero-client-carousel {
-                  display: none;
-                }
-                
-                .js-loaded .hero-ssr-preload {
-                  display: none;
-                }
-                
-                .js-loaded .hero-client-carousel {
-                  display: block;
-                }
-              `
-            }} />
-          </div>
+        <PageContainer padding="none">
+          {/* 预加载首图，优化LCP */}
+          {heroItems[0] && (
+            <link
+              rel="preload"
+              as="image"
+              href={heroItems[0].image_url}
+              // @ts-ignore
+              fetchpriority="high"
+            />
+          )}
+          
+          <HeroCarousel 
+            items={heroItems}
+            autoPlay={true}
+            autoPlayInterval={6000}
+            showDots={true}
+            showArrows={true}
+            heightMode="standard"
+            hasRightRail={false}
+            maxHeightVh={60}
+          />
         </PageContainer>
       )}
 

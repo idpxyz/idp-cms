@@ -64,10 +64,10 @@ export default function HeroCarousel({
   className = "",
   onItemClick,
 }: HeroCarouselProps) {
-  // 计算正确的初始索引
+  // 从索引 1 开始（克隆数组中的真实第一项）
   const getInitialIndex = () => {
     const validItemsCount = items.filter(item => item && item.image_url).length;
-    return validItemsCount > 1 ? 1 : 0; // 有多项时从1开始（第0项是克隆的），单项时从0开始
+    return validItemsCount > 1 ? 1 : 0;
   };
   
   const [currentIndex, setCurrentIndex] = useState(getInitialIndex());
@@ -75,6 +75,7 @@ export default function HeroCarousel({
   const [isPaused, setIsPaused] = useState(false);
   const [imageLoaded, setImageLoaded] = useState<Record<number, boolean>>({});
   const [isResetting, setIsResetting] = useState(false);
+  const [isMounted, setIsMounted] = useState(false); // 跟踪组件是否已挂载
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const carouselRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -186,6 +187,11 @@ export default function HeroCarousel({
     setTimeout(() => {
       setIsResetting(false);
     }, 50);
+  }, []);
+
+  // 组件挂载后启用过渡动画
+  useEffect(() => {
+    setIsMounted(true);
   }, []);
 
   // 处理边界重置的效果
@@ -427,7 +433,7 @@ export default function HeroCarousel({
         {/* 轮播容器 */}
         <div 
           ref={containerRef}
-          className="flex transition-transform duration-700 ease-in-out h-full"
+          className={`flex h-full ${isMounted ? 'transition-transform duration-700 ease-in-out' : ''}`}
           style={{ transform: `translateX(-${currentIndex * 100}%)` }}
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
@@ -440,13 +446,17 @@ export default function HeroCarousel({
               onClick={() => handleItemClick(item)}
             >
               {/* 背景图片 */}
-              <div className="absolute inset-0 overflow-hidden">
+              <div className="absolute inset-0 overflow-hidden" style={{ transition: 'none' }}>
                 <>
                   <Image
                     src={item.image_url || getTopStoryPlaceholderImage(item)}
                       alt={item.title}
                       fill
-                      className="object-cover transition-all duration-300 group-hover:scale-105"
+                      className="object-cover"
+                      style={{ 
+                        transition: 'none',
+                        animation: 'none'
+                      }}
                       priority={index === 0}
                       onLoad={() => handleImageLoad(index)}
                       sizes={hasRightRail ? "(min-width: 1280px) 60vw, (min-width: 1024px) 70vw, (min-width: 768px) 85vw, 100vw" : "(min-width: 1280px) 90vw, (min-width: 768px) 95vw, 100vw"}
