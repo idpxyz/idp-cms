@@ -369,27 +369,10 @@ function ChannelNavigation({
   }, [currentChannelSlug, switchChannel]);
   
 
-  // 🎯 修复水合不匹配：在客户端未加载前显示占位符
+  // 🎯 修复水合不匹配：在客户端未加载前不渲染，避免重复
+  // 服务端已经传入initialChannels，客户端hydration会直接使用
   if (!isClient) {
-    return (
-      <section className="bg-white border-b border-gray-200 sticky z-30" style={{ top: "var(--sticky-offset)" }}>
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="flex items-center space-x-4 py-3 md:py-3.5">
-            <div className="flex space-x-4">
-              {/* 占位符按钮 - 显示更多频道 */}
-              {Array.from({ length: 8 }).map((_, index) => (
-                <div
-                  key={index}
-                  className="flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium bg-gray-100 text-gray-400 animate-pulse"
-                >
-                  加载中...
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-    );
+    return null;
   }
 
   // 如果没有频道数据且不在加载中，显示错误提示
