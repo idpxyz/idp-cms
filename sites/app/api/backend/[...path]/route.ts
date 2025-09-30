@@ -71,7 +71,7 @@ async function handleRequest(
     // 对于认证相关API和用户数据API，保留尾部斜杠（Django APPEND_SLASH要求POST请求必须有尾杠）
     let cleanPath = apiPath;
     const isAuthApi = apiPath.includes('auth/') || apiPath.includes('register') || apiPath.includes('login');
-    const isUserDataApi = apiPath.includes('history/') || apiPath.includes('favorite') || apiPath.includes('comment');
+    const isUserDataApi = apiPath.includes('history/') || apiPath.includes('favorite') || apiPath.includes('comment') || apiPath.includes('like');
     const needsTrailingSlash = isAuthApi || isUserDataApi;
     
     if (!needsTrailingSlash && cleanPath.endsWith('/')) {
