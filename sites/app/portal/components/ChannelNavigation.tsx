@@ -87,6 +87,54 @@ export default function ChannelNavigation({
   // 滚动容器引用
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const channelButtonRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
+  
+  // 跟踪哪些频道在可视区域外（用于"更多"菜单）
+  const [hiddenChannelSlugs, setHiddenChannelSlugs] = useState<Set<string>>(new Set());
+
+  // 🔍 检测哪些频道在滚动容器的可视区域外
+  useEffect(() => {
+    const checkVisibleChannels = () => {
+      if (!scrollContainerRef.current) return;
+      
+      const container = scrollContainerRef.current;
+      const containerRect = container.getBoundingClientRect();
+      const hidden = new Set<string>();
+      
+      scrollableChannels.forEach((channel) => {
+        const button = channelButtonRefs.current.get(channel.slug);
+        if (!button) return;
+        
+        const buttonRect = button.getBoundingClientRect();
+        // 检查按钮是否在容器的可视区域外
+        const isHidden = 
+          buttonRect.right < containerRect.left || 
+          buttonRect.left > containerRect.right;
+        
+        if (isHidden) {
+          hidden.add(channel.slug);
+        }
+      });
+      
+      setHiddenChannelSlugs(hidden);
+    };
+    
+    // 初始检测
+    setTimeout(checkVisibleChannels, 200);
+    
+    // 监听滚动事件
+    const container = scrollContainerRef.current;
+    if (container) {
+      container.addEventListener('scroll', checkVisibleChannels);
+      window.addEventListener('resize', checkVisibleChannels);
+    }
+    
+    return () => {
+      if (container) {
+        container.removeEventListener('scroll', checkVisibleChannels);
+      }
+      window.removeEventListener('resize', checkVisibleChannels);
+    };
+  }, [scrollableChannels]);
 
   // 🎯 监听频道变化，自动滚动到选中的频道
   useEffect(() => {
@@ -315,38 +363,47 @@ export default function ChannelNavigation({
                     </svg>
                   </button>
 
-                  {showMoreMenu && (
-                    <div className="absolute top-full right-0 mt-2 w-64 max-h-96 overflow-y-auto bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50">
-                      <div className="px-4 py-2 border-b border-gray-100">
-                        <p className="text-xs text-gray-500">
-                          所有频道 ({scrollableChannels.length})
-                        </p>
+                  {showMoreMenu && (() => {
+                    // 只显示在可视区域外的频道
+                    const hiddenChannels = scrollableChannels.filter(ch => hiddenChannelSlugs.has(ch.slug));
+                    
+                    return hiddenChannels.length === 0 ? (
+                      <div className="absolute top-full right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 py-4 px-4 z-50">
+                        <p className="text-sm text-gray-500 text-center">所有频道都已显示</p>
                       </div>
-                      <div className="grid grid-cols-2 gap-1 p-2">
-                        {scrollableChannels.map((channel) => {
-                          const isActive = currentChannelSlug === channel.slug;
-                          return (
-                            <button
-                              key={channel.slug}
-                              onClick={() => {
-                                handleChannelClick(channel.slug);
-                                setShowMoreMenu(false);
-                              }}
-                              className={`
-                                px-3 py-2 rounded text-sm text-left transition-colors
-                                ${isActive
-                                  ? "bg-red-500 text-white font-medium shadow-sm"
-                                  : "text-gray-700 hover:bg-gray-50 hover:text-red-500"
-                                }
-                              `}
-                            >
-                              {channel.name}
-                            </button>
-                          );
-                        })}
+                    ) : (
+                      <div className="absolute top-full right-0 mt-2 w-64 max-h-96 overflow-y-auto bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50">
+                        <div className="px-4 py-2 border-b border-gray-100">
+                          <p className="text-xs text-gray-500">
+                            更多频道 ({hiddenChannels.length})
+                          </p>
+                        </div>
+                        <div className="grid grid-cols-2 gap-1 p-2">
+                          {hiddenChannels.map((channel) => {
+                            const isActive = currentChannelSlug === channel.slug;
+                            return (
+                              <button
+                                key={channel.slug}
+                                onClick={() => {
+                                  handleChannelClick(channel.slug);
+                                  setShowMoreMenu(false);
+                                }}
+                                className={`
+                                  px-3 py-2 rounded text-sm text-left transition-colors
+                                  ${isActive
+                                    ? "bg-red-500 text-white font-medium shadow-sm"
+                                    : "text-gray-700 hover:bg-gray-50 hover:text-red-500"
+                                  }
+                                `}
+                              >
+                                {channel.name}
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    );
+                  })()}
                 </div>
               </div>
             </div>
