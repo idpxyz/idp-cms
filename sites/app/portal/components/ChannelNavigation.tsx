@@ -352,24 +352,27 @@ export default function ChannelNavigation({
                           </p>
                         </div>
                         <div className="grid grid-cols-2 gap-1 p-2">
-                          {hiddenChannels.map((channel) => (
-                            <button
-                              key={channel.slug}
-                              onClick={() => {
-                                handleChannelClick(channel.slug);
-                                setShowMoreMenu(false);
-                              }}
-                              className={`
-                                px-3 py-2 rounded text-sm text-left transition-colors
-                                ${currentChannelSlug === channel.slug
-                                  ? "bg-red-50 text-red-600 font-medium"
-                                  : "text-gray-700 hover:bg-gray-50 hover:text-red-500"
-                                }
-                              `}
-                            >
-                              {channel.name}
-                            </button>
-                          ))}
+                          {hiddenChannels.map((channel) => {
+                            const isActive = currentChannelSlug === channel.slug;
+                            return (
+                              <button
+                                key={channel.slug}
+                                onClick={() => {
+                                  handleChannelClick(channel.slug);
+                                  setShowMoreMenu(false);
+                                }}
+                                className={`
+                                  px-3 py-2 rounded text-sm text-left transition-colors
+                                  ${isActive
+                                    ? "bg-red-500 text-white font-medium shadow-sm"
+                                    : "text-gray-700 hover:bg-gray-50 hover:text-red-500"
+                                  }
+                                `}
+                              >
+                                {channel.name}
+                              </button>
+                            );
+                          })}
                         </div>
                       </div>
                     )
