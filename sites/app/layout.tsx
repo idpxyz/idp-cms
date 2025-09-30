@@ -20,6 +20,22 @@ export default function RootLayout({
 }) {
   return (
     <html lang="zh-CN">
+      <head>
+        {/* 🚀 LCP优化：尽早标记JS加载完成，显示完整轮播 */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                if (typeof window !== 'undefined') {
+                  window.addEventListener('DOMContentLoaded', function() {
+                    document.documentElement.classList.add('js-loaded');
+                  });
+                }
+              })();
+            `,
+          }}
+        />
+      </head>
       <body className={`${inter.className} bg-white`}>
         {/* 性能优化：被动事件监听器 */}
         <PassiveEventOptimizer />

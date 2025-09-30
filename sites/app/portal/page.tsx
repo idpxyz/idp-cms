@@ -121,20 +121,82 @@ export default async function PortalPage({ searchParams }: { searchParams?: Prom
       {/* 频道导航栏现在在 Layout 中 */}
       {/* 快讯滚动条已移至 Layout 层，所有页面共享 */}
       
-      {/* Hero Carousel 主要轮播区域 - 只在有数据时显示 */}
+      {/* Hero 区域 - SSR优化LCP */}
       {heroItems && heroItems.length > 0 && (
         <PageContainer padding="md">
-          <HeroCarousel 
-            items={heroItems}
-            autoPlay={true}
-            autoPlayInterval={6000}
-            showDots={true}
-            showArrows={true}
-            heightMode="standard"
-            hasRightRail={false}
-            maxHeightVh={45}
-            className="mb-6"
-          />
+          <div className="mb-6 relative">
+            {/* 🚀 SSR首图：服务端立即渲染，优化LCP到<2.5s */}
+            {heroItems[0] && (
+              <div 
+                className="hero-ssr-preload relative w-full overflow-hidden rounded-lg"
+                style={{ 
+                  aspectRatio: '2/1',
+                  maxHeight: 'min(45vh, 600px)'
+                }}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={heroItems[0].image_url}
+                  alt={heroItems[0].title}
+                  className="absolute inset-0 w-full h-full object-cover"
+                  loading="eager"
+                  fetchPriority="high"
+                />
+                {/* 文字覆盖层 */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent">
+                  <div className="absolute bottom-0 left-0 right-0 p-4 md:p-6 text-white">
+                    <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-2 line-clamp-2">
+                      {heroItems[0].title}
+                    </h1>
+                    {heroItems[0].excerpt && (
+                      <p className="text-base md:text-lg lg:text-xl text-gray-200 line-clamp-2 mb-3">
+                        {heroItems[0].excerpt}
+                      </p>
+                    )}
+                    <div className="flex items-center gap-4 text-sm text-gray-300">
+                      {heroItems[0].channel && (
+                        <span className="px-2 py-1 bg-white/20 rounded">
+                          {heroItems[0].channel.name}
+                        </span>
+                      )}
+                      {heroItems[0].publish_time && (
+                        <span>{new Date(heroItems[0].publish_time).toLocaleDateString('zh-CN')}</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {/* 客户端轮播组件：hydration后接管，隐藏SSR首图 */}
+            <div className="hero-client-carousel">
+              <HeroCarousel 
+                items={heroItems}
+                autoPlay={true}
+                autoPlayInterval={6000}
+                showDots={true}
+                showArrows={true}
+                heightMode="standard"
+                hasRightRail={false}
+                maxHeightVh={45}
+              />
+            </div>
+            
+            {/* CSS：客户端JS加载前显示SSR，加载后显示完整轮播 */}
+            <style jsx>{`
+              .hero-client-carousel {
+                display: none;
+              }
+              
+              :global(.js-loaded) .hero-ssr-preload {
+                display: none;
+              }
+              
+              :global(.js-loaded) .hero-client-carousel {
+                display: block;
+              }
+            `}</style>
+          </div>
         </PageContainer>
       )}
 
