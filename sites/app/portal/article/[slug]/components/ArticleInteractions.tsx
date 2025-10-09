@@ -31,19 +31,13 @@ export default function ArticleInteractions({
   const [toastMessage, setToastMessage] = useState("");
   const [toastVisible, setToastVisible] = useState(false);
   const [toastType, setToastType] = useState<"success" | "error">("success");
-  const [isStatsLoading, setIsStatsLoading] = useState(true);
 
   // 获取文章互动状态
   const articleInteraction = getArticleInteraction(articleId.toString());
 
   // 初始化文章统计数据
   useEffect(() => {
-    const loadStats = async () => {
-      setIsStatsLoading(true);
-      await refreshArticleStats(articleId.toString());
-      setIsStatsLoading(false);
-    };
-    loadStats();
+    refreshArticleStats(articleId.toString());
   }, [articleId, refreshArticleStats]);
 
   // Toast 提示
@@ -208,29 +202,6 @@ export default function ArticleInteractions({
       });
     }
   };
-
-  // 如果统计数据正在加载，显示骨架屏
-  if (isStatsLoading) {
-    return (
-      <div className="px-6 md:px-12 py-6 border-t border-gray-200 bg-gray-50">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            {/* 骨架屏 */}
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="flex items-center space-x-2 px-4 py-2 rounded-full bg-white shadow-sm border border-gray-200 animate-pulse">
-                <div className="w-5 h-5 bg-gray-200 rounded"></div>
-                <div className="w-12 h-4 bg-gray-200 rounded"></div>
-              </div>
-            ))}
-          </div>
-          <div className="flex items-center space-x-2 px-4 py-2 rounded-full bg-white shadow-sm border border-gray-200 animate-pulse">
-            <div className="w-5 h-5 bg-gray-200 rounded"></div>
-            <div className="w-8 h-4 bg-gray-200 rounded"></div>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <>
