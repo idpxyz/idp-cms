@@ -54,36 +54,26 @@ export default function CommentSection({ articleId, commentCount, onCommentCount
     setIsLoading(true);
     
     try {
-      // 并行获取评论列表和统计数据
-      const [commentsResponse, statsResponse] = await Promise.all([
-        articleCommentsApi.getComments(articleId, {
-          page: 1,
-          limit: 20, // 优化：减少到20条，够用且快
-        }),
-        articleCommentsApi.getStats(articleId)
-      ]);
+      // 只获取评论列表，评论总数由 refreshArticleStats 提供
+      const response = await articleCommentsApi.getComments(articleId, {
+        page: 1,
+        limit: 20, // 优化：减少到20条，够用且快
+      });
       
-      if (commentsResponse.success && commentsResponse.data) {
+      if (response.success && response.data) {
         // 转换API数据为组件所需格式
-        const convertedComments = commentsResponse.data.map(convertApiCommentToLocal);
+        const convertedComments = response.data.map(convertApiCommentToLocal);
         setComments(convertedComments);
         
-        // ✅ 使用后端统计接口的 total_comments（所有层级的评论总数）
-        if (statsResponse.success && statsResponse.data) {
-          onCommentCountChange(statsResponse.data.total_comments);
-        } else {
-          // 回退：如果统计接口失败，设为0（refreshArticleStats会更新）
-          console.warn('Failed to fetch comment stats');
-        }
+        // 不更新评论数，避免覆盖 refreshArticleStats 已获取的正确数据
+        // 评论数由 ArticleInteractions 的 refreshArticleStats 统一管理
       } else {
-        console.error('Failed to load comments:', commentsResponse.message);
+        console.error('Failed to load comments:', response.message);
         setComments([]);
-        onCommentCountChange(0);
       }
     } catch (error) {
       console.error('Failed to load comments:', error);
       setComments([]);
-      onCommentCountChange(0);
     } finally {
       setIsLoading(false);
     }
