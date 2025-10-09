@@ -1,3 +1,5 @@
+'use client';
+
 import React from "react";
 import Link from "next/link";
 import Image from "next/image";
@@ -22,8 +24,10 @@ interface SidebarRelatedArticlesProps {
 }
 
 /**
- * 侧栏相关文章 - 服务端组件
+ * 侧栏相关文章 - 客户端组件
  * 显示在文章右侧的相关文章列表
+ * 
+ * 🔧 改为客户端组件：因为被ArticleLayout（客户端组件）使用
  */
 export default function SidebarRelatedArticles({ 
   articles,
