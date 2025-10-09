@@ -87,7 +87,7 @@ const SocialNewsSection: React.FC<SocialNewsSectionProps> = ({ channelSlug }) =>
             <div className="space-y-6">
           {latestNews.map(article => (
             <article key={article.id} className="border-b border-gray-200 pb-6 last:border-0">
-              <a href={`/article/${article.slug}`} {...adaptiveLinkProps} className="group">
+              <a href={`/portal/article/${article.slug}`} {...adaptiveLinkProps} className="group">
                     <div className="flex items-start gap-2 mb-2">
                       <span className="bg-red-600 text-white text-xs px-2 py-0.5 rounded">最新</span>
                       <span className="text-xs text-gray-500">{formatTimeAgo(article.publish_at)}</span>
@@ -141,7 +141,7 @@ const SocialNewsSection: React.FC<SocialNewsSectionProps> = ({ channelSlug }) =>
             {hotArticles.map((article, index) => (
             <a
               key={article.id}
-              href={`/article/${article.slug}`}
+              href={`/portal/article/${article.slug}`}
               {...adaptiveLinkProps}
               className="flex gap-3 group"
             >

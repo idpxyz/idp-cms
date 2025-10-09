@@ -1,17 +1,18 @@
-import React from "react";
+import React, { Suspense } from "react";
 import { notFound } from "next/navigation";
 import dynamic from "next/dynamic";
 import type { Metadata } from "next";
 import ArticleLayout from "./components/ArticleLayout";
-import SidebarRelatedArticles from "./components/SidebarRelatedArticles";
 
 // 🚀 性能优化：懒加载客户端组件
-// Next.js 15: 移除 ssr: false，因为组件本身已经是客户端组件
 const ArticleInteractions = dynamic(() => import("./components/ArticleInteractions"), {
   loading: () => <div className="px-6 md:px-12 py-6 border-t border-gray-200 bg-gray-50 h-20 animate-pulse" />,
+  ssr: false,
 });
 
-const ReadingTracker = dynamic(() => import("./components/ReadingTracker"));
+const ReadingTracker = dynamic(() => import("./components/ReadingTracker"), {
+  ssr: false,
+});
 
 const CommentSectionWrapper = dynamic(() => import("./components/CommentSectionWrapper"), {
   loading: () => (
@@ -19,6 +20,7 @@ const CommentSectionWrapper = dynamic(() => import("./components/CommentSectionW
       <div className="text-gray-500">加载评论中...</div>
     </div>
   ),
+  ssr: false,
 });
 
 const RecommendedArticles = dynamic(() => import("../../components/RecommendedArticles"), {
@@ -32,6 +34,7 @@ const RecommendedArticles = dynamic(() => import("../../components/RecommendedAr
       </div>
     </div>
   ),
+  ssr: false,
 });
 
 // 🚀 性能优化：ISR 缓存
@@ -159,12 +162,15 @@ export default async function ArticlePage({
   const sp = searchParams ? await searchParams : undefined;
   const site = sp?.site;
 
-  // 🚀 性能优化：只获取文章数据，相关文章在客户端异步加载
+  // 获取文章数据
   const article = await getArticle(slug, site);
 
   if (!article) {
     notFound();
   }
+
+  // 异步获取相关文章（不阻塞渲染）
+  const relatedArticlesPromise = getRelatedArticles(article.channel.slug, article.slug);
 
   return (
     <>
@@ -177,43 +183,64 @@ export default async function ArticlePage({
       />
 
       {/* 文章布局 - 服务端渲染 */}
-      <ArticleLayout article={article} hasSidebar={true}>
-        {/* 交互按钮插槽 - 在文章头部（标题和元信息之后，封面图之前） */}
-        <div slot="interactions">
-          <ArticleInteractions
-            articleId={article.id}
-            articleTitle={article.title}
-            articleSlug={article.slug}
-            channelSlug={article.channel.slug}
-          />
-        </div>
+      <ArticleLayout article={article}>
+        {/* 交互组件 - 客户端，懒加载 */}
+        <ArticleInteractions
+          articleId={article.id}
+          articleTitle={article.title}
+          articleSlug={article.slug}
+          channelSlug={article.channel.slug}
+        />
 
-        {/* 主内容区插槽 - 在文章正文之后 */}
-        <div slot="content">
-          {/* 相关文章 - 客户端异步加载 */}
-          <div className="px-6 md:px-12">
-            <RecommendedArticles
+        {/* 相关文章 - 客户端，异步加载 */}
+        <div className="px-6 md:px-12 py-8 border-t border-gray-200 bg-white">
+          <h2 className="text-2xl font-bold mb-6 text-gray-900">相关推荐</h2>
+          <Suspense
+            fallback={
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="animate-pulse">
+                    <div className="h-40 bg-gray-200 rounded-lg mb-3"></div>
+                    <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                  </div>
+                ))}
+              </div>
+            }
+          >
+            <RelatedArticlesAsync
+              relatedArticlesPromise={relatedArticlesPromise}
               articleSlug={article.slug}
-              currentChannel={article.channel.slug}
+              channelSlug={article.channel.slug}
             />
-          </div>
-
-          {/* 评论区 - 客户端，懒加载 */}
-          <div className="px-6 md:px-12 py-8 border-t border-gray-200 bg-gray-50" data-comment-section>
-            <CommentSectionWrapper articleId={article.id.toString()} />
-          </div>
+          </Suspense>
         </div>
-        
-        {/* 侧边栏插槽 */}
-        <div slot="sidebar">
-          {/* 相关文章 - 客户端异步加载 */}
-          <SidebarRelatedArticles 
-            currentChannelSlug={article.channel.slug}
-            currentArticleSlug={article.slug}
-          />
+
+        {/* 评论区 - 客户端，懒加载 */}
+        <div className="px-6 md:px-12 py-8 border-t border-gray-200 bg-gray-50" data-comment-section>
+          <CommentSectionWrapper articleId={article.id.toString()} />
         </div>
       </ArticleLayout>
     </>
+  );
+}
+
+// 异步相关文章组件
+async function RelatedArticlesAsync({
+  relatedArticlesPromise,
+  articleSlug,
+  channelSlug,
+}: {
+  relatedArticlesPromise: Promise<any[]>;
+  articleSlug: string;
+  channelSlug: string;
+}) {
+  const relatedArticles = await relatedArticlesPromise;
+  return (
+    <RecommendedArticles
+      articleSlug={articleSlug}
+      currentChannel={channelSlug}
+      articles={relatedArticles}
+    />
   );
 }
 

@@ -54,9 +54,10 @@ export default function CommentSection({ articleId, commentCount, onCommentCount
     setIsLoading(true);
     
     try {
+      // ✅ 优化：减少初始加载数量，提升速度
       const response = await articleCommentsApi.getComments(articleId, {
         page: 1,
-        limit: 50, // 一次加载更多评论
+        limit: 20, // 优化：减少到20条，够用且快
       });
       
       if (response.success && response.data) {
@@ -64,30 +65,21 @@ export default function CommentSection({ articleId, commentCount, onCommentCount
         const convertedComments = response.data.map(convertApiCommentToLocal);
         setComments(convertedComments);
         
-
-        // 使用后端统计接口，避免前端误算
-        try {
-          const stats = await articleCommentsApi.getStats(articleId);
-          if (stats.success && stats.data) {
-            onCommentCountChange(stats.data.total_comments);
-          } else {
-            // 回退：粗略计算（根+一级回复）
-            const fallback = convertedComments.reduce((count, c) => count + 1 + c.replies.length, 0);
-            onCommentCountChange(fallback);
-          }
-        } catch {
+        // ✅ 优化：使用 pagination 中的 total 作为评论总数，避免额外 API 调用
+        if (response.pagination?.total !== undefined) {
+          onCommentCountChange(response.pagination.total);
+        } else {
+          // 回退：粗略计算（根+一级回复）
           const fallback = convertedComments.reduce((count, c) => count + 1 + c.replies.length, 0);
           onCommentCountChange(fallback);
         }
       } else {
         console.error('Failed to load comments:', response.message);
-        // 加载失败时显示空评论列表
         setComments([]);
         onCommentCountChange(0);
       }
     } catch (error) {
       console.error('Failed to load comments:', error);
-      // 网络错误时显示空评论列表
       setComments([]);
       onCommentCountChange(0);
     } finally {

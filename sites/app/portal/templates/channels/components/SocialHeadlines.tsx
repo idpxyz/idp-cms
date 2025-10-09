@@ -74,7 +74,7 @@ const SocialHeadlines: React.FC<SocialHeadlinesProps> = ({ channelSlug, limit = 
     <div className="grid md:grid-cols-2 gap-6">
       {/* 主头条 */}
       <div className="md:col-span-1 group cursor-pointer">
-        <a href={`/article/${mainHeadline.slug}`} {...adaptiveLinkProps} className="block">
+        <a href={`/portal/article/${mainHeadline.slug}`} {...adaptiveLinkProps} className="block">
           <div className="relative h-80 rounded-xl overflow-hidden mb-4">
             <Image
               src={mainHeadline.image_url || 'https://picsum.photos/800/450'}
@@ -108,7 +108,7 @@ const SocialHeadlines: React.FC<SocialHeadlinesProps> = ({ channelSlug, limit = 
         {sideHeadlines.map((article: SocialArticle) => (
           <a
             key={article.id}
-            href={`/article/${article.slug}`}
+            href={`/portal/article/${article.slug}`}
             {...adaptiveLinkProps}
             className="flex gap-4 p-3 rounded-lg hover:bg-gray-50 transition-colors group cursor-pointer"
           >

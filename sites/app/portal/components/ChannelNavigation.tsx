@@ -284,8 +284,9 @@ export default function ChannelNavigation({
                     }
                   }}
                   onClick={() => handleChannelClick(recommendChannel.slug)}
-                  onMouseEnter={(e) => handleChannelMouseEnter(recommendChannel, e)}
-                  onMouseLeave={handleChannelMouseLeave}
+                  // ⏸️ MegaMenu 暂时禁用
+                  // onMouseEnter={(e) => handleChannelMouseEnter(recommendChannel, e)}
+                  // onMouseLeave={handleChannelMouseLeave}
                   className={`
                     px-4 py-2 rounded-full text-sm font-medium
                     whitespace-nowrap transition-all duration-200
@@ -326,8 +327,9 @@ export default function ChannelNavigation({
                           }
                         }}
                         onClick={() => handleChannelClick(channel.slug)}
-                        onMouseEnter={(e) => handleChannelMouseEnter(channel, e)}
-                        onMouseLeave={handleChannelMouseLeave}
+                        // ⏸️ MegaMenu 暂时禁用
+                        // onMouseEnter={(e) => handleChannelMouseEnter(channel, e)}
+                        // onMouseLeave={handleChannelMouseLeave}
                         className={`
                           flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium
                           whitespace-nowrap transition-all duration-200
@@ -429,8 +431,8 @@ export default function ChannelNavigation({
         </div>
       </section>
 
-      {/* MegaMenu */}
-      {megaMenuState.isOpen && (
+      {/* ⏸️ MegaMenu 暂时禁用 */}
+      {/* {megaMenuState.isOpen && (
         <MegaMenu
           isOpen={megaMenuState.isOpen}
           channelSlug={megaMenuState.channelSlug}
@@ -441,7 +443,7 @@ export default function ChannelNavigation({
           onMouseEnter={cancelCloseMegaMenu}
           onMouseLeave={closeMegaMenu}
         />
-      )}
+      )} */}
 
       {/* 移动端菜单 - 只显示不在可视区域内的频道 */}
       <MobileChannelMenu

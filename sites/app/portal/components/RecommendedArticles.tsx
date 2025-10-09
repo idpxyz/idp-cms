@@ -23,7 +23,10 @@ interface Props {
 }
 
 export default function RecommendedArticles({ articleSlug, currentChannel, limit = 6, articles }: Props) {
-  const [recommendations, setRecommendations] = useState<RecommendationArticle[]>([]);
+  // ✅ 优化：如果有服务器端数据，直接用作初始值
+  const [recommendations, setRecommendations] = useState<RecommendationArticle[]>(
+    articles && articles.length > 0 ? (articles as RecommendationArticle[]) : []
+  );
   const [loading, setLoading] = useState(!articles); // ✅ 如果有服务器端数据，初始不加载
 
   useEffect(() => {
