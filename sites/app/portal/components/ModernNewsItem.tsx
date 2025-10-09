@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -15,6 +17,8 @@ interface ModernNewsItemProps {
  * 🔥 现代化新闻条目组件
  * 参考主流新闻应用的设计风格
  * 🚀 使用 React.memo 优化性能
+ * 
+ * 🔧 客户端组件：使用 useState 和接受事件处理器 props
  */
 const ModernNewsItem: React.FC<ModernNewsItemProps> = React.memo(({ 
   news, 
