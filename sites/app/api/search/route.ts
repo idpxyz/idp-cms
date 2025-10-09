@@ -232,6 +232,8 @@ export async function GET(request: NextRequest) {
     const articles = data.items || data.data || [];
 
     // 计算搜索相关性得分 & 简单高亮
+    // 注意：后端 OpenSearch 已经使用 chinese_analyzer 进行了分词匹配并返回 _score
+    // 这里结合 OpenSearch 的分数和前端的辅助评分进行二次排序
     const calculateRelevanceScore = (
       article: any,
       searchQuery: string
@@ -244,28 +246,32 @@ export async function GET(request: NextRequest) {
         ""
       ).toLowerCase();
 
-      let score = 0;
+      // 基础分数来自 OpenSearch 的相关性评分（已经考虑了分词匹配）
+      // 将 _score 转换为 0-1000 的范围，作为主要分数
+      const baseScore = (article._score || 0) * 100;
 
-      // 标题完全匹配得分最高
+      // 前端辅助评分（用于微调排序）
+      let bonusScore = 0;
+
+      // 标题完全匹配额外加分
       if (title.includes(query)) {
-        score += 100;
-        // 标题开头匹配额外加分
+        bonusScore += 50;
         if (title.startsWith(query)) {
-          score += 50;
+          bonusScore += 25;
         }
       }
 
-      // 摘要匹配得分中等
+      // 摘要完全匹配额外加分
       if (excerpt.includes(query)) {
-        score += 30;
+        bonusScore += 20;
       }
 
-      // 频道名称匹配
+      // 频道名称匹配加分
       if (article.channel?.name?.toLowerCase().includes(query)) {
-        score += 20;
+        bonusScore += 10;
       }
 
-      // 发布时间越新得分越高
+      // 发布时间新鲜度加分（仅作为微调）
       const publishDate = new Date(
         article.publish_at || article.first_published_at
       );
@@ -273,17 +279,19 @@ export async function GET(request: NextRequest) {
       const daysDiff =
         (now.getTime() - publishDate.getTime()) / (1000 * 60 * 60 * 24);
       if (daysDiff < 7)
-        score += 10; // 一周内
-      else if (daysDiff < 30) score += 5; // 一个月内
+        bonusScore += 5; // 一周内
+      else if (daysDiff < 30) bonusScore += 2; // 一个月内
 
-      // 特色文章加分
+      // 特色文章加分（仅作为微调）
       if (article.is_featured) {
-        score += 15;
+        bonusScore += 5;
       }
 
-      return score;
+      // 最终分数 = OpenSearch 基础分数 + 前端辅助分数
+      return baseScore + bonusScore;
     };
 
+    // 简单高亮函数（作为 OpenSearch 高亮的后备方案）
     const escapeRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const makeHighlight = (text: string, q: string) => {
       if (!text || !q) return text || "";
@@ -298,45 +306,99 @@ export async function GET(request: NextRequest) {
       }
     };
 
-    // 过滤和排序搜索结果
-    const filteredAndSortedArticles = articles
-      .map((article: any) => ({
-        ...article,
-        relevanceScore: calculateRelevanceScore(article, query),
-      }))
-      .filter((article: any) => article.relevanceScore > 0) // 只保留有相关性的结果
-      .sort((a: any, b: any) => b.relevanceScore - a.relevanceScore) // 按相关性排序
-      .slice(0, limit); // 限制结果数量
+    // 处理 OpenSearch 高亮结果
+    const getHighlightedText = (
+      originalText: string,
+      highlightData: any,
+      fallbackQuery: string
+    ): string => {
+      // 优先使用 OpenSearch 原生高亮（支持中文分词）
+      if (highlightData) {
+        if (typeof highlightData === 'string') {
+          return highlightData;
+        }
+        if (Array.isArray(highlightData) && highlightData.length > 0) {
+          return highlightData.join(' ... ');
+        }
+      }
+      // 后备：使用简单高亮
+      return makeHighlight(originalText, fallbackQuery);
+    };
 
-    // 数据适配 - 将Wagtail的articles数据转换为搜索格式
+    // 处理搜索结果：计算相关性分数、过滤、排序
+    let processedArticles = articles.map((article: any) => ({
+      ...article,
+      relevanceScore: calculateRelevanceScore(article, query),
+    }));
+
+    // 过滤逻辑优化：根据排序方式决定过滤策略
+    const shouldKeepArticle = (article: any) => {
+      // 按相关性排序：要求有评分（避免不相关结果）
+      if (!sort || sort === "rel" || sort === "relevance") {
+        return article.relevanceScore > 0;
+      }
+      // 按时间或热度排序：保留所有后端返回的结果
+      // 因为这些排序不依赖相关性分数，_score 可能为 0
+      return true;
+    };
+    
+    processedArticles = processedArticles.filter(shouldKeepArticle);
+
+    // 排序：只有在相关度排序时才使用前端评分排序，否则保持后端排序
+    if (!sort || sort === "rel" || sort === "relevance") {
+      // 按相关性分数排序（OpenSearch _score + 前端辅助分数）
+      processedArticles = processedArticles.sort((a: any, b: any) => b.relevanceScore - a.relevanceScore);
+    }
+    // 如果是按时间或热度排序，保持后端返回的顺序（已由后端 OpenSearch 排序）
+    
+    const filteredAndSortedArticles = processedArticles;
+
+    // 数据适配 - 将后端数据转换为搜索格式
     const searchResults = {
       success: true,
       message: "搜索成功",
-      data: filteredAndSortedArticles.map((article: any) => ({
-        id: article.id,
-        title: article.title,
-        slug: article.slug,
-        excerpt: article.excerpt || article.introduction || "",
-        image_url: article.cover?.url || null,
-        cover: article.cover,
-        channel: article.channel,
-        region: article.region,
-        publish_at: article.publish_at || article.first_published_at,
-        updated_at: article.updated_at || article.last_published_at,
-        is_featured: article.is_featured || false,
-        allow_aggregate: article.allow_aggregate !== false,
-        canonical_url: article.canonical_url,
-        source: article.channel?.name,
-        url: `/portal/article/${article.slug}`,
-        relevanceScore: article.relevanceScore,
-        highlight: {
-          title: makeHighlight(article.title, query),
-          excerpt: makeHighlight(
-            article.excerpt || article.introduction || "",
-            query
-          ),
-        },
-      })),
+      data: filteredAndSortedArticles.map((article: any) => {
+        const originalTitle = article.title || "";
+        const originalExcerpt = article.excerpt || article.introduction || "";
+        
+        // 使用 OpenSearch 原生高亮（如果可用），否则使用简单高亮
+        const highlightedTitle = getHighlightedText(
+          originalTitle,
+          article.highlight?.title,
+          query
+        );
+        const highlightedExcerpt = getHighlightedText(
+          originalExcerpt,
+          article.highlight?.summary,
+          query
+        );
+        
+        return {
+          id: article.id,
+          title: originalTitle,  // 原始标题（用于显示和链接）
+          slug: article.slug,
+          excerpt: originalExcerpt,  // 原始摘要
+          image_url: article.cover?.url || null,
+          cover: article.cover,
+          channel: article.channel,
+          region: article.region,
+          publish_at: article.publish_at || article.first_published_at,
+          updated_at: article.updated_at || article.last_published_at,
+          is_featured: article.is_featured || false,
+          allow_aggregate: article.allow_aggregate !== false,
+          canonical_url: article.canonical_url,
+          source: article.channel?.name,
+          url: `/portal/article/${article.slug}`,
+          relevanceScore: article.relevanceScore,
+          _score: article._score,  // OpenSearch 原始分数
+          // 高亮结果（包含 HTML 标记）
+          highlight: {
+            title: highlightedTitle,
+            excerpt: highlightedExcerpt,
+            body: article.highlight?.body || []  // 正文片段（可选）
+          },
+        };
+      }),
       total: data.pagination?.total || filteredAndSortedArticles.length,
       page,
       limit,
