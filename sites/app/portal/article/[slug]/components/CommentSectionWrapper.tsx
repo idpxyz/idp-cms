@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
+import { useInteraction } from "@/lib/context/InteractionContext";
 
 const CommentSection = dynamic(() => import("../CommentSection"), {
   loading: () => (
@@ -20,9 +21,16 @@ interface CommentSectionWrapperProps {
  * 管理评论数量状态 + 懒加载优化
  */
 export default function CommentSectionWrapper({ articleId }: CommentSectionWrapperProps) {
+  const { updateCommentCount } = useInteraction();
   const [commentCount, setCommentCount] = useState(0);
   const [shouldLoadComments, setShouldLoadComments] = useState(false);
   const commentSectionRef = useRef<HTMLDivElement>(null);
+
+  // 当评论数量变化时，同步到 InteractionContext
+  const handleCommentCountChange = (count: number) => {
+    setCommentCount(count);
+    updateCommentCount(articleId, count);
+  };
 
   // ✅ 优化：使用 Intersection Observer 懒加载评论系统
   useEffect(() => {
@@ -53,7 +61,7 @@ export default function CommentSectionWrapper({ articleId }: CommentSectionWrapp
         <CommentSection
           articleId={articleId}
           commentCount={commentCount}
-          onCommentCountChange={setCommentCount}
+          onCommentCountChange={handleCommentCountChange}
         />
       ) : (
         <div className="flex items-center justify-center py-12 text-gray-400">

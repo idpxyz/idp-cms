@@ -22,7 +22,7 @@ export default function ArticleInteractions({
   channelSlug,
 }: ArticleInteractionsProps) {
   const { isAuthenticated } = useAuth();
-  const { toggleLike, toggleFavorite, getArticleInteraction } = useInteraction();
+  const { toggleLike, toggleFavorite, getArticleInteraction, refreshArticleStats } = useInteraction();
   
   const [isInteracting, setIsInteracting] = useState(false);
   const [shareModalOpen, setShareModalOpen] = useState(false);
@@ -34,6 +34,11 @@ export default function ArticleInteractions({
 
   // 获取文章互动状态
   const articleInteraction = getArticleInteraction(articleId.toString());
+
+  // 初始化文章统计数据
+  useEffect(() => {
+    refreshArticleStats(articleId.toString());
+  }, [articleId, refreshArticleStats]);
 
   // Toast 提示
   const showToast = (message: string, type: "success" | "error" = "success") => {
@@ -234,7 +239,7 @@ export default function ArticleInteractions({
                 />
               </svg>
               <span className="text-sm font-medium">
-                {articleInteraction.likeCount > 0 ? articleInteraction.likeCount : "点赞"}
+                {isInteracting ? '...' : `点赞 ${articleInteraction.likeCount || 0}`}
               </span>
             </button>
 
@@ -267,9 +272,7 @@ export default function ArticleInteractions({
                 />
               </svg>
               <span className="text-sm font-medium">
-                {articleInteraction.favoriteCount > 0
-                  ? articleInteraction.favoriteCount
-                  : "收藏"}
+                {isInteracting ? '...' : `收藏 ${articleInteraction.favoriteCount || 0}`}
               </span>
             </button>
 
@@ -287,9 +290,7 @@ export default function ArticleInteractions({
                 />
               </svg>
               <span className="text-sm font-medium">
-                {articleInteraction.commentCount > 0
-                  ? articleInteraction.commentCount
-                  : "评论"}
+                评论 {articleInteraction.commentCount || 0}
               </span>
             </button>
           </div>
