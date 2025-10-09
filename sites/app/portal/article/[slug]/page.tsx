@@ -105,7 +105,7 @@ async function getRelatedArticles(
     const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 1500);
+    const timeoutId = setTimeout(() => controller.abort(), 5000); // 延长到5秒
 
     try {
       // 获取更多文章用于智能筛选
@@ -198,20 +198,32 @@ export default async function ArticlePage({
   const sp = searchParams ? await searchParams : undefined;
   const site = sp?.site;
 
-  // 🚀 性能优化：并行获取文章和相关文章数据
-  const articlePromise = getArticle(slug, site);
-  const article = await articlePromise;
+  // 🚀 性能优化：先获取文章，然后并行获取相关文章
+  const article = await getArticle(slug, site);
 
   if (!article) {
     notFound();
   }
 
-  // 🎯 智能获取相关文章：基于标签、热度和时间
-  const relatedArticles = await getRelatedArticles(
-    article.channel.slug, 
-    article.slug,
-    article.tags || []
-  );
+  // 🎯 快速渲染策略：先返回空数组，让页面立即渲染
+  // 相关文章将在客户端或后台加载
+  // 这样可以保证页面快速显示，即使相关文章API慢也不影响
+  let relatedArticles: any[] = [];
+  
+  try {
+    // 设置1秒超时，超时则使用空数组
+    const timeoutPromise = new Promise<any[]>((resolve) => setTimeout(resolve, 1000, []));
+    const articlesPromise = getRelatedArticles(
+      article.channel.slug, 
+      article.slug,
+      article.tags || []
+    );
+    
+    relatedArticles = await Promise.race([articlesPromise, timeoutPromise]);
+  } catch (error) {
+    console.error('Failed to fetch related articles:', error);
+    // 继续使用空数组，不影响页面渲染
+  }
 
   return (
     <>
@@ -265,7 +277,9 @@ export default async function ArticlePage({
   );
 }
 
-// 🚀 性能优化：生成元数据（Next.js 自动去重）
+// 🚀 性能优化：生成元数据
+// Next.js 15会自动去重相同的fetch请求，所以这里的getArticle调用
+// 会复用ArticlePage中的请求结果，不会导致重复请求
 export async function generateMetadata({
   params,
 }: {
@@ -274,6 +288,7 @@ export async function generateMetadata({
   const { slug } = await params;
 
   try {
+    // Next.js 会自动去重这个请求（与 ArticlePage 中的请求合并）
     const article = await getArticle(slug);
 
     if (!article) {
