@@ -1,3 +1,5 @@
+'use client';
+
 import React from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -33,8 +35,10 @@ interface ArticleLayoutProps {
 }
 
 /**
- * 文章布局 - 服务端组件
+ * 文章布局 - 客户端组件
  * 负责渲染静态内容：标题、正文、元信息等
+ * 
+ * 🔧 改为客户端组件：因为使用了ArticleBreadcrumb等客户端组件
  */
 export default function ArticleLayout({ article, children, hasSidebar = false }: ArticleLayoutProps) {
   // 获取封面图片

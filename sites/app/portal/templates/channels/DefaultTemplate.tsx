@@ -1,3 +1,5 @@
+'use client';
+
 import React from 'react';
 import PageContainer from "@/components/layout/PageContainer";
 import Section from "@/components/layout/Section";
@@ -13,6 +15,8 @@ interface ChannelTemplateProps {
 /**
  * 📄 默认频道模板
  * 用于没有自定义模板的频道
+ * 
+ * 🔧 客户端组件：因为使用了ChannelStrip等交互式组件
  */
 const DefaultTemplate: React.FC<ChannelTemplateProps> = ({ 
   channel, 

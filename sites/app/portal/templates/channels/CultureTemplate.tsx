@@ -1,3 +1,5 @@
+'use client';
+
 import React from 'react';
 import PageContainer from "@/components/layout/PageContainer";
 import Section from "@/components/layout/Section";

@@ -1,3 +1,5 @@
+'use client';
+
 import React from 'react';
 import PageContainer from "@/components/layout/PageContainer";
 import Section from "@/components/layout/Section";
@@ -13,6 +15,8 @@ interface ChannelTemplateProps {
 /**
  * 💻 科技频道专属模板
  * 创新驱动，科技前沿
+ * 
+ * 🔧 客户端组件：使用了交互式组件
  */
 const TechTemplate: React.FC<ChannelTemplateProps> = ({ 
   channel, 
