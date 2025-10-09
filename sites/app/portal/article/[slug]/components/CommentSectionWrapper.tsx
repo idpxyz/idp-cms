@@ -21,14 +21,16 @@ interface CommentSectionWrapperProps {
  * 管理评论数量状态 + 懒加载优化
  */
 export default function CommentSectionWrapper({ articleId }: CommentSectionWrapperProps) {
-  const { updateCommentCount } = useInteraction();
-  const [commentCount, setCommentCount] = useState(0);
+  const { updateCommentCount, getArticleInteraction } = useInteraction();
   const [shouldLoadComments, setShouldLoadComments] = useState(false);
   const commentSectionRef = useRef<HTMLDivElement>(null);
 
+  // 从 InteractionContext 获取评论数（已经由 refreshArticleStats 加载）
+  const articleInteraction = getArticleInteraction(articleId);
+  const commentCount = articleInteraction.commentCount;
+
   // 当评论数量变化时，同步到 InteractionContext
   const handleCommentCountChange = (count: number) => {
-    setCommentCount(count);
     updateCommentCount(articleId, count);
   };
 

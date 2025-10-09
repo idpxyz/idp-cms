@@ -182,11 +182,15 @@ class InteractionService {
       // 处理评论统计响应
       if (commentStatsResponse.ok) {
         const commentStats = await commentStatsResponse.json();
+        console.log('Comment stats response:', commentStats);
         if (commentStats.success && commentStats.data) {
           commentCount = commentStats.data.total_comments;
+          console.log('Comment count loaded:', commentCount);
+        } else {
+          console.warn('Comment stats response invalid:', commentStats);
         }
       } else {
-        console.warn('Failed to fetch comment stats, using fallback');
+        console.warn('Failed to fetch comment stats, status:', commentStatsResponse.status);
       }
       
       return {
