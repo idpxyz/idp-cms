@@ -215,7 +215,7 @@ export default function ArticleInteractions({
               onClick={handleLike}
               disabled={isInteracting}
               className={`
-                flex items-center space-x-2 px-4 py-2 rounded-full transition-all
+                flex items-center space-x-2 px-4 py-2 rounded-full transition-all min-w-[100px]
                 ${
                   articleInteraction.isLiked
                     ? "bg-red-50 text-red-600 hover:bg-red-100"
@@ -248,7 +248,7 @@ export default function ArticleInteractions({
               onClick={handleFavorite}
               disabled={isInteracting}
               className={`
-                flex items-center space-x-2 px-4 py-2 rounded-full transition-all
+                flex items-center space-x-2 px-4 py-2 rounded-full transition-all min-w-[100px]
                 ${
                   articleInteraction.isFavorited
                     ? "bg-yellow-50 text-yellow-600 hover:bg-yellow-100"
@@ -279,7 +279,7 @@ export default function ArticleInteractions({
             {/* 评论 */}
             <button
               onClick={handleCommentClick}
-              className="flex items-center space-x-2 px-4 py-2 rounded-full bg-white text-gray-600 hover:bg-gray-100 hover:text-blue-600 transition-all shadow-sm border border-gray-200"
+              className="flex items-center space-x-2 px-4 py-2 rounded-full bg-white text-gray-600 hover:bg-gray-100 hover:text-blue-600 transition-all shadow-sm border border-gray-200 min-w-[100px]"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
