@@ -6,6 +6,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import Link from "next/link";
 import { SiteSettings } from "@/lib/types";
 import SmartSearchBox from "@/components/search/SmartSearchBox";
 import BreakingTicker from "@/app/portal/components/BreakingTicker";
@@ -158,7 +159,7 @@ export default function PortalClassicLayout({
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex justify-between items-center h-16">
             {/* Logo和品牌 */}
-            <a
+            <Link
               href="/portal"
               className="flex items-center space-x-4 hover:opacity-80 transition-opacity"
             >
@@ -169,7 +170,7 @@ export default function PortalClassicLayout({
                 <h1 className="text-xl font-bold text-gray-900 leading-tight">党报头条</h1>
                 <span className="text-xs text-gray-500 font-medium">倾听人民的声音</span>
               </div>
-            </a>
+            </Link>
 
             {/* 搜索框 - 响应式设计 */}
             <div className="flex-1 max-w-2xl mx-4 lg:mx-8">
@@ -381,7 +382,7 @@ export default function PortalClassicLayout({
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             {/* 品牌信息 */}
             <div className="col-span-1 md:col-span-2">
-              <a
+              <Link
                 href="/portal"
                 className="flex items-center mb-4 hover:opacity-80 transition-opacity"
               >
@@ -389,7 +390,7 @@ export default function PortalClassicLayout({
                   <span className="text-white font-bold text-sm">党</span>
                 </div>
                 <h3 className="text-lg font-bold text-gray-900">党报头条</h3>
-              </a>
+              </Link>
               <p className="text-gray-600 text-sm leading-relaxed max-w-md">
                 你关心的，才是头条。党报头条致力于连接人与信息，促进创作与交流。
               </p>
