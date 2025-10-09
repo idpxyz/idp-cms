@@ -2,7 +2,7 @@ import React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { formatDateTimeFull } from "@/lib/utils/date";
-import ChannelLink from "../../../components/ChannelLink";
+import ArticleBreadcrumb from "./ArticleBreadcrumb";
 
 interface Article {
   id: number;
@@ -69,20 +69,10 @@ export default function ArticleLayout({ article, children, hasSidebar = false }:
         <nav className="py-2">
           <div className={`grid grid-cols-1 gap-6 ${hasSidebar ? 'lg:grid-cols-3' : ''}`}>
             <div className={hasSidebar ? 'lg:col-span-2' : ''}>
-              <div className="flex items-center text-sm">
-                <Link href="/portal" className="text-gray-500 hover:text-gray-700">
-                  首页
-                </Link>
-                <span className="mx-2 text-gray-400">/</span>
-                <ChannelLink
-                  channelSlug={article.channel?.slug}
-                  className="text-gray-500 hover:text-gray-700"
-                >
-                  {article.channel?.name || "新闻"}
-                </ChannelLink>
-                <span className="mx-2 text-gray-400">/</span>
-                <span className="text-gray-700">正文</span>
-              </div>
+              <ArticleBreadcrumb 
+                channelSlug={article.channel?.slug}
+                channelName={article.channel?.name || "新闻"}
+              />
             </div>
           </div>
         </nav>
