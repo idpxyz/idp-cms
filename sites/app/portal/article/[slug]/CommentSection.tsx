@@ -47,6 +47,14 @@ export default function CommentSection({ articleId, commentCount, onCommentCount
     loadComments();
   }, [articleId]);
 
+  // 递归计算所有层级的评论总数
+  const countAllComments = (comments: Comment[]): number => {
+    return comments.reduce((total, comment) => {
+      // 当前评论 + 所有嵌套回复
+      return total + 1 + (comment.replies ? countAllComments(comment.replies) : 0);
+    }, 0);
+  };
+
   // 加载评论数据
   const loadComments = async () => {
     if (!articleId) return;
@@ -69,8 +77,8 @@ export default function CommentSection({ articleId, commentCount, onCommentCount
         if (response.pagination?.total !== undefined) {
           onCommentCountChange(response.pagination.total);
         } else {
-          // 回退：粗略计算（根+一级回复）
-          const fallback = convertedComments.reduce((count, c) => count + 1 + c.replies.length, 0);
+          // 回退：递归计算所有层级的评论总数
+          const fallback = countAllComments(convertedComments);
           onCommentCountChange(fallback);
         }
       } else {

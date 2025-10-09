@@ -239,7 +239,7 @@ export default function ArticleInteractions({
                 />
               </svg>
               <span className="text-sm font-medium">
-                {isInteracting ? '...' : `点赞 ${articleInteraction.likeCount || 0}`}
+                {isInteracting ? '...' : articleInteraction.likeCount > 0 ? `点赞 ${articleInteraction.likeCount}` : '点赞'}
               </span>
             </button>
 
@@ -272,7 +272,7 @@ export default function ArticleInteractions({
                 />
               </svg>
               <span className="text-sm font-medium">
-                {isInteracting ? '...' : `收藏 ${articleInteraction.favoriteCount || 0}`}
+                {isInteracting ? '...' : articleInteraction.favoriteCount > 0 ? `收藏 ${articleInteraction.favoriteCount}` : '收藏'}
               </span>
             </button>
 
@@ -290,7 +290,7 @@ export default function ArticleInteractions({
                 />
               </svg>
               <span className="text-sm font-medium">
-                评论 {articleInteraction.commentCount || 0}
+                {articleInteraction.commentCount > 0 ? `评论 ${articleInteraction.commentCount}` : '评论'}
               </span>
             </button>
           </div>
