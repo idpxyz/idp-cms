@@ -159,12 +159,16 @@ export default async function ArticlePage({
   const sp = searchParams ? await searchParams : undefined;
   const site = sp?.site;
 
-  // 🚀 性能优化：只获取文章数据，相关文章在客户端异步加载
-  const article = await getArticle(slug, site);
+  // 🚀 性能优化：并行获取文章和相关文章数据
+  const articlePromise = getArticle(slug, site);
+  const article = await articlePromise;
 
   if (!article) {
     notFound();
   }
+
+  // 获取相关文章（不阻塞主渲染，但在服务端完成）
+  const relatedArticles = await getRelatedArticles(article.channel.slug, article.slug);
 
   return (
     <>
@@ -190,11 +194,12 @@ export default async function ArticlePage({
 
         {/* 主内容区插槽 - 在文章正文之后 */}
         <div slot="content">
-          {/* 相关文章 - 客户端异步加载 */}
+          {/* 相关文章 - 服务端数据，客户端渲染 */}
           <div className="px-6 md:px-12">
             <RecommendedArticles
               articleSlug={article.slug}
               currentChannel={article.channel.slug}
+              articles={relatedArticles}
             />
           </div>
 
@@ -206,10 +211,10 @@ export default async function ArticlePage({
         
         {/* 侧边栏插槽 */}
         <div slot="sidebar">
-          {/* 相关文章 - 客户端异步加载 */}
+          {/* 相关文章 - 服务端数据传递 */}
           <SidebarRelatedArticles 
+            articles={relatedArticles}
             currentChannelSlug={article.channel.slug}
-            currentArticleSlug={article.slug}
           />
         </div>
       </ArticleLayout>

@@ -1,6 +1,4 @@
-"use client";
-
-import React, { useState, useEffect } from "react";
+import React from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { formatDateTime } from "@/lib/utils/date";
@@ -19,83 +17,18 @@ interface RelatedArticle {
 }
 
 interface SidebarRelatedArticlesProps {
-  currentChannelSlug: string;
-  currentArticleSlug: string;
+  articles: RelatedArticle[];
+  currentChannelSlug?: string;
 }
 
 /**
- * 侧栏相关文章 - 客户端组件（异步加载）
+ * 侧栏相关文章 - 服务端组件
  * 显示在文章右侧的相关文章列表
  */
 export default function SidebarRelatedArticles({ 
-  currentChannelSlug,
-  currentArticleSlug 
+  articles,
+  currentChannelSlug 
 }: SidebarRelatedArticlesProps) {
-  const [articles, setArticles] = useState<RelatedArticle[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    async function fetchRelatedArticles() {
-      try {
-        const response = await fetch(
-          `/api/news?channel=${encodeURIComponent(currentChannelSlug)}&limit=4`,
-          { 
-            headers: { "Content-Type": "application/json" },
-            signal: AbortSignal.timeout(2000), // 2秒超时
-          }
-        );
-
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
-        }
-
-        const data = await response.json();
-        const items = data?.data || data?.items || [];
-
-        const related = items
-          .filter((it: any) => it && it.slug && it.slug !== currentArticleSlug)
-          .slice(0, 4)
-          .map((it: any) => ({
-            id: it.id,
-            title: it.title,
-            slug: it.slug,
-            publish_at: it.publish_at,
-            image_url: it.image_url || (it.cover && it.cover.url) || null,
-            channel: it.channel || { slug: currentChannelSlug, name: it.channel?.name },
-            source: it.source || it.channel?.name || "",
-          }));
-
-        setArticles(related);
-      } catch (error) {
-        console.warn("Failed to fetch related articles:", error);
-        setArticles([]);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-
-    fetchRelatedArticles();
-  }, [currentChannelSlug, currentArticleSlug]);
-
-  if (isLoading) {
-    return (
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-        <div className="animate-pulse space-y-3">
-          <div className="h-4 bg-gray-200 rounded w-24"></div>
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="flex space-x-2">
-              <div className="w-16 h-12 bg-gray-200 rounded"></div>
-              <div className="flex-1 space-y-2">
-                <div className="h-3 bg-gray-200 rounded"></div>
-                <div className="h-3 bg-gray-200 rounded w-3/4"></div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
   if (!articles || articles.length === 0) {
     return null;
   }
