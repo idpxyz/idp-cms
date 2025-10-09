@@ -79,10 +79,10 @@ def hero_items(request):
             image_url = None
             if article.cover:
                 try:
-                    # 🚀 LCP 优化：平衡性能和质量
-                    # 响应式尺寸：900x450 WebP @ 82% quality (~120-180KB，性能与质量的最佳平衡）
-                    # 足够清晰，同时保持快速加载
-                    image_url = article.cover.get_rendition('fill-900x450|format-webp|webpquality-82').url
+                    # 🎨 高质量图片：完整清晰度优先
+                    # 原始尺寸：1200x600 WebP @ 85% quality (~300-400KB）
+                    # 保证桌面端和高分屏的完美显示效果
+                    image_url = article.cover.get_rendition('fill-1200x600|format-webp|webpquality-85').url
                 except:
                     # 如果WebP渲染失败，尝试使用旧的规格作为备用
                     try:
