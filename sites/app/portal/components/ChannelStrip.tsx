@@ -13,6 +13,7 @@ import {
 } from './ChannelStrip.utils';
 import { channelStripCache, getCacheKey } from './ChannelStrip.cache';
 import { getSideNewsPlaceholderImage } from '@/lib/utils/placeholderImages';
+import { useAdaptiveLinkSSR } from '@/app/portal/hooks/useAdaptiveLink';
 
 export interface ChannelStripProps {
   channelId: string;
@@ -41,6 +42,9 @@ const ChannelStrip: React.FC<ChannelStripProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string>('');
   const categoriesScrollRef = useRef<HTMLDivElement>(null);
+  
+  // 🎯 自适应链接：桌面端新标签页，移动端当前页
+  const adaptiveLinkProps = useAdaptiveLinkSSR();
 
   // 获取分类数据
   useEffect(() => {
@@ -264,6 +268,7 @@ const ChannelStrip: React.FC<ChannelStripProps> = ({
               <Link
                 key={article.id}
                 href={`/portal/article/${article.slug}`}
+                {...adaptiveLinkProps}
                 className="group block bg-white rounded-lg overflow-hidden hover:shadow-lg transition-all duration-200"
               >
                 {/* 文章图片 */}

@@ -13,7 +13,7 @@
  * - 客户端只消费，不请求
  */
 
-import React, { createContext, useContext, useState, ReactNode, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useCallback, useMemo, useEffect, useTransition } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import type { Channel } from '@/lib/api';
 
@@ -22,6 +22,7 @@ interface ChannelContextType {
   currentChannelSlug: string;
   switchChannel: (channelSlug: string) => void;
   getCurrentChannel: () => Channel | undefined;
+  isNavigating: boolean; // 新增：导航状态
 }
 
 const ChannelContext = createContext<ChannelContextType | undefined>(undefined);
@@ -36,20 +37,16 @@ export function ChannelProvider({ children, initialChannels }: ChannelProviderPr
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const [isPending, startTransition] = useTransition();
   
   // ✅ 简化：直接使用服务端传入的数据，不做缓存检查
-  // 🔍 调试：打印接收到的频道数据
-  // 已移除频道日志输出，减少控制台噪音
-  // if (typeof window !== 'undefined' && initialChannels.length > 0) {
-  //   console.log(`📋 ChannelProvider 接收到 ${initialChannels.length} 个频道:`, 
-  //     initialChannels.map(ch => `${ch.name}(${ch.slug})`).join(', ')
-  //   );
-  // }
-  
   const [channels] = useState<Channel[]>(initialChannels || []);
+  
+  // 🚀 乐观更新：立即更新选中状态，不等待路由完成
+  const [optimisticChannelSlug, setOptimisticChannelSlug] = useState<string | null>(null);
 
-  // 🎯 新的统一频道管理逻辑
-  const currentChannelSlug = useMemo(() => {
+  // 🎯 计算当前频道 slug（优先使用乐观更新的值）
+  const urlChannelSlug = useMemo(() => {
     // 在搜索页面不显示任何频道被选中
     if (pathname === '/portal/search') {
       return '';
@@ -58,33 +55,47 @@ export function ChannelProvider({ children, initialChannels }: ChannelProviderPr
     return searchParams?.get('channel') || 'recommend';
   }, [pathname, searchParams]);
   
-  // 统一的频道切换函数
+  // 🎯 实际显示的频道 slug（乐观更新 > URL 参数）
+  const currentChannelSlug = optimisticChannelSlug || urlChannelSlug;
+  
+  // 当 URL 真正更新后，清除乐观更新状态
+  useEffect(() => {
+    if (optimisticChannelSlug && optimisticChannelSlug === urlChannelSlug) {
+      setOptimisticChannelSlug(null);
+    }
+  }, [urlChannelSlug, optimisticChannelSlug]);
+  
+  // 统一的频道切换函数（带乐观更新）
   const switchChannel = useCallback((channelSlug: string) => {
-    // console.log('🔄 Switching channel to:', channelSlug, 'from:', pathname); // 减少控制台噪音
+    // 🚀 立即更新选中状态（乐观更新）
+    setOptimisticChannelSlug(channelSlug);
     
     // 保留现有的 tags 查询参数
     const params = new URLSearchParams();
-    const currentTags = searchParams ?.get('tags');
+    const currentTags = searchParams?.get('tags');
     if (channelSlug && channelSlug !== 'recommend') params.set('channel', channelSlug);
     if (currentTags) params.set('tags', currentTags);
     const qs = params.toString();
     const newUrl = qs ? `/portal?${qs}` : '/portal';
     
-    // console.log('🎯 Navigating to:', newUrl); // 减少控制台噪音
-    router.push(newUrl);
-  }, [router, pathname, searchParams]);
+    // 使用 startTransition 包装路由更新，提供更流畅的体验
+    startTransition(() => {
+      router.push(newUrl);
+    });
+  }, [router, searchParams, startTransition]);
   
   // 获取当前频道对象
   const getCurrentChannel = useCallback(() => {
     return channels.find(ch => ch.slug === currentChannelSlug);
   }, [channels, currentChannelSlug]);
 
-  // ✅ Context只提供状态和方法，不负责数据获取
+  // ✅ Context提供状态和方法
   const value: ChannelContextType = {
     channels,
     currentChannelSlug,
     switchChannel,
     getCurrentChannel,
+    isNavigating: isPending, // 导航进行中的状态
   };
 
   return (

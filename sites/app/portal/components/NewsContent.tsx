@@ -28,6 +28,7 @@ import {
 import { useMultipleIntersectionObserver } from "@/lib/hooks/useIntersectionObserver";
 import { formatDateTime } from "@/lib/utils/date";
 import { useChannels } from "../ChannelContext";
+import { useAdaptiveLinkSSR } from "@/app/portal/hooks/useAdaptiveLink";
 import ModernNewsItem from "./ModernNewsItem";
 
 // 自定义样式
@@ -173,7 +174,9 @@ const TodayHeadlines = ({
   headlines: FeedItem[];
   loading: boolean;
   onArticleClick: (slug: string) => void;
-}) => (
+}) => {
+  const adaptiveLinkProps = useAdaptiveLinkSSR();
+  return (
   <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
     <h3 className="section-title mb-4 flex items-center">
       <span className="w-2 h-2 bg-red-500 rounded-full mr-2"></span>
@@ -208,6 +211,7 @@ const TodayHeadlines = ({
             <h4 className="news-title-small line-clamp-2 mb-2">
               <a
                 href={`/portal/article/${headline.slug}`}
+                {...adaptiveLinkProps}
                 className="hover:text-red-500 transition-colors"
                 onClick={() => onArticleClick(headline.slug)}
               >
@@ -225,7 +229,8 @@ const TodayHeadlines = ({
       <p className="text-gray-500 text-sm">暂无头条新闻</p>
     )}
   </div>
-);
+  );
+};
 
 // 热门话题模块已移除
 
@@ -237,6 +242,7 @@ const EditorsChoice = ({
   loading: boolean;
   onArticleClick: (slug: string) => void;
 }) => {
+  const adaptiveLinkProps = useAdaptiveLinkSSR();
   const [editorArticles, setEditorArticles] = useState<FeedItem[]>([]);
   const [editorLoading, setEditorLoading] = useState(true);
 
@@ -293,6 +299,7 @@ const EditorsChoice = ({
               <h4 className="text-sm font-medium text-gray-900 line-clamp-2 mb-1">
                 <a
                   href={`/portal/article/${article.slug}`}
+                  {...adaptiveLinkProps}
                   className="hover:text-red-500 transition-colors"
                   onClick={() => onArticleClick(article.slug)}
                 >
@@ -452,6 +459,9 @@ export default function NewsContent({
 }: NewsContentProps) {
   // 🎯 新架构：使用统一的频道管理
   const { currentChannelSlug } = useChannels();
+  
+  // 🎯 自适应链接：桌面端新标签页，移动端当前页
+  const adaptiveLinkProps = useAdaptiveLinkSSR();
   
   // 状态管理
   const [loading, setLoading] = useState(!categoryMode || !initialArticles); // 分类模式下如果有初始数据则不需要loading
@@ -1204,6 +1214,7 @@ export default function NewsContent({
                       <h3 className="news-title-large mb-3 line-clamp-2">
                         <a
                           href={news.slug ? `/portal/article/${news.slug}` : (news.id ? `/portal/article/${news.id}` : (news.url || "/portal"))}
+                          {...adaptiveLinkProps}
                           className="hover:text-red-500 transition-colors"
                           onClick={() => handleArticleClick(news.slug || news.id)}
                         >

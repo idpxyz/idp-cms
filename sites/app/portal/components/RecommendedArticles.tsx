@@ -19,13 +19,21 @@ interface Props {
   articleSlug: string;
   currentChannel?: string;
   limit?: number;
+  articles?: any[]; // ✅ 新增：可选的服务器端数据
 }
 
-export default function RecommendedArticles({ articleSlug, currentChannel, limit = 6 }: Props) {
+export default function RecommendedArticles({ articleSlug, currentChannel, limit = 6, articles }: Props) {
   const [recommendations, setRecommendations] = useState<RecommendationArticle[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!articles); // ✅ 如果有服务器端数据，初始不加载
 
   useEffect(() => {
+    // ✅ 优化：如果已有服务器端数据，直接使用，不发起请求
+    if (articles && articles.length > 0) {
+      setRecommendations(articles as RecommendationArticle[]);
+      setLoading(false);
+      return;
+    }
+
     if (!articleSlug) return;
 
     const load = async () => {
@@ -53,7 +61,7 @@ export default function RecommendedArticles({ articleSlug, currentChannel, limit
     };
 
     load();
-  }, [articleSlug, limit]);
+  }, [articleSlug, limit, articles]);
 
   return (
     <div className="mt-8 pt-6 border-t border-gray-200">

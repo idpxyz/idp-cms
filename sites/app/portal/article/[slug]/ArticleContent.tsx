@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useEffect, useState, useRef } from "react";
-// @ts-ignore
-import QRCode from 'qrcode';
+import React, { useEffect, useState, useRef, useMemo, useCallback } from "react";
+import dynamic from "next/dynamic";
+// ✅ 优化：移除 QRCode 的提前导入，改为懒加载
 import "../../../../styles/article.css";
 import Image from "next/image";
 import Link from "next/link";
@@ -11,12 +11,38 @@ import { trackPageView, trackDwell } from "@/lib/tracking/analytics";
 import { useIntersectionObserver } from "@/lib/hooks/useIntersectionObserver";
 import { formatDateTimeFull, formatDateTime } from "@/lib/utils/date";
 import { useChannels } from "../../ChannelContext";
-import TableOfContents from "./TableOfContents";
 import { useInteraction } from "@/lib/context/InteractionContext";
 import { useAuth } from "@/lib/context/AuthContext";
-import CommentSection from "./CommentSection";
 import { useReadingHistory } from "@/lib/hooks/useReadingHistory";
-import RecommendedArticles from "../../components/RecommendedArticles";
+
+// 🚀 性能优化：懒加载非关键组件
+const CommentSection = dynamic(() => import("./CommentSection"), {
+  loading: () => (
+    <div className="flex items-center justify-center py-12">
+      <div className="text-gray-500">加载评论中...</div>
+    </div>
+  ),
+  ssr: false,
+});
+
+const TableOfContents = dynamic(() => import("./TableOfContents"), {
+  loading: () => null,
+  ssr: false,
+});
+
+const RecommendedArticles = dynamic(() => import("../../components/RecommendedArticles"), {
+  loading: () => (
+    <div className="animate-pulse">
+      <div className="h-8 bg-gray-200 rounded mb-4 w-48"></div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="h-32 bg-gray-200 rounded"></div>
+        ))}
+      </div>
+    </div>
+  ),
+  ssr: false,
+});
 
 interface Article {
   id: number;
@@ -62,6 +88,9 @@ export default function ArticleContent({
   const [readingStartTime, setReadingStartTime] = useState<number | null>(null);
   const [currentReadDuration, setCurrentReadDuration] = useState(0);
   
+  // ✅ 优化：评论系统懒加载状态
+  const [shouldLoadComments, setShouldLoadComments] = useState(false);
+  const commentSectionRef = useRef<HTMLDivElement>(null);
   
   // 使用useRef获取最新的值，避免闭包问题
   const latestProgressRef = useRef(0);
@@ -71,6 +100,29 @@ export default function ArticleContent({
   const articleInteraction = getArticleInteraction(article.id.toString());
   const [isInteracting, setIsInteracting] = useState(false);
   
+  // ✅ 优化：使用 Intersection Observer 懒加载评论系统
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setShouldLoadComments(true);
+          observer.disconnect(); // 一旦触发就断开观察
+        }
+      },
+      {
+        rootMargin: '200px', // 提前 200px 开始加载
+      }
+    );
+
+    if (commentSectionRef.current) {
+      observer.observe(commentSectionRef.current);
+    }
+
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
+
   // 初始化文章统计数据
   useEffect(() => {
     refreshArticleStats(article.id.toString());
@@ -361,9 +413,13 @@ export default function ArticleContent({
     setShareModalOpen(false);
   };
 
-  // 生成真实的二维码 - 使用本地qrcode库
+  // ✅ 优化：懒加载 QRCode 库，只在用户点击分享时才导入
   const generateRealQRCode = async (text: string): Promise<string> => {
     try {
+      // 动态导入 QRCode 库（懒加载）
+      // @ts-ignore
+      const QRCode = (await import('qrcode')).default;
+      
       const qrDataUrl = await QRCode.toDataURL(text, {
         width: 200,
         margin: 1,
@@ -996,11 +1052,12 @@ export default function ArticleContent({
                 </div>
               )}
 
-              {/* 您可能感兴趣 - 推荐文章区域 */}
+              {/* ✅ 优化：推荐文章 - 使用服务器端数据 */}
               <RecommendedArticles 
                 articleSlug={article.slug} 
                 currentChannel={article.channel?.name}
                 limit={6}
+                articles={relatedArticles} 
               />
 
               {/* 返回按钮 */}
@@ -1015,16 +1072,26 @@ export default function ArticleContent({
             </div>
               </div>
               
-              {/* 评论系统 */}
-              <div className="lg:col-span-2 mt-8" data-comment-section>
-                <CommentSection 
-                  articleId={article.id.toString()} 
-                  commentCount={articleInteraction.commentCount}
-                  onCommentCountChange={(count) => {
-                    // 更新文章互动状态中的评论数
-                    updateCommentCount(article.id.toString(), count);
-                  }}
-                />
+              {/* ✅ 优化：评论系统懒加载 */}
+              <div 
+                ref={commentSectionRef}
+                className="lg:col-span-2 mt-8" 
+                data-comment-section
+              >
+                {shouldLoadComments ? (
+                  <CommentSection 
+                    articleId={article.id.toString()} 
+                    commentCount={articleInteraction.commentCount}
+                    onCommentCountChange={(count) => {
+                      // 更新文章互动状态中的评论数
+                      updateCommentCount(article.id.toString(), count);
+                    }}
+                  />
+                ) : (
+                  <div className="flex items-center justify-center py-12 text-gray-400">
+                    <div>滚动以查看评论...</div>
+                  </div>
+                )}
               </div>
               </div>
               

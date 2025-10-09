@@ -1,7 +1,7 @@
-'use client';
-
-import React from 'react';
+import React, { Suspense } from 'react';
 import { getChannelTemplate } from '../templates/channels';
+import SocialTemplateLoading from '../templates/channels/SocialTemplateLoading';
+import ChannelPageWrapper from './ChannelPageWrapper';
 
 interface ChannelPageRendererProps {
   channelSlug: string;
@@ -10,7 +10,7 @@ interface ChannelPageRendererProps {
 }
 
 /**
- * 🎪 智能频道页面渲染器
+ * 🎪 智能频道页面渲染器 (服务端组件)
  * 优先使用数据库配置的模板，回退到slug映射
  * 
  * 升级后的设计理念：
@@ -19,6 +19,8 @@ interface ChannelPageRendererProps {
  * - 🔄 支持在Wagtail后台动态切换模板
  * - 🛡️ 向后兼容：无配置时回退到slug映射
  * - 🚀 管理员友好：无需修改代码即可调整模板
+ * - ⚡ 服务端渲染：支持 async 模板组件
+ * - 🎨 UX 优化：频道切换时立即显示骨架屏
  */
 const ChannelPageRenderer: React.FC<ChannelPageRendererProps> = ({
   channelSlug,
@@ -52,13 +54,17 @@ const ChannelPageRenderer: React.FC<ChannelPageRendererProps> = ({
   // 🎨 获取对应的模板组件 - 使用完整的频道对象
   const TemplateComponent = getChannelTemplate(channel);
   
-  // 📄 渲染模板
+  // 📄 使用客户端包装器处理过渡效果 + Suspense
   return (
-    <TemplateComponent
-      channel={channel}
-      channels={channels}
-      tags={tags}
-    />
+    <ChannelPageWrapper channelSlug={channelSlug}>
+      <Suspense fallback={<SocialTemplateLoading />}>
+        <TemplateComponent
+          channel={channel}
+          channels={channels}
+          tags={tags}
+        />
+      </Suspense>
+    </ChannelPageWrapper>
   );
 };
 
