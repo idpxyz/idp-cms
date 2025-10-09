@@ -206,7 +206,7 @@ export default function ArticleInteractions({
   return (
     <>
       {/* 交互按钮栏 */}
-      <div className="px-6 md:px-12 py-6 border-t border-gray-200 bg-gray-50">
+      <div className="px-6 md:px-12 py-2 bg-white">
         <div className="flex items-center justify-between">
           {/* 左侧：点赞、收藏、评论 */}
           <div className="flex items-center space-x-4">
@@ -222,7 +222,7 @@ export default function ArticleInteractions({
                     : "bg-white text-gray-600 hover:bg-gray-100 hover:text-red-600"
                 }
                 ${isInteracting ? "opacity-50 cursor-not-allowed" : ""}
-                shadow-sm border border-gray-200
+                shadow-sm
               `}
             >
               <svg
@@ -255,7 +255,7 @@ export default function ArticleInteractions({
                     : "bg-white text-gray-600 hover:bg-gray-100 hover:text-yellow-600"
                 }
                 ${isInteracting ? "opacity-50 cursor-not-allowed" : ""}
-                shadow-sm border border-gray-200
+                shadow-sm
               `}
             >
               <svg
@@ -279,7 +279,7 @@ export default function ArticleInteractions({
             {/* 评论 */}
             <button
               onClick={handleCommentClick}
-              className="flex items-center space-x-2 px-4 py-2 rounded-full bg-white text-gray-600 hover:bg-gray-100 hover:text-blue-600 transition-all shadow-sm border border-gray-200 min-w-[100px]"
+              className="flex items-center space-x-2 px-4 py-2 rounded-full bg-white text-gray-600 hover:bg-gray-100 hover:text-blue-600 transition-all shadow-sm min-w-[100px]"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
@@ -298,7 +298,7 @@ export default function ArticleInteractions({
           {/* 右侧：分享 */}
           <button
             onClick={handleShare}
-            className="flex items-center space-x-2 px-4 py-2 rounded-full bg-white text-gray-600 hover:bg-gray-100 hover:text-green-600 transition-all shadow-sm border border-gray-200"
+            className="flex items-center space-x-2 px-4 py-2 rounded-full bg-white text-gray-600 hover:bg-gray-100 hover:text-green-600 transition-all shadow-sm"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path

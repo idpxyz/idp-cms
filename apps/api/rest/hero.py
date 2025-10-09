@@ -44,16 +44,17 @@ def hero_items(request):
     # 构建缓存key（移除hours参数）
     cache_key = f"hero_items:{site_name}:{size}"
     
-    # 尝试从缓存获取
+    # 尝试从缓存获取（开发环境也启用缓存，避免重复生成图片）
     cached_data = cache.get(cache_key)
-    if cached_data and not settings.DEBUG:
+    if cached_data:  # ✅ 开发环境也使用缓存，提升 LCP 性能
         return Response({
             **cached_data,
             'cache_info': {
                 'hit': True,
                 'ttl': 300,
                 'type': 'hero_simple',
-                'key': cache_key
+                'key': cache_key,
+                'debug_mode': settings.DEBUG
             }
         })
     
@@ -78,9 +79,10 @@ def hero_items(request):
             image_url = None
             if article.cover:
                 try:
-                    # 🚀 使用WebP格式的Hero规格以优化性能
-                    # hero_desktop: 1200x600 WebP @ 85% quality (~300-500KB)
-                    image_url = article.cover.get_rendition('fill-1200x600|format-webp|webpquality-85').url
+                    # 🚀 LCP 优化：使用较小尺寸的 WebP 图片，加快加载速度
+                    # 移动端优先：800x400 WebP @ 80% quality (~150-250KB，比原来减少50%）
+                    # 桌面端可通过 Next.js Image 的 sizes 属性自动选择合适尺寸
+                    image_url = article.cover.get_rendition('fill-800x400|format-webp|webpquality-80').url
                 except:
                     # 如果WebP渲染失败，尝试使用旧的规格作为备用
                     try:

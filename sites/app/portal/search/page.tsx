@@ -50,6 +50,9 @@ interface SearchResult {
     | null;
   author?: string | null;
   view_count?: number | null;
+  comment_count?: number | null;  // ✅ 添加评论数
+  like_count?: number | null;     // ✅ 添加点赞数
+  favorite_count?: number | null; // ✅ 添加收藏数
   highlight?: {
     title?: string;
     excerpt?: string;
@@ -444,24 +447,24 @@ export default function SearchPage() {
                             {formatRelativeTime(result.publish_at)}
                           </span>
                           
-                          {/* 阅读量（模拟数据） */}
-                          {Math.random() > 0.5 && (
+                          {/* 阅读量（真实数据） */}
+                          {result.view_count != null && result.view_count > 0 && (
                             <span className="flex items-center">
                               <svg className="w-3 h-3 mr-1 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
                                 <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
                                 <path fillRule="evenodd" d="M10 18C5.373 18 1.636 14.263 1.636 9.636c0-1.318.31-2.56.862-3.66C3.74 3.85 6.608 2 10 2s6.26 1.85 7.502 3.976c.551 1.1.862 2.342.862 3.66C18.364 14.263 14.627 18 10 18zM10 16c3.314 0 6-2.686 6-6s-2.686-6-6-6-6 2.686-6 6 2.686 6 6 6z" clipRule="evenodd" />
                               </svg>
-                              {formatNumber(Math.floor(Math.random() * 5000 + 100))}阅读
+                              {formatNumber(result.view_count)}阅读
                             </span>
                           )}
                           
-                          {/* 评论数（模拟数据） */}
-                          {Math.random() > 0.7 && (
+                          {/* 评论数（真实数据） */}
+                          {result.comment_count != null && result.comment_count > 0 && (
                             <span className="flex items-center">
                               <svg className="w-3 h-3 mr-1 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
                                 <path fillRule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clipRule="evenodd" />
                               </svg>
-                              {Math.floor(Math.random() * 50 + 1)}评论
+                              {formatNumber(result.comment_count)}评论
                             </span>
                           )}
                         </div>

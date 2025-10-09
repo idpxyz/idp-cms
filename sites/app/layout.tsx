@@ -21,6 +21,10 @@ export default function RootLayout({
   return (
     <html lang="zh-CN" suppressHydrationWarning>
       <head>
+        {/* 🚀 性能优化：DNS预连接和资源预加载提示 */}
+        <link rel="preconnect" href={process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'} />
+        <link rel="dns-prefetch" href={process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'} />
+        
         {/* 🚀 LCP优化：智能检测Hero首图加载完成后切换 */}
         <script
           dangerouslySetInnerHTML={{

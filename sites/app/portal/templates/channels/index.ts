@@ -4,6 +4,7 @@
  */
 
 import DefaultTemplate from './DefaultTemplate';
+import RecommendTemplate from './RecommendTemplate';
 import SocialTemplate from './SocialTemplate';
 import CultureTemplate from './CultureTemplate';
 import TechTemplate from './TechTemplate';
@@ -11,6 +12,7 @@ import FashionTemplate from './FashionTemplate';
 
 // 模板映射表 - 只列出需要特殊模板的频道
 const CHANNEL_TEMPLATES = {
+  'recommend': RecommendTemplate, // 推荐频道（包含 Hero 和头条）
   'society': SocialTemplate,
   'social': SocialTemplate,     // 别名支持
   'culture': CultureTemplate,
@@ -31,6 +33,8 @@ export function getChannelTemplate(channel: any) {
     
     // 根据模板文件名动态选择
     switch (templateName) {
+      case 'RecommendTemplate':
+        return RecommendTemplate;
       case 'SocialTemplate':
         return SocialTemplate;
       case 'CultureTemplate':
@@ -50,4 +54,4 @@ export function getChannelTemplate(channel: any) {
 }
 
 // 简化导出
-export { DefaultTemplate, SocialTemplate, CultureTemplate, TechTemplate, FashionTemplate };
+export { DefaultTemplate, RecommendTemplate, SocialTemplate, CultureTemplate, TechTemplate, FashionTemplate };

@@ -25,7 +25,7 @@ export async function getHeroItems(limit: number = 5): Promise<HeroItem[]> {
         'Accept': 'application/json',
       },
       next: { revalidate: 300 }, // 5分钟缓存
-      signal: AbortSignal.timeout(5000), // 5秒超时，Hero数据简单，应该更快
+      signal: AbortSignal.timeout(3000), // 3秒超时，极速失败以优化 LCP
     });
     
     if (!response.ok) {

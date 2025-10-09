@@ -170,7 +170,7 @@ export async function getTopStories(
     const response = await fetch(apiUrl, {
       headers: getRequestHeaders(options?.userId),
       next: { revalidate: 60 }, // TopStories需要更频繁更新
-      signal: AbortSignal.timeout(8000), // 8秒超时，允许复杂计算
+      signal: AbortSignal.timeout(8000), // 8秒超时，快速失败以优化 LCP
     });
     
     if (!response.ok) {
@@ -214,7 +214,7 @@ export async function getTopStories(
     const retryRes = await fetch(retryUrl, {
       headers: getRequestHeaders(options?.userId),
       next: { revalidate: 60 },
-      signal: AbortSignal.timeout(8000),
+      signal: AbortSignal.timeout(8000), // 8秒超时，与主请求保持一致
     });
     
     if (retryRes.ok) {

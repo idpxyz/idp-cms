@@ -62,7 +62,7 @@ export default function ArticleLayout({ article, children, hasSidebar = false }:
   }
   
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-white">
       <div className="max-w-7xl mx-auto px-4">
         {/* 面包屑导航 - 与文章内容宽度完全一致 */}
         <nav className="py-2">
@@ -94,14 +94,14 @@ export default function ArticleLayout({ article, children, hasSidebar = false }:
             {/* 文章主体 */}
             <article className="bg-white rounded-lg shadow-sm overflow-hidden">
           {/* 文章头部 */}
-          <header className="px-6 md:px-12 pt-8 md:pt-12">
+          <header className="px-6 md:px-12 pt-6 md:pt-8">
             {/* 标题 */}
             <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6 leading-tight">
               {article.title}
             </h1>
 
             {/* 元信息 */}
-            <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 pb-6 border-b border-gray-200">
+            <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 pb-3">
               {/* 作者 */}
               {article.author && (
                 <div className="flex items-center">
@@ -147,7 +147,7 @@ export default function ArticleLayout({ article, children, hasSidebar = false }:
 
           {/* 封面图片 */}
           {coverImage && (
-            <div className="relative w-full h-64 md:h-96 my-8">
+            <div className="relative w-full h-64 md:h-96 my-4">
               <Image
                 src={coverImage}
                 alt={article.title}
@@ -160,7 +160,7 @@ export default function ArticleLayout({ article, children, hasSidebar = false }:
           )}
 
           {/* 文章正文 */}
-          <div className="px-6 md:px-12 py-8">
+          <div className="px-6 md:px-12 py-6">
             <div
               className="prose prose-lg max-w-none
                 prose-headings:text-gray-900 prose-headings:font-bold
@@ -180,7 +180,7 @@ export default function ArticleLayout({ article, children, hasSidebar = false }:
 
           {/* 标签 */}
           {article.tags && article.tags.length > 0 && (
-            <div className="px-6 md:px-12 py-6 border-t border-gray-200">
+            <div className="px-6 md:px-12 py-4">
               <div className="flex flex-wrap gap-2">
                 {article.tags.map((tag, index) => (
                   <span
@@ -203,7 +203,7 @@ export default function ArticleLayout({ article, children, hasSidebar = false }:
             {hasSidebar && sidebarContent && (
               <aside className="lg:col-span-1">
                 {/* 右侧栏粘性容器 */}
-                <div className="sticky top-24 space-y-6">
+                <div className="sticky top-40 space-y-6">
                   {sidebarContent}
                 </div>
               </aside>

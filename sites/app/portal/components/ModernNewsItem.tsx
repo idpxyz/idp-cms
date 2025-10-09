@@ -14,8 +14,9 @@ interface ModernNewsItemProps {
 /**
  * 🔥 现代化新闻条目组件
  * 参考主流新闻应用的设计风格
+ * 🚀 使用 React.memo 优化性能
  */
-const ModernNewsItem: React.FC<ModernNewsItemProps> = ({ 
+const ModernNewsItem: React.FC<ModernNewsItemProps> = React.memo(({ 
   news, 
   onArticleClick, 
   index,
@@ -158,6 +159,11 @@ const ModernNewsItem: React.FC<ModernNewsItemProps> = ({
       </div>
     </article>
   );
-};
+}, (prevProps, nextProps) => {
+  // 只在 news.id/slug 改变时重新渲染，提升性能
+  return prevProps.news.id === nextProps.news.id && 
+         prevProps.news.slug === nextProps.news.slug &&
+         prevProps.showInteractions === nextProps.showInteractions;
+});
 
 export default ModernNewsItem;

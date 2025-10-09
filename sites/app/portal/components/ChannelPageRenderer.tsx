@@ -1,34 +1,27 @@
+'use client';
+
 import React, { Suspense } from 'react';
 import { getChannelTemplate } from '../templates/channels';
 import SocialTemplateLoading from '../templates/channels/SocialTemplateLoading';
 import ChannelPageWrapper from './ChannelPageWrapper';
-
-interface ChannelPageRendererProps {
-  channelSlug: string;
-  channels: any[];
-  tags?: string;
-}
+import { useChannels } from '../ChannelContext';
+import { useSearchParams } from 'next/navigation';
 
 /**
- * 🎪 智能频道页面渲染器 (服务端组件)
- * 优先使用数据库配置的模板，回退到slug映射
+ * 🎪 智能频道页面渲染器 (客户端组件)
  * 
- * 升级后的设计理念：
- * - 🎨 优先使用数据库中配置的模板信息
- * - 📁 每个频道都有独立的模板文件 (如 SocialTemplate.tsx)
- * - 🔄 支持在Wagtail后台动态切换模板
- * - 🛡️ 向后兼容：无配置时回退到slug映射
- * - 🚀 管理员友好：无需修改代码即可调整模板
- * - ⚡ 服务端渲染：支持 async 模板组件
- * - 🎨 UX 优化：频道切换时立即显示骨架屏
+ * 🚀 性能优化：从 Context 读取当前频道，不依赖路由参数
+ * - 频道切换完全在客户端进行，不触发页面重新渲染
+ * - 使用骨架屏提供即时反馈
+ * - 保持 URL 同步（用于刷新恢复状态）
  */
-const ChannelPageRenderer: React.FC<ChannelPageRendererProps> = ({
-  channelSlug,
-  channels,
-  tags
-}) => {
+const ChannelPageRenderer: React.FC = () => {
+  const { channels, currentChannelSlug } = useChannels();
+  const searchParams = useSearchParams();
+  const tags = searchParams?.get('tags') || undefined;
+  
   // 🔍 查找对应频道
-  const channel = channels.find(ch => ch.slug === channelSlug);
+  const channel = channels.find(ch => ch.slug === currentChannelSlug);
   
   if (!channel) {
     return (
@@ -38,7 +31,7 @@ const ChannelPageRenderer: React.FC<ChannelPageRendererProps> = ({
             ❌ 频道不存在
           </h1>
           <p className="text-gray-600 mb-6">
-            找不到频道 "{channelSlug}"，请检查链接地址。
+            找不到频道 "{currentChannelSlug}"，请检查链接地址。
           </p>
           <a 
             href="/portal" 
@@ -56,7 +49,7 @@ const ChannelPageRenderer: React.FC<ChannelPageRendererProps> = ({
   
   // 📄 使用客户端包装器处理过渡效果 + Suspense
   return (
-    <ChannelPageWrapper channelSlug={channelSlug}>
+    <ChannelPageWrapper channelSlug={currentChannelSlug}>
       <Suspense fallback={<SocialTemplateLoading />}>
         <TemplateComponent
           channel={channel}

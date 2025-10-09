@@ -37,7 +37,7 @@ export default function SidebarRelatedArticles({
   const displayArticles = articles.slice(0, 4);
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+    <div className="bg-white rounded-lg shadow-sm p-4">
       <h3 className="text-base font-bold text-gray-900 mb-3 flex items-center">
         <svg 
           className="w-4 h-4 mr-2 text-blue-500" 

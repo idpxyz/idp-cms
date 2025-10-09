@@ -292,8 +292,8 @@ export default function CommentSection({ articleId, commentCount, onCommentCount
               disabled={likingIds.has(comment.id)}
               className={`flex items-center space-x-1 px-3 py-1.5 rounded-full transition-all duration-200 ${
                 comment.isLiked 
-                  ? 'bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 transform scale-105' 
-                  : 'bg-gray-50 text-gray-500 border border-gray-200 hover:bg-red-50 hover:text-red-600 hover:border-red-200'
+                  ? 'bg-red-50 text-red-600 hover:bg-red-100 transform scale-105' 
+                  : 'bg-gray-50 text-gray-500 hover:bg-red-50 hover:text-red-600'
               } ${likingIds.has(comment.id) ? 'opacity-60 cursor-not-allowed' : ''}`}
             >
               <svg className={`w-4 h-4 transition-transform duration-200 ${
@@ -342,7 +342,7 @@ export default function CommentSection({ articleId, commentCount, onCommentCount
                     value={replyContent}
                     onChange={(e) => setReplyContent(e.target.value)}
                     placeholder="写下你的回复..."
-                    className="w-full p-2 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                    className="w-full p-2 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-red-500 bg-gray-50"
                     rows={2}
                   />
                   <div className="flex items-center justify-end space-x-2 mt-2">
@@ -380,7 +380,7 @@ export default function CommentSection({ articleId, commentCount, onCommentCount
   );
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+    <div className="bg-white rounded-lg shadow-sm p-6">
       
       {/* 评论头部 */}
       <div className="flex items-center justify-between mb-6">
@@ -417,7 +417,7 @@ export default function CommentSection({ articleId, commentCount, onCommentCount
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}
                 placeholder="写下你的评论..."
-                className="w-full p-3 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                className="w-full p-3 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-red-500 bg-gray-50"
                 rows={3}
               />
               <div className="flex items-center justify-end mt-3">

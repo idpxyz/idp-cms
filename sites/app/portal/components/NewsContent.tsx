@@ -94,8 +94,8 @@ interface NewsContentProps {
   tags?: string;
 }
 
-// 新闻条目组件
-const NewsItem = ({ 
+// 新闻条目组件 - 使用 React.memo 优化性能
+const NewsItem = React.memo(({ 
   news, 
   onArticleClick, 
   index = 0 
@@ -163,7 +163,11 @@ const NewsItem = ({
                       </div>
                     </div>
                   </article>
-);
+), (prevProps, nextProps) => {
+  // 只在 news.id 改变时重新渲染，提升性能
+  return prevProps.news.id === nextProps.news.id && 
+         prevProps.news.slug === nextProps.news.slug;
+});
 
 // 今日头条组件
 const TodayHeadlines = ({ 
@@ -496,6 +500,7 @@ export default function NewsContent({
   const cursorRef = useRef<string | null>(null);
   const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastLoadTimeRef = useRef<number>(0);
+  const abortControllerRef = useRef<AbortController | null>(null); // 🚀 用于取消请求
 
   // 同步cursor状态到ref
   useEffect(() => {
@@ -509,10 +514,27 @@ export default function NewsContent({
 
   // 🎯 新架构：简化的频道变化监听
   useEffect(() => {
-    // 🔥 立即清理旧内容，防止显示上个频道的缓存内容
-    setNewsList([]);
-    // 频道变化时滚动到顶部
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    // 🚀 性能优化：取消之前频道的API请求，防止阻塞切换
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    
+    // 🚀 性能优化：瞬时滚动，避免smooth动画阻塞（500-1000ms）
+    window.scrollTo({ top: 0 });
+    
+    // 🚀 性能优化：延迟到下一帧清空列表，不阻塞路由切换
+    requestAnimationFrame(() => {
+      setNewsList([]);
+    });
+    
+    // 组件卸载时清理
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+    };
   }, [currentChannelSlug]);
 
   // 🎯 模块配置优化 - 今日头条已移至首页顶部，无需特殊处理
@@ -574,6 +596,16 @@ export default function NewsContent({
   // 加载智能推荐数据
   const loadSmartFeed = useCallback(async (isLoadMore: boolean = false) => {
     try {
+      // 🚀 性能优化：创建新的 AbortController，支持取消请求
+      if (!isLoadMore) {
+        // 取消之前的请求（如果有）
+        if (abortControllerRef.current) {
+          abortControllerRef.current.abort();
+        }
+        // 创建新的 controller
+        abortControllerRef.current = new AbortController();
+      }
+      
       if (isLoadMore) {
         setLoadingMore(true);
         // 设置超时机制，防止永久卡住
@@ -879,6 +911,12 @@ export default function NewsContent({
       }
 
     } catch (error) {
+      // 🚀 性能优化：忽略主动取消的请求（频道切换时）
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.log('Request cancelled (channel switch)');
+        return; // 直接返回，不更新状态
+      }
+      
       console.error('Failed to load smart feed:', error);
       if (!isLoadMore) {
         setNewsList([]);

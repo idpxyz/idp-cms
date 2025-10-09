@@ -5,6 +5,7 @@ from rest_framework import status
 from apps.api.rest.utils import validate_site_parameter
 from apps.searchapp.client import get_client
 from apps.searchapp.simple_index import get_index_name  # 🎯 使用简化索引
+from apps.core.models import Channel  # 用于查询频道中文名称
 
 
 @api_view(["GET"])
@@ -308,6 +309,17 @@ def search_os(request):
 
         hits = res.get("hits", {})
         total = hits.get("total", {}).get("value", 0)
+        
+        # 预加载所有频道信息（批量查询，避免N+1问题）
+        channel_slugs = list(set([
+            h.get("_source", {}).get("primary_channel_slug") or h.get("_source", {}).get("channel")
+            for h in hits.get("hits", [])
+        ]))
+        channels_dict = {}
+        if channel_slugs:
+            channels = Channel.objects.filter(slug__in=channel_slugs, sites=site)
+            channels_dict = {ch.slug: {"slug": ch.slug, "name": ch.name} for ch in channels}
+        
         items = []
         for h in hits.get("hits", []):
             s = h.get("_source", {})
@@ -318,16 +330,25 @@ def search_os(request):
             highlighted_summary = highlight.get("summary", [s.get("summary") or ""])
             highlighted_body = highlight.get("body", [])
             
+            # 获取频道信息（中文名称）
+            channel_slug = s.get("primary_channel_slug") or s.get("channel") or "recommend"
+            channel_info = channels_dict.get(channel_slug, {"slug": channel_slug, "name": channel_slug})
+            
             items.append({
                 "id": s.get("article_id") or h.get("_id"),
                 "title": s.get("title"),  # 原始标题
                 "slug": s.get("slug"),
                 "excerpt": s.get("summary") or "",  # 原始摘要
-                "cover": None,
+                "cover": None,  # OpenSearch 不存储封面图，需要从源获取
                 "publish_at": s.get("first_published_at") or s.get("publish_time"),
-                "channel": {"slug": s.get("primary_channel_slug") or s.get("channel"), "name": s.get("primary_channel_slug")},
+                "channel": channel_info,  # ✅ 使用查询到的中文名称
                 "region": s.get("region"),
-                "is_featured": False,
+                "is_featured": s.get("is_featured", False),  # ✅ 从索引获取
+                # ✅ 统计数据（从索引获取）
+                "view_count": s.get("view_count", 0),
+                "comment_count": s.get("comment_count", 0),
+                "like_count": s.get("like_count", 0),
+                "favorite_count": s.get("favorite_count", 0),
                 "_score": h.get("_score", 0),  # OpenSearch 的相关性分数
                 # OpenSearch 原生高亮结果
                 "highlight": {

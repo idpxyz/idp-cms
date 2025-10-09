@@ -43,6 +43,12 @@
 @layer components {
   /* 🔤 统一字体系统 - 在这里修改字体大小即可影响全站 */
   
+  /* 🔍 搜索高亮样式 */
+  .search-highlight,
+  mark.search-highlight {
+    @apply bg-yellow-100 text-yellow-900 font-medium px-0.5 rounded;
+  }
+  
   /* 新闻标题字体类 */
   .news-title-large {
     @apply text-xl sm:text-2xl font-bold text-gray-900 leading-tight;

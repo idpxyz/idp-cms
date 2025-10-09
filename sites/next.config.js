@@ -86,6 +86,8 @@ const nextConfig = {
       },
       // 移除 images.unsplash.com，使用稳定的 Picsum
     ],
+    // 🎯 Next.js 16 兼容：配置允许的图片质量值
+    qualities: [75, 80, 85, 90, 100],
   },
 
   async rewrites() {

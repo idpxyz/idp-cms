@@ -8,7 +8,7 @@ import SidebarRelatedArticles from "./components/SidebarRelatedArticles";
 // 🚀 性能优化：懒加载客户端组件
 // Next.js 15: 移除 ssr: false，因为组件本身已经是客户端组件
 const ArticleInteractions = dynamic(() => import("./components/ArticleInteractions"), {
-  loading: () => <div className="px-6 md:px-12 py-6 border-t border-gray-200 bg-gray-50 h-20 animate-pulse" />,
+  loading: () => <div className="px-6 md:px-12 py-2 bg-white h-20 animate-pulse" />,
 });
 
 const ReadingTracker = dynamic(() => import("./components/ReadingTracker"));
@@ -23,7 +23,7 @@ const CommentSectionWrapper = dynamic(() => import("./components/CommentSectionW
 
 const RecommendedArticles = dynamic(() => import("../../components/RecommendedArticles"), {
   loading: () => (
-    <div className="animate-pulse px-6 md:px-12 py-8">
+    <div className="animate-pulse px-6 md:px-12 py-6">
       <div className="h-8 bg-gray-200 rounded mb-4 w-48"></div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {[1, 2, 3].map((i) => (
@@ -95,17 +95,22 @@ async function getArticle(slug: string, site?: string): Promise<Article | null> 
   }
 }
 
-// 🚀 优化：获取相关文章，1秒超时
-async function getRelatedArticles(channelSlug: string, currentSlug: string): Promise<any[]> {
+// 🚀 智能相关文章推荐：基于标签相似度、热度和时间衰减
+async function getRelatedArticles(
+  channelSlug: string, 
+  currentSlug: string,
+  currentTags: string[] = []
+): Promise<any[]> {
   try {
     const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 1000);
+    const timeoutId = setTimeout(() => controller.abort(), 1500);
 
     try {
+      // 获取更多文章用于智能筛选
       const response = await fetch(
-        `${baseUrl}/api/news?channel=${encodeURIComponent(channelSlug)}&limit=4`,
+        `${baseUrl}/api/news?channel=${encodeURIComponent(channelSlug)}&limit=15`,
         {
           next: { revalidate: 300 },
           headers: { "Content-Type": "application/json" },
@@ -120,11 +125,42 @@ async function getRelatedArticles(channelSlug: string, currentSlug: string): Pro
       }
 
       const data = await response.json();
-      const items = data?.data || data?.items || [];
+      const items = (data?.data || data?.items || [])
+        .filter((it: any) => it && it.slug && it.slug !== currentSlug);
 
-      return items
-        .filter((it: any) => it && it.slug && it.slug !== currentSlug)
-        .slice(0, 3)
+      // 🎯 智能排序算法
+      const scoredArticles = items.map((article: any) => {
+        let score = 0;
+
+        // 1. 标签相似度得分 (0-40分)
+        if (currentTags.length > 0 && article.tags && article.tags.length > 0) {
+          const commonTags = currentTags.filter(tag => article.tags.includes(tag));
+          score += (commonTags.length / Math.max(currentTags.length, article.tags.length)) * 40;
+        }
+
+        // 2. 时间衰减得分 (0-30分) - 越新越好，但不过分偏向
+        const publishDate = new Date(article.publish_at);
+        const now = new Date();
+        const daysOld = (now.getTime() - publishDate.getTime()) / (1000 * 60 * 60 * 24);
+        const timeScore = Math.max(0, 30 - (daysOld * 2)); // 15天后时间得分为0
+        score += timeScore;
+
+        // 3. 热度得分 (0-30分) - 基于view_count
+        if (article.view_count) {
+          const viewScore = Math.min(30, Math.log10(article.view_count + 1) * 10);
+          score += viewScore;
+        }
+
+        return {
+          ...article,
+          _score: score
+        };
+      });
+
+      // 按得分排序，返回前4篇
+      const topArticles = scoredArticles
+        .sort((a: any, b: any) => b._score - a._score)
+        .slice(0, 4)
         .map((it: any) => ({
           id: it.id,
           title: it.title,
@@ -133,14 +169,17 @@ async function getRelatedArticles(channelSlug: string, currentSlug: string): Pro
           image_url: it.image_url || (it.cover && it.cover.url) || null,
           channel: it.channel || { slug: channelSlug, name: it.channel?.name },
           source: it.source || it.channel?.name || "",
+          tags: it.tags || [],
         }));
+
+      return topArticles;
     } catch (fetchError) {
       clearTimeout(timeoutId);
       throw fetchError;
     }
   } catch (e: any) {
     if (e.name === "AbortError") {
-      console.warn("Related articles fetch timeout (1s)");
+      console.warn("Related articles fetch timeout (1.5s)");
     } else {
       console.warn("Failed to fetch related articles:", e);
     }
@@ -167,8 +206,12 @@ export default async function ArticlePage({
     notFound();
   }
 
-  // 获取相关文章（不阻塞主渲染，但在服务端完成）
-  const relatedArticles = await getRelatedArticles(article.channel.slug, article.slug);
+  // 🎯 智能获取相关文章：基于标签、热度和时间
+  const relatedArticles = await getRelatedArticles(
+    article.channel.slug, 
+    article.slug,
+    article.tags || []
+  );
 
   return (
     <>
@@ -194,28 +237,28 @@ export default async function ArticlePage({
 
         {/* 主内容区插槽 - 在文章正文之后 */}
         <div slot="content">
-          {/* 相关文章 - 服务端数据，客户端渲染 */}
-          <div className="px-6 md:px-12">
-            <RecommendedArticles
-              articleSlug={article.slug}
-              currentChannel={article.channel.slug}
-              articles={relatedArticles}
-            />
-          </div>
-
           {/* 评论区 - 客户端，懒加载 */}
-          <div className="px-6 md:px-12 py-8 border-t border-gray-200 bg-gray-50" data-comment-section>
+          <div className="px-6 md:px-12 py-6 bg-white" data-comment-section>
             <CommentSectionWrapper articleId={article.id.toString()} />
           </div>
         </div>
         
         {/* 侧边栏插槽 */}
         <div slot="sidebar">
-          {/* 相关文章 - 服务端数据传递 */}
+          {/* 同频道相关文章 - 服务端数据传递 */}
           <SidebarRelatedArticles 
             articles={relatedArticles}
             currentChannelSlug={article.channel.slug}
           />
+          
+          {/* 跨频道推荐文章 - 客户端渲染，自动获取跨频道推荐 */}
+          <div className="mt-6">
+            <RecommendedArticles
+              articleSlug={article.slug}
+              currentChannel={article.channel.slug}
+              layout="sidebar"
+            />
+          </div>
         </div>
       </ArticleLayout>
     </>

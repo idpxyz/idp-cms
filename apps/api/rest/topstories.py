@@ -178,15 +178,16 @@ def topstories(request):
     cache_params = f"{size}:{hours}:{diversity}:{len(exclude_clusters)}:{len(combined_seen)}"
     cache_key = f"topstories:{site_name}:{hashlib.md5(cache_params.encode()).hexdigest()[:8]}"
     
-    # 尝试从缓存获取
+    # 尝试从缓存获取（开发环境也启用缓存，避免重复OpenSearch查询）
     cached_data = cache.get(cache_key)
-    if cached_data and not settings.DEBUG:
+    if cached_data:  # ✅ 开发环境也使用缓存，提升 LCP 性能
         return Response({
             **cached_data,
             'cache_info': {
                 'hit': True,
                 'ttl': get_cache_time('hot', 'backend'),
-                'type': 'topstories_complex'
+                'type': 'topstories_complex',
+                'debug_mode': settings.DEBUG
             }
         })
     

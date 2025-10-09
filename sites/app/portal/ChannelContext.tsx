@@ -13,7 +13,7 @@
  * - 客户端只消费，不请求
  */
 
-import React, { createContext, useContext, useState, ReactNode, useCallback, useMemo, useEffect, useTransition } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useCallback, useMemo, useEffect } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import type { Channel } from '@/lib/api';
 
@@ -22,7 +22,8 @@ interface ChannelContextType {
   currentChannelSlug: string;
   switchChannel: (channelSlug: string) => void;
   getCurrentChannel: () => Channel | undefined;
-  isNavigating: boolean; // 新增：导航状态
+  isNavigating: boolean; // 导航状态
+  setContentReady: (ready: boolean) => void; // 🚀 新增：内容就绪状态控制
 }
 
 const ChannelContext = createContext<ChannelContextType | undefined>(undefined);
@@ -37,57 +38,65 @@ export function ChannelProvider({ children, initialChannels }: ChannelProviderPr
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [isPending, startTransition] = useTransition();
   
   // ✅ 简化：直接使用服务端传入的数据，不做缓存检查
   const [channels] = useState<Channel[]>(initialChannels || []);
   
-  // 🚀 乐观更新：立即更新选中状态，不等待路由完成
-  const [optimisticChannelSlug, setOptimisticChannelSlug] = useState<string | null>(null);
-
-  // 🎯 计算当前频道 slug（优先使用乐观更新的值）
-  const urlChannelSlug = useMemo(() => {
-    // 在搜索页面不显示任何频道被选中
-    if (pathname === '/portal/search') {
-      return '';
-    }
-    // 其他页面使用channel参数，默认为recommend
+  // 🚀 性能优化：使用纯客户端状态管理频道，不依赖路由
+  // 初始值从 URL 参数获取（用于页面刷新恢复状态）
+  const initialChannelSlug = useMemo(() => {
+    if (pathname === '/portal/search') return '';
     return searchParams?.get('channel') || 'recommend';
-  }, [pathname, searchParams]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   
-  // 🎯 实际显示的频道 slug（乐观更新 > URL 参数）
-  const currentChannelSlug = optimisticChannelSlug || urlChannelSlug;
+  const [currentChannelSlug, setCurrentChannelSlug] = useState<string>(initialChannelSlug);
   
-  // 当 URL 真正更新后，清除乐观更新状态
-  useEffect(() => {
-    if (optimisticChannelSlug && optimisticChannelSlug === urlChannelSlug) {
-      setOptimisticChannelSlug(null);
-    }
-  }, [urlChannelSlug, optimisticChannelSlug]);
+  // 🚀 导航状态：独立管理，确保立即响应
+  const [isNavigatingState, setIsNavigatingState] = useState(false);
   
-  // 统一的频道切换函数（带乐观更新）
+  // 🚀 内容就绪状态：控制骨架屏何时消失（等待异步数据加载完成）
+  const [isContentReady, setIsContentReady] = useState(true); // 默认true，推荐频道会主动设为false
+  
+  // 统一的频道切换函数（纯客户端状态管理）
   const switchChannel = useCallback((channelSlug: string) => {
-    // 🚀 立即更新选中状态（乐观更新）
-    setOptimisticChannelSlug(channelSlug);
+    // 🚀 性能优化：纯客户端状态切换，不触发路由导航
+    // 1. 立即显示骨架屏
+    setIsNavigatingState(true);
     
-    // 保留现有的 tags 查询参数
+    // 2. 重置内容就绪状态（推荐频道需要等待数据加载）
+    if (channelSlug === 'recommend') {
+      setIsContentReady(false); // 推荐频道需要异步加载数据
+    } else {
+      setIsContentReady(true); // 其他频道可以立即显示
+    }
+    
+    // 3. 立即更新频道（同步操作）
+    setCurrentChannelSlug(channelSlug);
+    
+    // 4. 更新 URL（不触发路由，仅用于浏览器历史和刷新恢复）
     const params = new URLSearchParams();
     const currentTags = searchParams?.get('tags');
     if (channelSlug && channelSlug !== 'recommend') params.set('channel', channelSlug);
     if (currentTags) params.set('tags', currentTags);
     const qs = params.toString();
     const newUrl = qs ? `/portal?${qs}` : '/portal';
+    window.history.replaceState(null, '', newUrl);
     
-    // 使用 startTransition 包装路由更新，提供更流畅的体验
-    startTransition(() => {
-      router.push(newUrl);
+    // 5. 一帧后结束导航状态（但骨架屏是否消失取决于 isContentReady）
+    requestAnimationFrame(() => {
+      setIsNavigatingState(false);
     });
-  }, [router, searchParams, startTransition]);
+  }, [searchParams]);
   
   // 获取当前频道对象
   const getCurrentChannel = useCallback(() => {
     return channels.find(ch => ch.slug === currentChannelSlug);
   }, [channels, currentChannelSlug]);
+  
+  // 🚀 内容就绪状态控制函数（包装 setter，便于后续扩展）
+  const handleSetContentReady = useCallback((ready: boolean) => {
+    setIsContentReady(ready);
+  }, []);
 
   // ✅ Context提供状态和方法
   const value: ChannelContextType = {
@@ -95,7 +104,8 @@ export function ChannelProvider({ children, initialChannels }: ChannelProviderPr
     currentChannelSlug,
     switchChannel,
     getCurrentChannel,
-    isNavigating: isPending, // 导航进行中的状态
+    isNavigating: isNavigatingState || !isContentReady, // 🚀 导航中或内容未就绪时都显示骨架屏
+    setContentReady: handleSetContentReady, // 🚀 暴露给子组件，让它们控制内容就绪状态
   };
 
   return (
