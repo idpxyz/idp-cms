@@ -133,25 +133,8 @@ const RecommendTemplate: React.FC<ChannelTemplateProps> = ({
     loadLatestData();
   }, [setContentReady]);
   
-  // 🚀 LCP 优化：预加载第一张 Hero 图片
-  React.useEffect(() => {
-    if (heroItems && heroItems.length > 0 && heroItems[0].image_url) {
-      const link = document.createElement('link');
-      link.rel = 'preload';
-      link.as = 'image';
-      link.href = heroItems[0].image_url;
-      link.fetchPriority = 'high' as any;
-      document.head.appendChild(link);
-      
-      return () => {
-        try {
-          document.head.removeChild(link);
-        } catch (e) {
-          // Link may have already been removed
-        }
-      };
-    }
-  }, [heroItems]);
+  // 🚀 LCP 优化：不需要手动预加载，Next.js Image 的 priority 属性会自动处理
+  // 移除手动预加载逻辑，避免与 Next.js 的 /api/media-proxy/ 冲突
   
   return (
     <>
