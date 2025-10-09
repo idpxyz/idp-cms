@@ -57,9 +57,33 @@ export function ChannelProvider({ children, initialChannels }: ChannelProviderPr
   // 🚀 内容就绪状态：控制骨架屏何时消失（等待异步数据加载完成）
   const [isContentReady, setIsContentReady] = useState(true); // 默认true，推荐频道会主动设为false
   
-  // 统一的频道切换函数（纯客户端状态管理）
+  // 🔄 监听 URL 参数变化，同步更新频道状态
+  // 当通过 router.push() 导航到新频道时，URL 会变化，需要同步更新状态
+  useEffect(() => {
+    // 只在频道页面内同步 URL 参数
+    if (pathname === '/portal' || pathname === '/portal/') {
+      const urlChannel = searchParams?.get('channel') || 'recommend';
+      if (urlChannel !== currentChannelSlug) {
+        setCurrentChannelSlug(urlChannel);
+      }
+    }
+  }, [pathname, searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
+  
+  // 统一的频道切换函数
   const switchChannel = useCallback((channelSlug: string) => {
-    // 🚀 性能优化：纯客户端状态切换，不触发路由导航
+    // 🎯 检测是否在频道页面
+    const isInPortalPage = pathname === '/portal' || pathname === '/portal/';
+    
+    // 如果不在频道页面，使用路由导航（例如从文章页跳转到频道页）
+    if (!isInPortalPage) {
+      const targetUrl = channelSlug === 'recommend' 
+        ? '/portal' 
+        : `/portal?channel=${channelSlug}`;
+      router.push(targetUrl);
+      return; // 提前返回，让路由处理后续逻辑
+    }
+    
+    // 🚀 性能优化：在频道页面内切换频道，使用纯客户端状态切换，不触发路由导航
     // 1. 立即显示骨架屏
     setIsNavigatingState(true);
     
@@ -86,7 +110,7 @@ export function ChannelProvider({ children, initialChannels }: ChannelProviderPr
     requestAnimationFrame(() => {
       setIsNavigatingState(false);
     });
-  }, [searchParams]);
+  }, [currentChannelSlug, pathname, searchParams, router]);
   
   // 获取当前频道对象
   const getCurrentChannel = useCallback(() => {
