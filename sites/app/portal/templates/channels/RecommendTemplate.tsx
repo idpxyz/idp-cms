@@ -45,7 +45,8 @@ const RecommendTemplate: React.FC<ChannelTemplateProps> = ({
 }) => {
   const { setContentReady } = useChannels(); // 🚀 获取内容就绪状态控制函数
   
-  // 🚀 状态：初始为空，避免 Hydration Mismatch
+  // 🚀 性能优化：使用 isMounted 避免 Hydration Mismatch
+  const [isMounted, setIsMounted] = React.useState(false);
   const [heroItems, setHeroItems] = React.useState<any[]>([]);
   const [topStories, setTopStories] = React.useState<any[]>([]);
   
@@ -55,40 +56,36 @@ const RecommendTemplate: React.FC<ChannelTemplateProps> = ({
     [channels]
   );
   
-  // 🚀 LCP 优化：立即从缓存加载数据，然后后台更新（避免 Hydration Mismatch）
+  // 🚀 性能优化：客户端首次渲染后立即加载缓存 + 后台更新
   React.useEffect(() => {
+    // 标记组件已挂载（避免 Hydration Mismatch）
+    setIsMounted(true);
+    
     // ⚡ 立即标记内容就绪，快速隐藏骨架屏
     setContentReady(true);
     
-    // 🎯 客户端首次渲染后，立即从缓存加载数据（避免 Hydration Mismatch）
-    const loadFromCache = () => {
-      try {
-        // 加载 Hero 缓存
-        const heroCached = localStorage.getItem('hero_cache');
-        if (heroCached) {
-          const heroData = JSON.parse(heroCached);
-          const heroAge = Date.now() - heroData.timestamp;
-          if (heroAge < 5 * 60 * 1000) { // 5分钟有效期
-            setHeroItems(heroData.items);
-          }
+    // 立即从缓存加载数据（同步）
+    try {
+      const heroCached = localStorage.getItem('hero_cache');
+      if (heroCached) {
+        const heroData = JSON.parse(heroCached);
+        const heroAge = Date.now() - heroData.timestamp;
+        if (heroAge < 5 * 60 * 1000) {
+          setHeroItems(heroData.items || []);
         }
-        
-        // 加载 TopStories 缓存
-        const topStoriesCached = localStorage.getItem('topstories_cache');
-        if (topStoriesCached) {
-          const topStoriesData = JSON.parse(topStoriesCached);
-          const topStoriesAge = Date.now() - topStoriesData.timestamp;
-          if (topStoriesAge < 5 * 60 * 1000) { // 5分钟有效期
-            setTopStories(topStoriesData.items);
-          }
-        }
-      } catch (e) {
-        console.warn('Failed to load from cache:', e);
       }
-    };
-    
-    // 立即从缓存加载
-    loadFromCache();
+      
+      const topStoriesCached = localStorage.getItem('topstories_cache');
+      if (topStoriesCached) {
+        const topStoriesData = JSON.parse(topStoriesCached);
+        const topStoriesAge = Date.now() - topStoriesData.timestamp;
+        if (topStoriesAge < 5 * 60 * 1000) {
+          setTopStories(topStoriesData.items || []);
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to load from cache:', e);
+    }
     
     // 后台静默加载最新数据（更新缓存）
     const loadLatestData = async () => {
@@ -138,9 +135,9 @@ const RecommendTemplate: React.FC<ChannelTemplateProps> = ({
   
   return (
     <>
-      {/* Hero 区域 - 渐进式加载 */}
+      {/* Hero 区域 - 客户端渲染，避免 Hydration Mismatch */}
       <PageContainer padding="none">
-        {heroItems && heroItems.length > 0 ? (
+        {isMounted && heroItems && heroItems.length > 0 ? (
           <HeroCarousel 
             items={heroItems}
             autoPlay={true}
@@ -152,7 +149,7 @@ const RecommendTemplate: React.FC<ChannelTemplateProps> = ({
             maxHeightVh={60}
           />
         ) : (
-          // 🎯 LCP 优化：Hero 占位符，避免布局偏移 (CLS)，保持高度一致
+          // 🎯 占位符：服务器端渲染 + 客户端加载前显示
           <div className="relative w-full h-[50vh] md:h-[55vh] lg:h-[60vh] min-h-[300px] max-h-[600px] bg-gradient-to-r from-gray-100 to-gray-50 animate-pulse">
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="text-center text-gray-400">
@@ -165,8 +162,8 @@ const RecommendTemplate: React.FC<ChannelTemplateProps> = ({
       </PageContainer>
 
       <PageContainer padding="md">
-        {/* Top Stories 头条网格 - 渐进式加载 */}
-        {topStories && topStories.length > 0 ? (
+        {/* Top Stories 头条网格 - 客户端渲染，避免 Hydration Mismatch */}
+        {isMounted && topStories && topStories.length > 0 ? (
           <Section space="md">
             <TopStoriesGrid 
               items={topStories}
@@ -177,7 +174,7 @@ const RecommendTemplate: React.FC<ChannelTemplateProps> = ({
             />
           </Section>
         ) : (
-          // 🎯 LCP 优化：TopStories 占位符，避免布局偏移
+          // 🎯 占位符：服务器端渲染 + 客户端加载前显示
           <Section space="md">
             <div className="mb-6 h-8 w-32 bg-gray-200 animate-pulse rounded"></div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

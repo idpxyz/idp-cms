@@ -457,9 +457,9 @@ export default function HeroCarousel({
                         transition: 'none',
                         animation: 'none'
                       }}
-                      priority={index <= 1}
-                      loading={index <= 1 ? "eager" : "lazy"}
-                      fetchPriority={index <= 1 ? "high" : "low"}
+                      priority={index === 1}
+                      loading={index === 1 ? "eager" : "lazy"}
+                      fetchPriority={index === 1 ? "high" : "low"}
                       onLoad={() => handleImageLoad(index)}
                       sizes={hasRightRail ? "(min-width: 1280px) 60vw, (min-width: 1024px) 70vw, (min-width: 768px) 85vw, 100vw" : "(min-width: 1280px) 90vw, (min-width: 768px) 95vw, 100vw"}
                       quality={75}

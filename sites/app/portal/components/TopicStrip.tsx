@@ -294,9 +294,9 @@ const TopicStrip: React.FC<TopicStripProps> = ({
                     fill
                     className="object-cover group-hover:scale-105 transition-transform duration-200"
                     sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 25vw"
-                    priority={index <= 2}
-                    fetchPriority={index <= 2 ? 'high' : 'auto'}
-                    loading={index <= 3 ? 'eager' : 'lazy'}
+                    priority={false}
+                    fetchPriority="auto"
+                    loading="lazy"
                   />
 
                   {/* 标签叠加 */}

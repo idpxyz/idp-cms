@@ -129,9 +129,9 @@ const ModernNewsItem: React.FC<ModernNewsItemProps> = React.memo(({
               fill
               className="object-cover group-hover:scale-105 transition-transform duration-300"
               sizes="(max-width: 640px) 128px, 144px"
-              priority={index <= 3} // 优化LCP: 为前4个项目添加优先级（更精准）
-              fetchPriority={index <= 3 ? 'high' : 'auto'}
-              loading={index <= 3 ? 'eager' : 'lazy'}
+              priority={false} // 不是 LCP 元素，避免不必要的预加载
+              fetchPriority="auto"
+              loading="lazy"
               onError={() => {
                 if (news.image_url && !imageError) {
                   setImageError(true);

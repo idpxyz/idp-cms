@@ -279,9 +279,9 @@ const ChannelStrip: React.FC<ChannelStripProps> = ({
                     fill
                     className="object-cover group-hover:scale-105 transition-transform duration-200"
                     sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 25vw"
-                    priority={index <= 2} // 扩展优先级范围以优化LCP
-                    fetchPriority={index <= 2 ? 'high' : 'auto'}
-                    loading={index <= 3 ? 'eager' : 'lazy'}
+                    priority={false} // 不是 LCP 元素，避免不必要的预加载
+                    fetchPriority="auto"
+                    loading="lazy"
                   />
 
                   {/* 突发/直播标签 */}
