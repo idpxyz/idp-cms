@@ -31,18 +31,13 @@ export default function ArticleInteractions({
   const [toastMessage, setToastMessage] = useState("");
   const [toastVisible, setToastVisible] = useState(false);
   const [toastType, setToastType] = useState<"success" | "error">("success");
-  const [statsLoaded, setStatsLoaded] = useState(false);
 
   // 获取文章互动状态
   const articleInteraction = getArticleInteraction(articleId.toString());
 
-  // 初始化文章统计数据
+  // 初始化文章统计数据（异步加载，不阻塞渲染）
   useEffect(() => {
-    const loadStats = async () => {
-      await refreshArticleStats(articleId.toString());
-      setStatsLoaded(true);
-    };
-    loadStats();
+    refreshArticleStats(articleId.toString());
   }, [articleId, refreshArticleStats]);
 
   // Toast 提示
@@ -207,15 +202,6 @@ export default function ArticleInteractions({
       });
     }
   };
-
-  // 等待统计数据加载完成
-  if (!statsLoaded) {
-    return (
-      <div className="px-6 md:px-12 py-6 border-t border-gray-200 bg-gray-50">
-        <div className="h-12"></div>
-      </div>
-    );
-  }
 
   return (
     <>
