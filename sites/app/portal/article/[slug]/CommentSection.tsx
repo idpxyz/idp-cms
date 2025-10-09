@@ -47,14 +47,6 @@ export default function CommentSection({ articleId, commentCount, onCommentCount
     loadComments();
   }, [articleId]);
 
-  // 递归计算所有层级的评论总数
-  const countAllComments = (comments: Comment[]): number => {
-    return comments.reduce((total, comment) => {
-      // 当前评论 + 所有嵌套回复
-      return total + 1 + (comment.replies ? countAllComments(comment.replies) : 0);
-    }, 0);
-  };
-
   // 加载评论数据
   const loadComments = async () => {
     if (!articleId) return;
@@ -62,27 +54,29 @@ export default function CommentSection({ articleId, commentCount, onCommentCount
     setIsLoading(true);
     
     try {
-      // ✅ 优化：减少初始加载数量，提升速度
-      const response = await articleCommentsApi.getComments(articleId, {
-        page: 1,
-        limit: 20, // 优化：减少到20条，够用且快
-      });
+      // 并行获取评论列表和统计数据
+      const [commentsResponse, statsResponse] = await Promise.all([
+        articleCommentsApi.getComments(articleId, {
+          page: 1,
+          limit: 20, // 优化：减少到20条，够用且快
+        }),
+        articleCommentsApi.getStats(articleId)
+      ]);
       
-      if (response.success && response.data) {
+      if (commentsResponse.success && commentsResponse.data) {
         // 转换API数据为组件所需格式
-        const convertedComments = response.data.map(convertApiCommentToLocal);
+        const convertedComments = commentsResponse.data.map(convertApiCommentToLocal);
         setComments(convertedComments);
         
-        // ✅ 优化：使用 pagination 中的 total 作为评论总数，避免额外 API 调用
-        if (response.pagination?.total !== undefined) {
-          onCommentCountChange(response.pagination.total);
+        // ✅ 使用后端统计接口的 total_comments（所有层级的评论总数）
+        if (statsResponse.success && statsResponse.data) {
+          onCommentCountChange(statsResponse.data.total_comments);
         } else {
-          // 回退：递归计算所有层级的评论总数
-          const fallback = countAllComments(convertedComments);
-          onCommentCountChange(fallback);
+          // 回退：如果统计接口失败，设为0（refreshArticleStats会更新）
+          console.warn('Failed to fetch comment stats');
         }
       } else {
-        console.error('Failed to load comments:', response.message);
+        console.error('Failed to load comments:', commentsResponse.message);
         setComments([]);
         onCommentCountChange(0);
       }
