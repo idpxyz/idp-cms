@@ -5,6 +5,7 @@ import { getSocialLatestNews, getSocialHotArticles, formatTimeAgo, type SocialAr
 import { useSocialMultiData } from '../hooks/useSocialData';
 import ErrorState, { EmptyState } from './ErrorState';
 import { useAdaptiveLinkSSR } from '@/app/portal/hooks/useAdaptiveLink';
+import ChannelLink from '@/portal/components/ChannelLink';
 
 interface SocialNewsSectionProps {
   channelSlug: string;
@@ -77,9 +78,9 @@ const SocialNewsSection: React.FC<SocialNewsSectionProps> = ({ channelSlug }) =>
       <div className="md:col-span-2">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-gray-900">最新报道</h2>
-          <a href={`/portal?channel=${channelSlug}`} className="text-red-600 hover:text-red-700 text-sm font-medium">
+          <ChannelLink channelSlug={channelSlug} className="text-red-600 hover:text-red-700 text-sm font-medium">
             查看更多新闻 →
-          </a>
+          </ChannelLink>
         </div>
 
         {latestNews.length > 0 ? (
@@ -117,12 +118,12 @@ const SocialNewsSection: React.FC<SocialNewsSectionProps> = ({ channelSlug }) =>
             </div>
 
             <div className="mt-6 text-center">
-              <a
-                href={`/portal?channel=${channelSlug}`}
+              <ChannelLink
+                channelSlug={channelSlug}
                 className="inline-block bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 transition-colors"
               >
                 加载更多新闻
-              </a>
+              </ChannelLink>
             </div>
           </>
         ) : (

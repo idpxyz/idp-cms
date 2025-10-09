@@ -201,7 +201,6 @@ const RecommendTemplate: React.FC<ChannelTemplateProps> = ({
               channelSlug={channelItem.slug}
               showCategories={false}
               showViewMore={true}
-              viewMoreLink={`/portal?channel=${channelItem.slug}`}
               articleLimit={8}
             />
           </Section>

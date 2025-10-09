@@ -2,6 +2,7 @@ import React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { formatDateTimeFull } from "@/lib/utils/date";
+import ChannelLink from "../../../components/ChannelLink";
 
 interface Article {
   id: number;
@@ -73,12 +74,12 @@ export default function ArticleLayout({ article, children, hasSidebar = false }:
                   首页
                 </Link>
                 <span className="mx-2 text-gray-400">/</span>
-                <Link
-                  href={`/portal?channel=${article.channel?.slug}`}
+                <ChannelLink
+                  channelSlug={article.channel?.slug}
                   className="text-gray-500 hover:text-gray-700"
                 >
                   {article.channel?.name || "新闻"}
-                </Link>
+                </ChannelLink>
                 <span className="mx-2 text-gray-400">/</span>
                 <span className="text-gray-700">正文</span>
               </div>

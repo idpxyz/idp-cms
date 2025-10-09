@@ -51,7 +51,10 @@ const ChannelPageRenderer: React.FC = () => {
   return (
     <ChannelPageWrapper channelSlug={currentChannelSlug}>
       <Suspense fallback={<SocialTemplateLoading />}>
+        {/* 🔑 关键修复：使用 key 强制 React 在频道变化时重新挂载组件 */}
+        {/* 这确保了即使使用相同的模板组件，切换频道时也会完全重置状态 */}
         <TemplateComponent
+          key={currentChannelSlug}
           channel={channel}
           channels={channels}
           tags={tags}

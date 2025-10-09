@@ -14,6 +14,7 @@ import {
 import { channelStripCache, getCacheKey } from './ChannelStrip.cache';
 import { getSideNewsPlaceholderImage } from '@/lib/utils/placeholderImages';
 import { useAdaptiveLinkSSR } from '@/app/portal/hooks/useAdaptiveLink';
+import ChannelLink from './ChannelLink';
 
 export interface ChannelStripProps {
   channelId: string;
@@ -149,15 +150,15 @@ const ChannelStrip: React.FC<ChannelStripProps> = ({
 
         {/* 查看更多按钮 */}
         {showViewMore && (
-          <Link
-            href={viewMoreLink || `/portal?channel=${channelSlug}`}
+          <ChannelLink
+            channelSlug={channelSlug}
             className="flex items-center space-x-1 text-red-600 hover:text-red-700 transition-colors"
           >
             <span className="button-text">查看更多</span>
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
-          </Link>
+          </ChannelLink>
         )}
       </div>
 
