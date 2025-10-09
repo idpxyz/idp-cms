@@ -79,10 +79,10 @@ def hero_items(request):
             image_url = None
             if article.cover:
                 try:
-                    # 🚀 LCP 优化：使用更小尺寸的 WebP 图片，极速加载
-                    # 移动端优先：600x300 WebP @ 75% quality (~80-120KB，比原来减少70%+）
-                    # 质量仍然足够高，Next.js Image 会进一步优化
-                    image_url = article.cover.get_rendition('fill-600x300|format-webp|webpquality-75').url
+                    # 🚀 LCP 优化：平衡性能和质量
+                    # 响应式尺寸：900x450 WebP @ 82% quality (~120-180KB，性能与质量的最佳平衡）
+                    # 足够清晰，同时保持快速加载
+                    image_url = article.cover.get_rendition('fill-900x450|format-webp|webpquality-82').url
                 except:
                     # 如果WebP渲染失败，尝试使用旧的规格作为备用
                     try:

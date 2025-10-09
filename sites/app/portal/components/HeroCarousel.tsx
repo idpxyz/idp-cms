@@ -462,7 +462,7 @@ export default function HeroCarousel({
                       fetchPriority={index === 1 ? "high" : "low"}
                       onLoad={() => handleImageLoad(index)}
                       sizes={hasRightRail ? "(min-width: 1280px) 60vw, (min-width: 1024px) 70vw, (min-width: 768px) 85vw, 100vw" : "(min-width: 1280px) 90vw, (min-width: 768px) 95vw, 100vw"}
-                      quality={75}
+                      quality={80}
                       placeholder="blur"
                       blurDataURL="data:image/webp;base64,UklGRiQAAABXRUJQVlA4IBgAAAAwAQCdASoBAAEAAwA0JaQAA3AA/vuUAAA="
                     />
