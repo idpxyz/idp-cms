@@ -39,8 +39,35 @@ export function ChannelProvider({ children, initialChannels }: ChannelProviderPr
   const pathname = usePathname();
   const searchParams = useSearchParams();
   
-  // ✅ 简化：直接使用服务端传入的数据，不做缓存检查
-  const [channels] = useState<Channel[]>(initialChannels || []);
+  // 🚀 性能优化：客户端加载频道数据
+  const [channels, setChannels] = useState<Channel[]>(initialChannels || []);
+  const [channelsLoading, setChannelsLoading] = useState(initialChannels.length === 0);
+  
+  // 客户端获取个性化频道
+  useEffect(() => {
+    if (initialChannels.length > 0) {
+      // 如果服务端已提供数据，不需要再获取
+      return;
+    }
+    
+    // 客户端获取个性化频道数据
+    setChannelsLoading(true);
+    fetch('/api/channels/personalized')
+      .then(res => res.json())
+      .then(data => {
+        // API 返回格式：{ channels: [...], strategy: "...", ... }
+        setChannels(data.channels || []);
+        setChannelsLoading(false);
+      })
+      .catch(error => {
+        console.error('Failed to load channels:', error);
+        // 降级：使用默认频道列表
+        setChannels([
+          { id: 'recommend', slug: 'recommend', name: '推荐', sort_order: 0 } as Channel
+        ]);
+        setChannelsLoading(false);
+      });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   
   // 🚀 性能优化：使用纯客户端状态管理频道，不依赖路由
   // 初始值从 URL 参数获取（用于页面刷新恢复状态）

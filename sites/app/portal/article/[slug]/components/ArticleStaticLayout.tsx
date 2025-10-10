@@ -88,12 +88,13 @@ export default function ArticleStaticLayout({
                     首页
                   </Link>
                   <span className="mx-2 text-gray-400">/</span>
-                  <Link 
-                    href={`/portal?channel=${article.channel.slug}`}
-                    className="text-gray-500 hover:text-gray-700"
-                  >
-                    {article.channel.name || "新闻"}
-                  </Link>
+                <Link 
+                  href={`/portal?channel=${article.channel.slug}`}
+                  className="text-gray-500 hover:text-gray-700"
+                  prefetch={true}
+                >
+                  {article.channel.name || "新闻"}
+                </Link>
                   <span className="mx-2 text-gray-400">/</span>
                   <span className="text-gray-700">正文</span>
                 </div>
