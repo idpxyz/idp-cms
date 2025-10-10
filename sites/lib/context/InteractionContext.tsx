@@ -12,6 +12,7 @@ export interface ArticleInteraction {
   likeCount: number;
   favoriteCount: number;
   commentCount: number;
+  statsLoaded?: boolean; // 🚀 性能优化：标记统计数据是否已加载
 }
 
 // 用户互动状态类型
@@ -391,7 +392,11 @@ export function InteractionProvider({ children }: { children: ReactNode }) {
     if (result.success && result.data) {
       setInteractionState(prev => {
         const newArticleStats = new Map(prev.articleStats);
-        newArticleStats.set(articleId, result.data!);
+        // 🚀 性能优化：标记统计数据已加载
+        newArticleStats.set(articleId, {
+          ...result.data!,
+          statsLoaded: true,
+        });
         return {
           ...prev,
           articleStats: newArticleStats,

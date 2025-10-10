@@ -183,6 +183,10 @@ def article_detail(request, slug):
     - fields: 字段白名单选择
     - include: 关联展开
     """
+    # 🚀 性能监控：记录开始时间
+    import time
+    start_time = time.time()
+    
     try:
         # 1. 验证站点参数
         site = validate_site_parameter(request)
@@ -197,6 +201,8 @@ def article_detail(request, slug):
         includes = request.query_params.get("include", "").split(",") if request.query_params.get("include") else []
         
         # 3. 查询文章 - 性能优化版本（同时兼容 slug 或 数字ID）
+        db_query_start = time.time()
+        
         queryset = ArticlePage.objects.live().descendant_of(
             site.root_page
         ).select_related(
@@ -207,6 +213,8 @@ def article_detail(request, slug):
         try:
             # 优先按 slug 精确匹配
             article = queryset.get(slug=slug)
+            db_query_time = (time.time() - db_query_start) * 1000
+            print(f"🔍 DB query time for slug '{slug}': {db_query_time:.2f}ms")
         except ArticlePage.DoesNotExist:
             # 若 slug 看起来是数字，则按ID回退
             if str(slug).isdigit():
@@ -302,6 +310,10 @@ def article_detail(request, slug):
         # Surrogate-Key
         surrogate_keys = generate_surrogate_keys(site, [article])
         response["Surrogate-Key"] = " ".join(surrogate_keys)
+        
+        # 🚀 性能监控：记录总时间
+        total_time = (time.time() - start_time) * 1000
+        print(f"⚡ Total article_detail time for '{slug}': {total_time:.2f}ms")
         
         return response
         

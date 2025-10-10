@@ -35,9 +35,13 @@ export default function ArticleInteractions({
   // 获取文章互动状态
   const articleInteraction = getArticleInteraction(articleId.toString());
 
-  // 初始化文章统计数据（异步加载，不阻塞渲染）
+  // 🚀 性能优化：初始化文章统计数据（仅在数据不存在时请求）
   useEffect(() => {
-    refreshArticleStats(articleId.toString());
+    // 检查是否已有统计数据，避免重复请求
+    // 使用可选链操作符避免类型错误
+    if (!(articleInteraction as any).statsLoaded) {
+      refreshArticleStats(articleId.toString());
+    }
   }, [articleId, refreshArticleStats]);
 
   // Toast 提示

@@ -201,12 +201,21 @@ export default async function ArticlePage({
   params: Promise<{ slug: string }>;
   searchParams?: Promise<{ site?: string }>;
 }) {
+  // 🚀 性能监控：记录开始时间
+  const startTime = Date.now();
+  
   const { slug } = await params;
   const sp = searchParams ? await searchParams : undefined;
   const site = sp?.site;
 
   // 🚀 性能优化：先获取文章，然后并行获取相关文章
   const article = await getArticle(slug, site);
+  
+  // 🚀 性能监控：记录文章获取时间
+  const articleFetchTime = Date.now() - startTime;
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`📄 Article "${slug}" fetch time: ${articleFetchTime}ms`);
+  }
 
   if (!article) {
     notFound();
