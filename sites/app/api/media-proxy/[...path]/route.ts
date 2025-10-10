@@ -27,23 +27,41 @@ export async function GET(
     // 构建后端媒体URL - 修复路径问题
     const backendUrl = endpoints.getCmsEndpoint(`/api/media/proxy/${mediaPath}`);
     
-    console.log('媒体代理请求:', {
-      originalPath: path,
-      mediaPath,
-      backendUrl
-    });
-
+    // 🚀 性能优化：检查条件请求（304响应）
+    const ifNoneMatch = request.headers.get('If-None-Match');
+    const ifModifiedSince = request.headers.get('If-Modified-Since');
+    
     // 代理请求到后端
+    const fetchHeaders: HeadersInit = {
+      // 传递原始请求的一些头部
+      'Accept': request.headers.get('Accept') || 'image/webp,image/*,*/*',
+      'User-Agent': request.headers.get('User-Agent') || 'NextJS-Media-Proxy',
+    };
+    
+    // 传递条件请求头部以支持304响应
+    if (ifNoneMatch) {
+      fetchHeaders['If-None-Match'] = ifNoneMatch;
+    }
+    if (ifModifiedSince) {
+      fetchHeaders['If-Modified-Since'] = ifModifiedSince;
+    }
+    
     const response = await fetch(backendUrl, {
       method: 'GET',
-      headers: {
-        // 传递原始请求的一些头部
-        'Accept': request.headers.get('Accept') || '*/*',
-        'User-Agent': request.headers.get('User-Agent') || 'NextJS-Media-Proxy',
-      },
-      // 缓存图片请求
-      next: { revalidate: 3600 } // 1小时缓存
+      headers: fetchHeaders,
+      // 🚀 加强缓存：24小时缓存，适合不常变化的图片
+      next: { revalidate: 86400 }
     });
+
+    // 🚀 性能优化：支持304 Not Modified响应
+    if (response.status === 304) {
+      return new NextResponse(null, {
+        status: 304,
+        headers: {
+          'Cache-Control': 'public, max-age=86400, stale-while-revalidate=604800',
+        }
+      });
+    }
 
     if (!response.ok) {
       console.error('后端媒体请求失败:', {
@@ -80,8 +98,8 @@ export async function GET(
       proxyResponse.headers.set('ETag', etag);
     }
     
-    // 设置缓存头部
-    proxyResponse.headers.set('Cache-Control', 'public, max-age=3600, stale-while-revalidate=86400');
+    // 🚀 强化缓存头部：24小时强缓存，7天stale-while-revalidate
+    proxyResponse.headers.set('Cache-Control', 'public, max-age=86400, stale-while-revalidate=604800, immutable');
     
     // CORS头部（如果需要）
     proxyResponse.headers.set('Access-Control-Allow-Origin', '*');

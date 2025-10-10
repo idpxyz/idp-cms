@@ -88,6 +88,16 @@ const nextConfig = {
     ],
     // 🎯 Next.js 16 兼容：配置允许的图片质量值
     qualities: [75, 80, 85, 90, 100],
+    // 🚀 性能优化：配置设备尺寸，减少不必要的图片变体
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    // 🚀 性能优化：配置支持的图片格式
+    formats: ['image/webp', 'image/avif'],
+    // 🚀 最小化缓存TTL以适应hero图片变化
+    minimumCacheTTL: 86400,
+    // 🚀 允许危险使用SVG
+    dangerouslyAllowSVG: true,
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
 
   async rewrites() {
