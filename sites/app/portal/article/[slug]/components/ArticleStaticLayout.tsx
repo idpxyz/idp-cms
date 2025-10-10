@@ -1,7 +1,7 @@
 import React from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { formatDateTimeFull } from "@/lib/utils/date";
+import { optimizeArticleContent } from "@/lib/utils/optimizeArticleImages";
 
 interface Article {
   id: number;
@@ -46,7 +46,8 @@ export default function ArticleStaticLayout({
   children, 
   hasSidebar = false 
 }: ArticleStaticLayoutProps) {
-  const coverImage = article.image_url || (article.cover && article.cover.url);
+  // 🚀 图片优化：将JPG/PNG转换为WebP，添加懒加载
+  const optimizedContent = optimizeArticleContent(article.content);
   
   // 从children中提取不同slot的内容
   let interactionsContent: React.ReactNode = null;
@@ -176,21 +177,7 @@ export default function ArticleStaticLayout({
                 {/* 交互按钮区域 - 客户端组件插槽 */}
                 {interactionsContent}
 
-                {/* 封面图片 - 立即可见 */}
-                {coverImage && (
-                  <div className="relative w-full h-64 md:h-96 my-4">
-                    <Image
-                      src={coverImage}
-                      alt={article.title}
-                      fill
-                      className="object-cover"
-                      priority
-                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 1200px"
-                    />
-                  </div>
-                )}
-
-                {/* 文章正文 - 立即可见可读 */}
+                {/* 文章正文 - 立即可见可读 - 🚀 图片已优化为WebP */}
                 <div className="px-6 md:px-12 py-6">
                   <div
                     className="prose prose-lg max-w-none
@@ -205,7 +192,7 @@ export default function ArticleStaticLayout({
                       prose-blockquote:border-l-4 prose-blockquote:border-red-500 
                       prose-blockquote:pl-4 prose-blockquote:italic prose-blockquote:text-gray-600"
                     data-article-content
-                    dangerouslySetInnerHTML={{ __html: article.content }}
+                    dangerouslySetInnerHTML={{ __html: optimizedContent }}
                   />
                 </div>
 

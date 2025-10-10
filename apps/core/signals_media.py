@@ -50,6 +50,31 @@ NEWS_IMAGE_RENDITIONS = {
 }
 
 
+@receiver(post_save, sender=RenditionModel)
+def generate_rendition_webp(sender, instance, created, **kwargs):
+    """
+    🚀 当 Rendition 被创建时，自动生成对应的 WebP 副本
+    
+    这样 Wagtail 编辑器插入的图片（使用 rendition 路径）也能有 WebP 版本
+    """
+    if not created:
+        return
+    
+    # 只处理非 WebP 的 rendition
+    if instance.file.name.lower().endswith('.webp'):
+        return
+    
+    # 只处理 JPG/PNG renditions
+    if not any(instance.file.name.lower().endswith(ext) for ext in ['.jpg', '.jpeg', '.png']):
+        return
+    
+    try:
+        from .tasks.media_tasks import generate_rendition_webp_copy
+        generate_rendition_webp_copy(instance)
+    except Exception as e:
+        print(f"为 rendition 生成 WebP 失败: {e}")
+
+
 @receiver(post_save, sender=ImageModel)
 def generate_essential_renditions_sync(sender, instance, created, **kwargs):
     """
@@ -60,6 +85,14 @@ def generate_essential_renditions_sync(sender, instance, created, **kwargs):
         
     try:
         print(f"正在为图片 '{instance.title}' 生成必需缩略图...")
+        
+        # 🚀 新增：立即生成同名 WebP 副本（用于文章正文图片）
+        try:
+            from .tasks.media_tasks import generate_original_size_webp_sync
+            generate_original_size_webp_sync(instance)
+            print(f"  ✓ 已生成原尺寸 WebP 副本")
+        except Exception as e:
+            print(f"  ✗ 生成原尺寸 WebP 失败: {e}")
         
         # 立即生成最重要的2-3个规格（上传后立即可能需要的）
         essential_specs = [

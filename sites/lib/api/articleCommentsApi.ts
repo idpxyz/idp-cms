@@ -82,11 +82,42 @@ export const articleCommentsApi = {
       }
     });
 
-    const response = await fetch(`${getBaseUrl()}/articles/${articleId}/comments/?${searchParams}`, {
-      headers: getAuthHeaders(),
-    });
+    // 🚀 性能优化：添加2秒超时控制
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 2000);
 
-    return response.json();
+    try {
+      const response = await fetch(`${getBaseUrl()}/articles/${articleId}/comments/?${searchParams}`, {
+        headers: getAuthHeaders(),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      return response.json();
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      
+      if (error.name === 'AbortError') {
+        console.warn('评论API超时 (2秒):', articleId);
+        return {
+          success: false,
+          message: '加载评论超时',
+          data: []
+        };
+      }
+      
+      console.error('获取评论失败:', error);
+      return {
+        success: false,
+        message: error.message || '加载评论失败',
+        data: []
+      };
+    }
   },
 
   // 发表评论
@@ -120,11 +151,40 @@ export const articleCommentsApi = {
 
   // 获取评论统计
   async getStats(articleId: string): Promise<ApiResponse<CommentStats>> {
-    const response = await fetch(`${getBaseUrl()}/articles/${articleId}/comments/stats/`, {
-      headers: getAuthHeaders(),
-    });
+    // 🚀 性能优化：添加1秒超时控制（统计接口应该很快）
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 1000);
 
-    return response.json();
+    try {
+      const response = await fetch(`${getBaseUrl()}/articles/${articleId}/comments/stats/`, {
+        headers: getAuthHeaders(),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      return response.json();
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      
+      if (error.name === 'AbortError') {
+        console.warn('评论统计API超时 (1秒):', articleId);
+      }
+      
+      return {
+        success: false,
+        message: error.message || '获取评论统计失败',
+        data: {
+          total_comments: 0,
+          root_comments: 0,
+          replies: 0
+        }
+      };
+    }
   },
 };
 

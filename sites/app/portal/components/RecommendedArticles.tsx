@@ -47,13 +47,33 @@ export default function RecommendedArticles({ articleSlug, currentChannel, limit
           limit: limit.toString(),
         });
         
-        const response = await fetch(`/api/articles/${encodeURIComponent(articleSlug)}/recommendations?${params}`);
+        // 🚀 性能优化：添加3秒客户端超时（服务端已有2秒超时）
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3000);
         
-        if (response.ok) {
-          const data = await response.json();
-          setRecommendations(data.recommendations || []);
-        } else {
-          console.error('获取推荐文章失败:', response.status);
+        try {
+          const response = await fetch(
+            `/api/articles/${encodeURIComponent(articleSlug)}/recommendations?${params}`,
+            { signal: controller.signal }
+          );
+          
+          clearTimeout(timeoutId);
+          
+          if (response.ok) {
+            const data = await response.json();
+            setRecommendations(data.recommendations || []);
+          } else {
+            console.warn('获取推荐文章失败:', response.status);
+            setRecommendations([]);
+          }
+        } catch (fetchError: any) {
+          clearTimeout(timeoutId);
+          
+          if (fetchError.name === 'AbortError') {
+            console.warn('推荐文章加载超时 (3秒)');
+          } else {
+            console.error('加载推荐文章网络错误:', fetchError);
+          }
           setRecommendations([]);
         }
       } catch (e) {

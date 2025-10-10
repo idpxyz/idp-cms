@@ -42,12 +42,19 @@ export default function CommentSection({ articleId, commentCount, onCommentCount
   
   // 文章评论系统独立运行，不需要用户评论管理
 
-  // 加载评论
+  // 🚀 性能优化：加载评论（如果评论数为0则跳过）
   useEffect(() => {
+    // 如果评论数为0，跳过加载，直接显示空状态
+    if (commentCount === 0) {
+      setIsLoading(false);
+      setComments([]);
+      return;
+    }
+    
     loadComments();
-  }, [articleId]);
+  }, [articleId, commentCount]);
 
-  // 加载评论数据
+  // 🚀 优化：加载评论数据（已添加超时控制）
   const loadComments = async () => {
     if (!articleId) return;
     
@@ -55,6 +62,7 @@ export default function CommentSection({ articleId, commentCount, onCommentCount
     
     try {
       // 只获取评论列表，评论总数由 refreshArticleStats 提供
+      // 🚀 API已有2秒超时控制（在 articleCommentsApi 中）
       const response = await articleCommentsApi.getComments(articleId, {
         page: 1,
         limit: 20, // 优化：减少到20条，够用且快
@@ -68,7 +76,8 @@ export default function CommentSection({ articleId, commentCount, onCommentCount
         // 不更新评论数，避免覆盖 refreshArticleStats 已获取的正确数据
         // 评论数由 ArticleInteractions 的 refreshArticleStats 统一管理
       } else {
-        console.error('Failed to load comments:', response.message);
+        // 🚀 超时或失败时，显示友好提示
+        console.warn('加载评论失败或超时:', response.message);
         setComments([]);
       }
     } catch (error) {

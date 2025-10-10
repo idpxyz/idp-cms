@@ -5,9 +5,153 @@
 from celery import shared_task
 from django.conf import settings
 from django.utils import timezone
+from django.core.files.storage import default_storage
+from django.core.files.base import ContentFile
 import logging
+import os
 
 logger = logging.getLogger(__name__)
+
+
+def generate_rendition_webp_copy(rendition_instance):
+    """
+    🚀 为 Rendition 生成同名的 WebP 副本
+    
+    当 Wagtail 编辑器插入图片时，使用的是 rendition 路径。
+    为了让前端能够访问到 WebP 版本，需要为 rendition 也生成 WebP。
+    
+    示例:
+    - Rendition: /media/.../renditions/9885de76ffd4d889.jpg
+    - WebP: /media/.../renditions/9885de76ffd4d889.webp
+    
+    Args:
+        rendition_instance: Rendition 模型实例
+    
+    Returns:
+        str: 生成的 WebP 文件路径，失败返回 None
+    """
+    try:
+        if not rendition_instance or not rendition_instance.file:
+            logger.warning("Rendition 实例或文件不存在，跳过WebP生成")
+            return None
+        
+        rendition_path = rendition_instance.file.name
+        
+        # 检查是否已经是 WebP 格式
+        if rendition_path.lower().endswith('.webp'):
+            logger.debug(f"Rendition 已是WebP格式，跳过: {rendition_path}")
+            return None
+        
+        # 生成 WebP 路径（同目录，同文件名，只改扩展名）
+        webp_path = os.path.splitext(rendition_path)[0] + '.webp'
+        
+        # 检查 WebP 是否已存在
+        if default_storage.exists(webp_path):
+            logger.debug(f"Rendition WebP 文件已存在，跳过: {webp_path}")
+            return webp_path
+        
+        # 使用 PIL 转换为 WebP
+        try:
+            from PIL import Image
+            
+            # 读取原始 rendition
+            with rendition_instance.file.open('rb') as f:
+                img = Image.open(f)
+                
+                # 转换为 RGB（WebP 不支持 RGBA 的某些模式）
+                if img.mode in ('RGBA', 'LA'):
+                    background = Image.new('RGB', img.size, (255, 255, 255))
+                    if img.mode == 'RGBA':
+                        background.paste(img, mask=img.split()[3])
+                    else:
+                        background.paste(img, mask=img.split()[1])
+                    img = background
+                elif img.mode != 'RGB':
+                    img = img.convert('RGB')
+                
+                # 保存为 WebP
+                import io
+                webp_io = io.BytesIO()
+                img.save(webp_io, format='WEBP', quality=85)
+                webp_io.seek(0)
+                
+                # 保存到存储
+                saved_path = default_storage.save(webp_path, ContentFile(webp_io.read()))
+                logger.info(f"✅ 成功为 rendition 生成 WebP: {saved_path}")
+                return saved_path
+                
+        except Exception as e:
+            logger.error(f"转换 rendition 到 WebP 失败: {e}")
+            return None
+            
+    except Exception as e:
+        logger.error(f"为 rendition 生成 WebP 失败: {e}")
+        return None
+
+
+def generate_original_size_webp_sync(image_instance):
+    """
+    🚀 为图片生成同名的 WebP 副本（保持原尺寸）
+    
+    用于文章正文图片优化：
+    - 原图: /media/images/photo.jpg
+    - WebP: /media/images/photo.webp
+    
+    这样前端的 <picture> 标签就能找到 WebP 文件
+    
+    Args:
+        image_instance: Image 模型实例
+    
+    Returns:
+        str: 生成的 WebP 文件路径，失败返回 None
+    """
+    try:
+        if not image_instance or not image_instance.file:
+            logger.warning("图片实例或文件不存在，跳过WebP生成")
+            return None
+        
+        original_path = image_instance.file.name  # e.g., "portal/c2-news/2025/01/images/photo.jpg"
+        
+        # 检查是否已经是 WebP 格式
+        if original_path.lower().endswith('.webp'):
+            logger.debug(f"图片已是WebP格式，跳过: {original_path}")
+            return None
+        
+        # 生成 WebP rendition（保持原尺寸）
+        try:
+            # 使用 Wagtail 的图片处理引擎生成 WebP
+            rendition = image_instance.get_rendition('format-webp|webpquality-85')
+        except Exception as e:
+            logger.error(f"生成 WebP rendition 失败: {e}")
+            return None
+        
+        if not rendition or not rendition.file:
+            logger.warning("WebP rendition 生成失败")
+            return None
+        
+        # 构造同名 WebP 路径
+        # 将扩展名替换为 .webp
+        webp_path = os.path.splitext(original_path)[0] + '.webp'
+        
+        # 检查 WebP 文件是否已存在
+        if default_storage.exists(webp_path):
+            logger.debug(f"WebP 文件已存在，跳过: {webp_path}")
+            return webp_path
+        
+        # 复制 rendition 文件到同名 WebP 路径
+        try:
+            with rendition.file.open('rb') as src:
+                content = src.read()
+                saved_path = default_storage.save(webp_path, ContentFile(content))
+                logger.info(f"✅ 成功生成同名 WebP: {saved_path}")
+                return saved_path
+        except Exception as e:
+            logger.error(f"保存 WebP 文件失败: {e}")
+            return None
+            
+    except Exception as e:
+        logger.error(f"生成原尺寸 WebP 失败: {e}")
+        return None
 
 
 @shared_task(bind=True, autoretry_for=(Exception,), retry_backoff=True, max_retries=3)

@@ -66,7 +66,7 @@ interface Article {
   };
 }
 
-// 🚀 优化：直接使用内部 API
+// 🚀 优化：直接使用内部 API，添加超时控制
 async function getArticle(slug: string, site?: string): Promise<Article | null> {
   try {
     const decodedSlug = decodeURIComponent(slug);
@@ -77,25 +77,46 @@ async function getArticle(slug: string, site?: string): Promise<Article | null> 
       url.searchParams.set("site", site);
     }
 
-    const response = await fetch(url.toString(), {
-      next: { revalidate: 300 },
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
+    // 🚀 性能优化：添加1.5秒超时控制
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 1500);
 
-    if (!response.ok) {
-      if (response.status === 404) {
-        return null;
+    try {
+      const response = await fetch(url.toString(), {
+        next: { revalidate: 300 },
+        headers: {
+          "Content-Type": "application/json",
+        },
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          return null;
+        }
+        throw new Error(`Failed to fetch article: ${response.status}`);
       }
-      throw new Error(`Failed to fetch article: ${response.status}`);
-    }
 
-    const data = await response.json();
-    return data.data || data.article || data;
+      const data = await response.json();
+      return data.data || data.article || data;
+    } catch (fetchError: any) {
+      clearTimeout(timeoutId);
+      if (fetchError.name === 'AbortError') {
+        console.error(`Article fetch timeout (1.5s) for slug: ${slug}`);
+        throw new Error('TIMEOUT');
+      }
+      throw fetchError;
+    }
   } catch (error: any) {
     if (error.message?.includes("404")) {
       return null;
+    }
+    if (error.message === 'TIMEOUT') {
+      console.error("Article fetch timeout:", slug);
+      // 可以返回null或重新抛出错误让error.tsx处理
+      throw error;
     }
     console.error("Error fetching article:", error);
     return null;
@@ -112,7 +133,7 @@ async function getRelatedArticles(
     const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000); // 延长到5秒
+    const timeoutId = setTimeout(() => controller.abort(), 2000); // 🚀 优化：减少到2秒
 
     try {
       // 获取更多文章用于智能筛选
@@ -186,7 +207,7 @@ async function getRelatedArticles(
     }
   } catch (e: any) {
     if (e.name === "AbortError") {
-      console.warn("Related articles fetch timeout (1.5s)");
+      console.warn("Related articles fetch timeout (2s)");
     } else {
       console.warn("Failed to fetch related articles:", e);
     }

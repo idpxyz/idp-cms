@@ -35,60 +35,93 @@ export async function GET(
       timestamp: new Date().toISOString()
     });
 
-    // 发起请求 - 使用统一的配置
-    const response = await fetch(
-      djangoUrl,
-      endpoints.createFetchConfig({ 
-        method: 'GET', 
-        timeout: Math.max(10000, endpoints.getCmsTimeout()),
-        headers: {
-          // 转发用户标识头
-          'X-Forwarded-For': request.headers.get('X-Forwarded-For') || request.headers.get('X-Real-IP') || '',
-          'User-Agent': request.headers.get('User-Agent') || 'NextJS-Recommendations-API',
+    // 🚀 性能优化：设置2秒超时，快速失败
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 2000);
+    
+    try {
+      const response = await fetch(
+        djangoUrl,
+        {
+          method: 'GET',
+          signal: controller.signal,
+          headers: {
+            'Content-Type': 'application/json',
+            // 转发用户标识头
+            'X-Forwarded-For': request.headers.get('X-Forwarded-For') || request.headers.get('X-Real-IP') || '',
+            'User-Agent': request.headers.get('User-Agent') || 'NextJS-Recommendations-API',
+          },
+          next: { revalidate: 300 }, // 5分钟缓存
         }
-      })
-    );
+      );
+      
+      clearTimeout(timeoutId);
 
-    console.log('推荐API响应信息:', {
-      status: response.status,
-      statusText: response.statusText,
-      ok: response.ok,
-      url: response.url
-    });
-
-    if (!response.ok) {
-      console.error('推荐API请求失败:', {
+      console.log('推荐API响应信息:', {
         status: response.status,
         statusText: response.statusText,
-        url: djangoUrl,
-        slug
+        ok: response.ok,
+        url: response.url
       });
+
+      if (!response.ok) {
+        console.error('推荐API请求失败:', {
+          status: response.status,
+          statusText: response.statusText,
+          url: djangoUrl,
+          slug
+        });
+        
+        // 返回降级响应而不是错误
+        return NextResponse.json({
+          recommendations: [],
+          meta: {
+            article_slug: slug,
+            limit: parseInt(searchParams.get('limit') || '6'),
+            total: 0,
+            strategy: 'fallback',
+            confidence: 0,
+            error: 'Recommendation service unavailable'
+          }
+        }, { 
+          status: 200,
+          headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300' }
+        });
+      }
+
+      const data = await response.json();
       
-      // 返回降级响应而不是错误
+      return NextResponse.json(data, {
+        headers: { 
+          'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
+          'Surrogate-Key': `recommendations article:${encodeURIComponent(slug)}`
+        }
+      });
+    } catch (fetchError: any) {
+      clearTimeout(timeoutId);
+      
+      // 🚀 超时或网络错误，返回空推荐
+      if (fetchError.name === 'AbortError') {
+        console.warn('推荐API超时 (2秒):', slug);
+      } else {
+        console.error('推荐API网络错误:', fetchError);
+      }
+      
       return NextResponse.json({
         recommendations: [],
         meta: {
           article_slug: slug,
           limit: parseInt(searchParams.get('limit') || '6'),
           total: 0,
-          strategy: 'fallback',
+          strategy: 'timeout_fallback',
           confidence: 0,
-          error: 'Recommendation service unavailable'
+          error: fetchError.name === 'AbortError' ? 'Request timeout' : 'Network error'
         }
       }, { 
         status: 200,
         headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300' }
       });
     }
-
-    const data = await response.json();
-    
-    return NextResponse.json(data, {
-      headers: { 
-        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
-        'Surrogate-Key': `recommendations article:${encodeURIComponent(slug)}`
-      }
-    });
 
   } catch (error) {
     console.error('推荐API内部错误:', {

@@ -131,20 +131,20 @@ export class ArticleService {
         );
 
         try {
-          const backend = await retryService.fetch(cmsUrl, {
-            method: 'GET',
-            headers: endpoints.createFetchConfig({
-              timeout: 3000, // 🚀 减少超时到3秒
-              next: {
-                revalidate: options.cache_ttl,
-                tags: [`article:${slug}`],
-              },
-            }).headers,
-          }, {
-            timeout: 3000, // 🚀 减少超时到3秒
-            maxAttempts: 1, // 单层重试，外层还有重试
-            baseDelay: 300, // 🚀 减少重试延迟
-          });
+        const backend = await retryService.fetch(cmsUrl, {
+          method: 'GET',
+          headers: endpoints.createFetchConfig({
+            timeout: 1500, // 🚀 优化：减少超时到1.5秒
+            next: {
+              revalidate: options.cache_ttl,
+              tags: [`article:${slug}`],
+            },
+          }).headers,
+        }, {
+          timeout: 1500, // 🚀 优化：减少超时到1.5秒
+          maxAttempts: 1, // 单层重试，外层还有重试
+          baseDelay: 200, // 🚀 优化：减少重试延迟到200ms
+        });
 
           const articleData = backend && (
             (backend as any).article || 
@@ -170,17 +170,19 @@ export class ArticleService {
         }
       },
       {
-        maxAttempts: 2, // 🚀 减少重试次数 3→2
-        baseDelay: 500, // 🚀 减少延迟 1000→500
-        maxDelay: 2000, // 🚀 减少最大延迟 5000→2000
+        maxAttempts: 1, // 🚀 优化：减少重试次数到1次（快速失败）
+        baseDelay: 200, // 🚀 优化：减少延迟到200ms
+        maxDelay: 1000, // 🚀 优化：减少最大延迟到1秒
         retryCondition: (error) => {
-          // 重试5xx错误和网络错误，但不重试404
+          // 重试5xx错误和网络错误，但不重试404和超时
           if (error.message && error.message.includes('404')) return false;
           if (error.status === 404) return false;
+          // 🚀 优化：不重试超时错误，快速失败
+          if (error.message && error.message.includes('timeout')) return false;
+          if (error.name === 'AbortError') return false;
           return (error.message && (
             error.message.includes('500') || 
-            error.message.includes('503') || 
-            error.message.includes('timeout')
+            error.message.includes('503')
           )) || error.name === 'TypeError';
         }
       }
