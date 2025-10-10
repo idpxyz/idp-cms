@@ -16,3 +16,4 @@ django-cors-headers>=4.7
 PyYAML>=6.0
 jieba>=0.42.1
 PyJWT>=2.8.0
+pypinyin>=0.51.0

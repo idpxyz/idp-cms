@@ -227,6 +227,10 @@ export class ArticleService {
       has_video: data.has_video,
       language: data.language,
       external_url: data.external_article_url,
+      // SEO 字段
+      canonical_url: data.canonical_url,
+      external_article_url: data.external_article_url,
+      seo: data.seo || undefined,
     };
   }
 

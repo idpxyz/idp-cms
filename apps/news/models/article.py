@@ -116,6 +116,28 @@ class ArticlePage(Page):
                                    help_text="标记是否包含视频内容")
     tags = ClusterTaggableManager(through=ArticlePageTag, blank=True, verbose_name="标签")
     
+    # === SEO 专用字段 ===
+    meta_keywords = models.CharField(
+        max_length=255, 
+        blank=True, 
+        verbose_name="SEO关键词",
+        help_text="SEO关键词，多个关键词用逗号分隔（留空则自动使用标签）"
+    )
+    og_image = models.ForeignKey(
+        'media.CustomImage',
+        null=True, blank=True,
+        on_delete=models.SET_NULL,
+        related_name='+',
+        verbose_name="社交分享图片",
+        help_text="用于社交媒体分享的专用图片（留空则使用封面图）"
+    )
+    structured_data = models.JSONField(
+        null=True, 
+        blank=True,
+        verbose_name="结构化数据",
+        help_text="Schema.org 结构化数据（JSON格式），留空自动生成"
+    )
+    
     # === 聚合策略 ===
     source_type = models.CharField(
         max_length=20,
@@ -327,13 +349,38 @@ class ArticlePage(Page):
         ),
         
         MultiFieldPanel([
-            FieldPanel('excerpt', help_text="📝 SEO描述，用于搜索结果显示"),
-            FieldPanel('tags', help_text="🏷️ SEO关键词标签"),
-            # 注意：这些字段需要在模型中添加
-            # FieldPanel('meta_keywords', help_text="🔍 SEO关键词"),
-            # FieldPanel('social_image', help_text="📱 社交媒体分享图片"),
-            HelpPanel("🚧 更多SEO功能即将上线...")
-        ], heading="🎯 SEO设置"),
+            FieldPanel('excerpt', help_text="📝 SEO描述，建议150-160字符，用于搜索结果显示"),
+            FieldPanel('meta_keywords', help_text="🔍 SEO关键词，用逗号分隔（留空自动使用标签）"),
+            FieldPanel('tags', help_text="🏷️ 文章标签，同时用作关键词"),
+            FieldPanel('canonical_url', help_text="🔗 规范链接（通常用于聚合文章指向原文）"),
+        ], heading="🎯 搜索引擎优化"),
+        
+        MultiFieldPanel([
+            FieldPanel('og_image', help_text="📱 社交媒体分享专用图片（推荐1200x630px，留空使用封面图）"),
+            HelpPanel(
+                content="""
+                <div style="background: #f0f9ff; padding: 10px; border-radius: 4px; margin: 10px 0;">
+                    <strong>💡 提示：</strong>社交分享图片最佳规格<br/>
+                    • Facebook/LinkedIn: 1200x630px<br/>
+                    • Twitter: 1200x600px<br/>
+                    • 建议使用横向构图，避免重要内容靠边
+                </div>
+                """
+            ),
+        ], heading="📱 社交媒体"),
+        
+        MultiFieldPanel([
+            FieldPanel('structured_data', help_text="⚙️ 自定义结构化数据（JSON格式，高级用户使用，留空自动生成）"),
+            HelpPanel(
+                content="""
+                <div style="background: #fef3c7; padding: 10px; border-radius: 4px; margin: 10px 0;">
+                    <strong>⚠️ 高级功能：</strong><br/>
+                    结构化数据会自动生成，包含 NewsArticle schema。<br/>
+                    仅在需要自定义时填写此字段。
+                </div>
+                """
+            ),
+        ], heading="⚙️ 高级设置"),
     ]
 
     # 使用模块化的多标签页界面系统
@@ -511,8 +558,111 @@ class ArticlePage(Page):
         """更新动态权重"""
         self.weight = self.calculate_dynamic_weight()
     
+    def get_seo_keywords(self):
+        """
+        获取 SEO 关键词
+        优先使用 meta_keywords，如果为空则使用标签
+        """
+        if self.meta_keywords:
+            return self.meta_keywords
+        # 从标签自动生成
+        tags = [tag.name for tag in self.tags.all()]
+        return ', '.join(tags)
+    
+    def get_og_image_url(self):
+        """
+        获取社交分享图片 URL
+        优先使用 og_image，如果为空则使用 cover
+        """
+        image = self.og_image or self.cover
+        if image:
+            # 使用适合社交分享的尺寸
+            rendition = image.get_rendition('fill-1200x630|format-webp|jpegquality-85')
+            return rendition.url
+        return None
+    
+    def generate_structured_data(self):
+        """
+        自动生成文章的结构化数据 (Schema.org NewsArticle)
+        """
+        import os
+        
+        # 获取站点的公开URL
+        site = self.get_site()
+        site_url = os.environ.get('CMS_PUBLIC_URL', 'http://localhost:8000')
+        
+        structured_data = {
+            "@context": "https://schema.org",
+            "@type": "NewsArticle",
+            "headline": self.title,
+            "description": self.excerpt or self.title,
+            "datePublished": self.effective_publish_time.isoformat() if self.effective_publish_time else None,
+            "dateModified": self.updated_at.isoformat() if self.updated_at else None,
+            "author": {
+                "@type": "Person",
+                "name": self.author_name or "编辑部"
+            },
+        }
+        
+        # 添加图片
+        image_url = self.get_og_image_url()
+        if image_url:
+            # 确保图片URL是完整的
+            if not image_url.startswith('http'):
+                image_url = f"{site_url}{image_url}"
+            structured_data["image"] = image_url
+        
+        # 添加文章URL
+        if self.canonical_url:
+            structured_data["url"] = self.canonical_url
+        else:
+            article_url = self.get_url()
+            if article_url and not article_url.startswith('http'):
+                article_url = f"{site_url}{article_url}"
+            structured_data["url"] = article_url
+        
+        # 添加发布者信息
+        structured_data["publisher"] = {
+            "@type": "Organization",
+            "name": site.site_name if site else "IDP-CMS",
+            "url": site_url
+        }
+        
+        # 添加语言
+        if self.language:
+            structured_data["inLanguage"] = self.language.code
+        
+        # 添加关键词
+        keywords = self.get_seo_keywords()
+        if keywords:
+            structured_data["keywords"] = keywords
+        
+        return structured_data
+    
+    def get_structured_data(self):
+        """
+        获取结构化数据
+        优先使用自定义的，否则自动生成
+        """
+        if self.structured_data:
+            return self.structured_data
+        return self.generate_structured_data()
+    
     def save(self, *args, **kwargs):
-        """保存时自动更新阅读时长和动态权重"""
+        """保存时自动更新阅读时长、动态权重和 slug"""
+        # 自动生成拼音 slug（如果是中文）
+        from apps.news.utils import is_chinese_slug, generate_slug
+        
+        # 检查是否需要转换 slug
+        if self.slug and is_chinese_slug(self.slug):
+            # 如果是新文章（没有 pk）或者 slug 是中文，自动转换为拼音
+            if not self.pk:
+                # 新文章：生成临时 slug（不带ID）
+                self.slug = generate_slug(self.title)
+            else:
+                # 已存在的文章：使用ID生成唯一 slug
+                self.slug = generate_slug(self.title, article_id=self.pk)
+        
         if not self.reading_time:
             self.update_reading_time()
         

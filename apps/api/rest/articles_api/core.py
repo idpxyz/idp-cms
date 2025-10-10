@@ -228,7 +228,7 @@ def article_detail(request, slug):
             "id": article.id,
             "title": article.title,
             "slug": article.slug,
-            "excerpt": getattr(article, 'introduction', ''),
+            "excerpt": getattr(article, 'excerpt', ''),
             "body": expand_db_html(article.body).replace('http://authoring:8000/api/media/proxy', '/api/media-proxy') if hasattr(article, 'body') else '',
             "publish_at": article.first_published_at.isoformat() if article.first_published_at else None,
             "updated_at": article.last_published_at.isoformat() if article.last_published_at else None,
@@ -238,6 +238,13 @@ def article_detail(request, slug):
             "weight": getattr(article, 'weight', 0),
             "allow_aggregate": getattr(article, 'allow_aggregate', True),
             "canonical_url": getattr(article, 'canonical_url', ''),
+            "external_article_url": getattr(article, 'external_article_url', ''),
+            # SEO 元数据
+            "seo": {
+                "keywords": article.get_seo_keywords() if hasattr(article, 'get_seo_keywords') else '',
+                "og_image_url": article.get_og_image_url() if hasattr(article, 'get_og_image_url') else None,
+                "structured_data": article.get_structured_data() if hasattr(article, 'get_structured_data') else None,
+            },
             "source_site": site.id if hasattr(article, 'source_site') and article.source_site else site.id,
             "author_name": getattr(article, 'author_name', ''),
             "has_video": getattr(article, 'has_video', False),

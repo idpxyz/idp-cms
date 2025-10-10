@@ -57,6 +57,13 @@ interface Article {
   source: string;
   author: string;
   tags: string[];
+  canonical_url?: string;
+  external_article_url?: string;
+  seo?: {
+    keywords: string;
+    og_image_url: string | null;
+    structured_data: any;
+  };
 }
 
 // 🚀 优化：直接使用内部 API
@@ -225,8 +232,41 @@ export default async function ArticlePage({
     // 继续使用空数组，不影响页面渲染
   }
 
+  // 生成结构化数据（JSON-LD）
+  const structuredData = article.seo?.structured_data || {
+    "@context": "https://schema.org",
+    "@type": "NewsArticle",
+    "headline": article.title,
+    "description": article.excerpt || article.title,
+    "image": article.seo?.og_image_url || article.image_url || article.cover?.url,
+    "datePublished": article.publish_at,
+    "dateModified": article.updated_at,
+    "author": {
+      "@type": "Person",
+      "name": article.author || "编辑部"
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "IDP-CMS",
+      "logo": {
+        "@type": "ImageObject",
+        "url": `${process.env.NEXT_PUBLIC_SITE_URL}/logo.png`
+      }
+    },
+    "mainEntityOfPage": {
+      "@type": "WebPage",
+      "@id": article.canonical_url || `${process.env.NEXT_PUBLIC_SITE_URL}/portal/article/${slug}`
+    }
+  };
+
   return (
     <>
+      {/* 结构化数据 - SEO优化 */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+      />
+
       {/* 阅读追踪组件 - 客户端，最先加载 */}
       <ReadingTracker
         articleId={article.id}
@@ -297,22 +337,56 @@ export async function generateMetadata({
       };
     }
 
+    // 获取 SEO 数据
+    const seoKeywords = article.seo?.keywords || article.tags?.join(', ') || '';
+    const ogImage = article.seo?.og_image_url || article.image_url || article.cover?.url;
+    const canonicalUrl = article.canonical_url || `${process.env.NEXT_PUBLIC_SITE_URL}/portal/article/${slug}`;
+
     return {
       title: article.title,
       description: article.excerpt || article.title,
+      keywords: seoKeywords,
+      authors: article.author ? [{ name: article.author }] : undefined,
+      alternates: {
+        canonical: canonicalUrl,
+      },
+      robots: {
+        index: true,
+        follow: true,
+        googleBot: {
+          index: true,
+          follow: true,
+          'max-video-preview': -1,
+          'max-image-preview': 'large',
+          'max-snippet': -1,
+        },
+      },
       openGraph: {
         title: article.title,
         description: article.excerpt || article.title,
-        images: article.image_url ? [article.image_url] : [],
+        url: canonicalUrl,
+        siteName: 'IDP-CMS',
+        images: ogImage ? [
+          {
+            url: ogImage,
+            width: 1200,
+            height: 630,
+            alt: article.title,
+          }
+        ] : [],
         type: "article",
         publishedTime: article.publish_at,
-        authors: [article.author],
+        modifiedTime: article.updated_at,
+        authors: [article.author || '编辑部'],
+        section: article.channel?.name,
+        tags: article.tags || [],
       },
       twitter: {
         card: "summary_large_image",
         title: article.title,
         description: article.excerpt || article.title,
-        images: article.image_url ? [article.image_url] : [],
+        images: ogImage ? [ogImage] : [],
+        creator: article.author ? `@${article.author}` : undefined,
       },
     };
   } catch (error) {

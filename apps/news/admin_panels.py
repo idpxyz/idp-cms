@@ -152,11 +152,86 @@ def get_editorial_workflow_panels():
     ]
 
 
+def get_promote_panels():
+    """推广面板 - 包含 Slug 和搜索引擎可见性设置"""
+    from wagtail.models import Page
+    
+    return [
+        HelpPanel(
+            content="""
+            <div style="background: #e3f2fd; padding: 12px; border-radius: 6px; margin-bottom: 10px;">
+                <strong>🔗 URL与推广设置</strong><br/>
+                设置文章的访问地址（slug）和搜索引擎展示信息
+            </div>
+            """
+        ),
+        
+        MultiFieldPanel([
+            FieldPanel('slug', help_text="🔗 文章URL标识符（网址中显示的部分）。保存时会自动将中文转换为拼音。"),
+            FieldPanel('seo_title', help_text="📑 SEO标题（留空使用文章标题）"),
+            FieldPanel('search_description', help_text="📝 搜索引擎描述（留空使用摘要）"),
+        ], heading="🔗 URL与搜索"),
+        
+        MultiFieldPanel([
+            FieldPanel('show_in_menus', help_text="📋 是否在导航菜单中显示"),
+        ], heading="📋 菜单显示", classname="collapsed"),
+    ]
+
+
+def get_seo_panels():
+    """SEO 优化面板 - 专门的 SEO 设置"""
+    
+    return [
+        HelpPanel(
+            content="""
+            <div style="background: #fff8e1; padding: 12px; border-radius: 6px; margin-bottom: 10px;">
+                <strong>🎯 SEO 优化</strong><br/>
+                搜索引擎优化和社交媒体分享设置
+            </div>
+            """
+        ),
+        
+        MultiFieldPanel([
+            FieldPanel('meta_keywords', help_text="🔍 SEO关键词，用逗号分隔（留空自动使用文章标签）"),
+            FieldPanel('canonical_url', help_text="🔗 规范链接（通常用于聚合文章指向原文）"),
+        ], heading="🎯 搜索引擎优化"),
+        
+        MultiFieldPanel([
+            FieldPanel('og_image', help_text="📱 社交媒体分享专用图片（推荐1200x630px，留空使用封面图）"),
+            HelpPanel(
+                content="""
+                <div style="background: #f0f9ff; padding: 10px; border-radius: 4px; margin: 10px 0;">
+                    <strong>💡 提示：</strong>社交分享图片最佳规格<br/>
+                    • Facebook/LinkedIn: 1200x630px<br/>
+                    • Twitter: 1200x600px<br/>
+                    • 建议使用横向构图，避免重要内容靠边
+                </div>
+                """
+            ),
+        ], heading="📱 社交媒体分享"),
+        
+        MultiFieldPanel([
+            FieldPanel('structured_data', help_text="📊 Schema.org 结构化数据（JSON格式，留空自动生成）"),
+            HelpPanel(
+                content="""
+                <div style="background: #f3f4f6; padding: 10px; border-radius: 4px; margin: 10px 0;">
+                    <strong>ℹ️ 说明：</strong><br/>
+                    结构化数据帮助搜索引擎更好地理解文章内容。<br/>
+                    留空时系统会自动生成符合 NewsArticle 规范的结构化数据。
+                </div>
+                """
+            ),
+        ], heading="📊 结构化数据", classname="collapsed"),
+    ]
+
+
 def get_tabbed_interface():
     """完整的标签页界面配置"""
     
     return TabbedInterface([
         ObjectList(get_optimized_content_panels(), heading='📰 内容编辑'),
+        ObjectList(get_promote_panels(), heading='🔗 推广'),
+        ObjectList(get_seo_panels(), heading='🎯 SEO'),
         ObjectList(get_advanced_panels(), heading='⚙️ 高级设置'),
         # ObjectList(get_editorial_workflow_panels(), heading='👥 编辑流程'),  # 需要模型支持
     ])

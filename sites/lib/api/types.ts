@@ -107,6 +107,15 @@ export interface Article {
   language?: string;
   external_url?: string;
   
+  // SEO 字段
+  canonical_url?: string;
+  external_article_url?: string;
+  seo?: {
+    keywords: string;
+    og_image_url: string | null;
+    structured_data: any;
+  };
+  
   // 新增分类和专题字段
   categories?: Array<{
     id: number;
