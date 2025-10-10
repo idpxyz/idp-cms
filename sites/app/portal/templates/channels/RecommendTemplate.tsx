@@ -209,28 +209,71 @@ const RecommendTemplate: React.FC<ChannelTemplateProps> = ({
           </Section>
         )}
 
-        {/* 频道条带区域 */}
-        {channelStrips.map((channelItem: any) => (
-          <Section key={channelItem.id} space="lg">
-            <ChannelStrip
-              channelId={channelItem.id}
-              channelName={channelItem.name}
-              channelSlug={channelItem.slug}
-              showCategories={false}
-              showViewMore={true}
-              articleLimit={8}
+        {/* 频道条带区域 - 使用 isMounted 避免 Hydration Mismatch */}
+        {isMounted ? (
+          channelStrips.map((channelItem: any) => (
+            <Section key={channelItem.id} space="lg">
+              <ChannelStrip
+                channelId={channelItem.id}
+                channelName={channelItem.name}
+                channelSlug={channelItem.slug}
+                showCategories={false}
+                showViewMore={true}
+                articleLimit={8}
+              />
+            </Section>
+          ))
+        ) : (
+          // 🎯 骨架屏：防止布局跳动
+          <>
+            {channelStrips.slice(0, 2).map((channelItem: any) => (
+              <Section key={`skeleton-${channelItem.id}`} space="lg">
+                <div className="bg-white p-6 rounded-lg">
+                  <div className="h-6 bg-gray-200 rounded w-32 mb-4 animate-pulse"></div>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    {[...Array(4)].map((_, i) => (
+                      <div key={i} className="space-y-3 animate-pulse">
+                        <div className="aspect-video bg-gray-200 rounded"></div>
+                        <div className="h-4 bg-gray-200 rounded w-full"></div>
+                        <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </Section>
+            ))}
+          </>
+        )}
+
+        {/* 智能推荐 - 使用 isMounted 避免 Hydration Mismatch */}
+        {isMounted ? (
+          <Section space="md">
+            <NewsContent
+              channels={channels}
+              initialChannelId={channel.id}
+              tags={tags}
             />
           </Section>
-        ))}
-
-        {/* 智能推荐 */}
-        <Section space="md">
-          <NewsContent
-            channels={channels}
-            initialChannelId={channel.id}
-            tags={tags}
-          />
-        </Section>
+        ) : (
+          // 🎯 骨架屏：智能推荐区域
+          <Section space="md">
+            <div className="bg-white p-6 rounded-lg">
+              <div className="h-6 bg-gray-200 rounded w-40 mb-4 animate-pulse"></div>
+              <div className="space-y-4">
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className="flex space-x-4 animate-pulse">
+                    <div className="w-20 h-16 bg-gray-200 rounded flex-shrink-0"></div>
+                    <div className="flex-1 space-y-2">
+                      <div className="h-4 bg-gray-200 rounded w-full"></div>
+                      <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                      <div className="h-3 bg-gray-100 rounded w-1/2"></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </Section>
+        )}
       </PageContainer>
     </>
   );
