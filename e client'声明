@@ -1,0 +1,5 @@
+sites/app/portal/templates/channels/CultureTemplate.tsx
+sites/app/portal/templates/channels/DefaultTemplate.tsx
+sites/app/portal/templates/channels/FashionTemplate.tsx
+sites/app/portal/templates/channels/SocialTemplate.tsx
+sites/app/portal/templates/channels/TechTemplate.tsx
