@@ -2,7 +2,7 @@ import React from "react";
 import { notFound } from "next/navigation";
 import dynamic from "next/dynamic";
 import type { Metadata } from "next";
-import ArticleLayout from "./components/ArticleLayout";
+import ArticleStaticLayout from "./components/ArticleStaticLayout";
 import SidebarRelatedArticles from "./components/SidebarRelatedArticles";
 
 // 🚀 性能优化：懒加载客户端组件
@@ -275,9 +275,9 @@ export default async function ArticlePage({
         channelSlug={article.channel.slug}
       />
 
-      {/* 文章布局 - 服务端渲染 */}
-      <ArticleLayout article={article} hasSidebar={true}>
-        {/* 交互按钮插槽 - 在文章头部（标题和元信息之后，封面图之前） */}
+      {/* 🚀 文章静态布局 - 服务端渲染，立即可见可读 */}
+      <ArticleStaticLayout article={article} hasSidebar={true}>
+        {/* 交互按钮插槽 - 客户端组件，延迟水合 */}
         <div slot="interactions">
           <ArticleInteractions
             articleId={article.id}
@@ -287,23 +287,23 @@ export default async function ArticlePage({
           />
         </div>
 
-        {/* 主内容区插槽 - 在文章正文之后 */}
+        {/* 主内容区插槽 - 评论等客户端组件 */}
         <div slot="content">
-          {/* 评论区 - 客户端，懒加载 */}
+          {/* 评论区 - 客户端组件，懒加载 */}
           <div className="px-6 md:px-12 py-6 bg-white" data-comment-section>
             <CommentSectionWrapper articleId={article.id.toString()} />
           </div>
         </div>
         
-        {/* 侧边栏插槽 */}
+        {/* 侧边栏插槽 - 混合渲染 */}
         <div slot="sidebar">
-          {/* 同频道相关文章 - 服务端数据传递 */}
+          {/* 同频道相关文章 - 服务端数据，立即可见 */}
           <SidebarRelatedArticles 
             articles={relatedArticles}
             currentChannelSlug={article.channel.slug}
           />
           
-          {/* 跨频道推荐文章 - 客户端渲染，自动获取跨频道推荐 */}
+          {/* 跨频道推荐文章 - 客户端组件，延迟加载 */}
           <div className="mt-6">
             <RecommendedArticles
               articleSlug={article.slug}
@@ -312,7 +312,7 @@ export default async function ArticlePage({
             />
           </div>
         </div>
-      </ArticleLayout>
+      </ArticleStaticLayout>
     </>
   );
 }
