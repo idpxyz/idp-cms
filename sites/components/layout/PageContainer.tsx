@@ -6,7 +6,7 @@ interface PageContainerProps {
   as?: ContainerElement;
   children: React.ReactNode;
   className?: string;
-  padding?: "none" | "sm" | "md" | "lg";
+  padding?: "none" | "sm" | "md" | "lg" | "adaptive";
 }
 
 const paddingClass: Record<NonNullable<PageContainerProps["padding"]>, string> = {
@@ -14,6 +14,7 @@ const paddingClass: Record<NonNullable<PageContainerProps["padding"]>, string> =
   sm: "px-3",
   md: "px-4",
   lg: "px-6",
+  adaptive: "px-4 sm:px-3 lg:px-0", // 移动端有边距，桌面端无边距
 };
 
 export default function PageContainer({

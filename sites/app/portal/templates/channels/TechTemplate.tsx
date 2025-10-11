@@ -24,7 +24,7 @@ const TechTemplate: React.FC<ChannelTemplateProps> = ({
   tags 
 }) => {
   return (
-    <PageContainer>
+    <PageContainer padding="adaptive">
       {/* 🎨 现代化的科技频道头部 */}
       <Section space="lg">
         <div className="relative bg-gradient-to-br from-blue-50 via-cyan-50 to-teal-50 rounded-2xl p-8 border border-blue-100 overflow-hidden">

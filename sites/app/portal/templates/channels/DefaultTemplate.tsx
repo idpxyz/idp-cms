@@ -24,7 +24,7 @@ const DefaultTemplate: React.FC<ChannelTemplateProps> = ({
   tags 
 }) => {
   return (
-    <PageContainer>
+    <PageContainer padding="adaptive">
       {/* 简洁的头部 */}
       {/* <Section space="lg">
         <div className="bg-white rounded-xl p-6 border border-gray-200">

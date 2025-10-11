@@ -22,7 +22,7 @@ const CultureTemplate: React.FC<ChannelTemplateProps> = ({
   tags 
 }) => {
   return (
-    <PageContainer>
+    <PageContainer padding="adaptive">
       {/* 🎨 优雅的文化频道头部 */}
       <Section space="lg">
         <div className="relative bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-50 rounded-2xl p-8 border border-purple-100 overflow-hidden">

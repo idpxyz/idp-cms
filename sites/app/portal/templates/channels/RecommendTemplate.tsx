@@ -178,7 +178,7 @@ const RecommendTemplate: React.FC<ChannelTemplateProps> = ({
         )}
       </PageContainer>
 
-      <PageContainer padding="md">
+      <PageContainer padding="adaptive">
         {/* Top Stories 头条网格 - 客户端渲染，避免 Hydration Mismatch */}
         {isMounted && topStories && topStories.length > 0 ? (
           <Section space="md">

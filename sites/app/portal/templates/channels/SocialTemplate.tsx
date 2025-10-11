@@ -30,7 +30,7 @@ const SocialTemplate: React.FC<ChannelTemplateProps> = ({
   tags 
 }) => {
   return (
-    <PageContainer>
+    <PageContainer padding="adaptive">
       {/* 🎯 频道标题栏和统计信息 */}
       <Section space="sm">
         <SocialChannelStats 

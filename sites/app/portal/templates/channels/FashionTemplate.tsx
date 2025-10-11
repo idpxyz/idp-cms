@@ -30,7 +30,7 @@ const FashionTemplate: React.FC<ChannelTemplateProps> = ({
   };
 
   return (
-    <PageContainer>
+    <PageContainer padding="adaptive">
       {/* ✨ 时尚头部 - 杂志风格设计 */}
       <Section space="lg">
         <div className="relative bg-gradient-to-br from-pink-50 via-purple-50/30 to-rose-50/20 border-0 rounded-3xl overflow-hidden min-h-[500px]">

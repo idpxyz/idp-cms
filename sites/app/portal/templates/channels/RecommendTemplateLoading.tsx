@@ -19,7 +19,7 @@ const RecommendTemplateLoading: React.FC = () => {
         </div>
       </PageContainer>
 
-      <PageContainer padding="md">
+      <PageContainer padding="adaptive">
         {/* Top Stories 骨架屏 */}
         <Section space="md">
           <div className="mb-6">
