@@ -168,7 +168,7 @@ class Command(BaseCommand):
                     )
                     sites = [default_site]
                     if created:
-                        self.stdout.write('   ✅ 创建了默认Wagtail站点: localhost:3000')
+                        self.stdout.write('   ✅ 创建了默认Wagtail站点: localhost:3001')
                 else:
                     self.stdout.write('   ⚠️ 没有根页面，跳过站点关联')
                     sites = []

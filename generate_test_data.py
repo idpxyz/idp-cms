@@ -158,6 +158,6 @@ if __name__ == "__main__":
     if success:
         print("\n✅ 测试数据生成成功!")
         print("🔄 现在推荐系统应该能正常工作了!")
-        print("🌐 请访问 http://localhost:3000/feed 查看智能推荐效果")
+        print("🌐 请访问 http://localhost:3001/feed 查看智能推荐效果")
     else:
         print("\n❌ 测试数据生成失败!")

@@ -25,11 +25,11 @@ const CONFIG = {
   },
   
   URLS: [
-    'http://localhost:3000',                    // 主页
-    'http://localhost:3000/portal',             // 门户首页
-    'http://localhost:3000/shanghai',           // 上海站首页
-    'http://localhost:3000/portal/theme-demo',  // 主题演示页
-    'http://localhost:3000/shanghai/theme-demo', // 地方站演示页
+    'http://localhost:3001',                    // 主页
+    'http://localhost:3001/portal',             // 门户首页
+    'http://localhost:3001/shanghai',           // 上海站首页
+    'http://localhost:3001/portal/theme-demo',  // 主题演示页
+    'http://localhost:3001/shanghai/theme-demo', // 地方站演示页
   ],
   
   DEVICES: ['mobile', 'desktop'],
@@ -305,7 +305,7 @@ async function main() {
   console.log('🚀 Starting Lighthouse CI Tests...\n');
 
   // 检查是否有测试服务器运行
-  console.log('⚠️  Make sure your test server is running on http://localhost:3000');
+  console.log('⚠️  Make sure your test server is running on http://localhost:3001');
   console.log('   Run: npm run dev or npm run start\n');
 
   let chrome;

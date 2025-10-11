@@ -9,7 +9,7 @@ echo "================================"
 echo ""
 
 # 配置
-BASE_URL="${1:-http://localhost:3000}"
+BASE_URL="${1:-http://localhost:3001}"
 TEST_SLUG="${2:-test-article}"
 ITERATIONS="${3:-5}"
 

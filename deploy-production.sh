@@ -57,7 +57,7 @@ main() {
     # 2. 配置文件检查
     log_info "检查配置文件..."
     check_file .env
-    check_file infra/production/docker-compose.yaml
+    check_file infra/production/docker-compose.yml
     
     # 3. 安全配置验证
     log_info "验证安全配置..."
@@ -129,19 +129,19 @@ validate_security_config() {
 
 # 数据库备份
 backup_database() {
-    if [ -f "infra/production/docker-compose.yaml" ]; then
+    if [ -f "infra/production/docker-compose.yml" ]; then
         log_info "创建数据库备份..."
         
         # 创建备份目录
         mkdir -p backups/$(date +%Y%m%d_%H%M%S)
         
         # 备份PostgreSQL
-        docker-compose -f infra/production/docker-compose.yaml exec -T postgres \
+        docker-compose -f infra/production/docker-compose.yml exec -T postgres \
             pg_dump -U $POSTGRES_USER $POSTGRES_DB > \
             backups/$(date +%Y%m%d_%H%M%S)/postgres_backup.sql
         
         # 备份MinIO数据
-        docker-compose -f infra/production/docker-compose.yaml exec -T minio \
+        docker-compose -f infra/production/docker-compose.yml exec -T minio \
             mc mirror /data backups/$(date +%Y%m%d_%H%M%S)/minio_backup/
         
         log_success "数据库备份完成"
@@ -152,8 +152,8 @@ backup_database() {
 stop_services() {
     log_info "停止现有服务..."
     
-    if [ -f "infra/production/docker-compose.yaml" ]; then
-        docker-compose -f infra/production/docker-compose.yaml down --remove-orphans
+    if [ -f "infra/production/docker-compose.yml" ]; then
+        docker-compose -f infra/production/docker-compose.yml down --remove-orphans
     fi
     
     log_success "服务已停止"
@@ -177,11 +177,11 @@ deploy_services() {
     
     # 构建镜像
     log_info "构建Docker镜像..."
-    docker-compose -f infra/production/docker-compose.yaml build --no-cache
+    docker-compose -f infra/production/docker-compose.yml build --no-cache
     
     # 启动服务
     log_info "启动服务..."
-    docker-compose -f infra/production/docker-compose.yaml up -d
+    docker-compose -f infra/production/docker-compose.yml up -d
     
     # 等待服务启动
     log_info "等待服务启动..."
@@ -195,7 +195,7 @@ health_check() {
     log_info "执行健康检查..."
     
     # 检查PostgreSQL
-    if docker-compose -f infra/production/docker-compose.yaml exec -T postgres pg_isready -U $POSTGRES_USER; then
+    if docker-compose -f infra/production/docker-compose.yml exec -T postgres pg_isready -U $POSTGRES_USER; then
         log_success "PostgreSQL 健康检查通过"
     else
         log_error "PostgreSQL 健康检查失败"
@@ -203,7 +203,7 @@ health_check() {
     fi
     
     # 检查Redis
-    if docker-compose -f infra/production/docker-compose.yaml exec -T redis redis-cli ping | grep -q "PONG"; then
+    if docker-compose -f infra/production/docker-compose.yml exec -T redis redis-cli ping | grep -q "PONG"; then
         log_success "Redis 健康检查通过"
     else
         log_error "Redis 健康检查失败"

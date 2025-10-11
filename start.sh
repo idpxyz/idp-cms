@@ -10,7 +10,7 @@ wait_for_service() {
     
     echo "⏳ Waiting for $service to be ready..."
     while [ $attempt -le $max_attempts ]; do
-        if docker compose -f infra/local/docker-compose.yaml ps $service | grep -q "healthy"; then
+        if docker compose -f infra/local/docker-compose.yml ps $service | grep -q "healthy"; then
             echo "✅ $service is ready!"
             return 0
         fi
@@ -25,7 +25,7 @@ wait_for_service() {
 
 # Stop any existing services
 echo "🛑 Stopping existing services..."
-docker compose -f infra/local/docker-compose.yaml down
+docker compose -f infra/local/docker-compose.yml down
 
 # Clean up volumes if needed
 if [ "$1" = "--clean" ]; then
@@ -35,7 +35,7 @@ fi
 
 # Start infrastructure services first
 echo "🏗️  Starting infrastructure services..."
-docker compose -f infra/local/docker-compose.yaml up -d postgres redis minio opensearch clickhouse
+docker compose -f infra/local/docker-compose.yml up -d postgres redis minio opensearch clickhouse
 
 # Wait for services to be ready
 wait_for_service postgres || exit 1
@@ -45,7 +45,7 @@ wait_for_service clickhouse || exit 1
 
 # Start authoring service (without auto-migration)
 echo "📝 Starting authoring service..."
-docker compose -f infra/local/docker-compose.yaml up -d authoring
+docker compose -f infra/local/docker-compose.yml up -d authoring
 
 # Wait for authoring to be ready
 echo "⏳ Waiting for authoring service to be ready..."
@@ -53,17 +53,17 @@ sleep 30
 
 # Generate migrations for custom apps
 echo "📝 Generating migrations for custom apps..."
-docker compose -f infra/local/docker-compose.yaml exec -T authoring python authoring/manage.py makemigrations home
-docker compose -f infra/local/docker-compose.yaml exec -T authoring python authoring/manage.py makemigrations news
-docker compose -f infra/local/docker-compose.yaml exec -T authoring python authoring/manage.py makemigrations core
+docker compose -f infra/local/docker-compose.yml exec -T authoring python manage.py makemigrations home
+docker compose -f infra/local/docker-compose.yml exec -T authoring python manage.py makemigrations news
+docker compose -f infra/local/docker-compose.yml exec -T authoring python manage.py makemigrations core
 
 # Initialize database and run migrations
 echo "🗄️  Running migrations..."
-docker compose -f infra/local/docker-compose.yaml exec -T authoring python authoring/manage.py migrate
+docker compose -f infra/local/docker-compose.yml exec -T authoring python manage.py migrate
 
 # Create superuser if needed
 echo "👤 Creating superuser..."
-docker compose -f infra/local/docker-compose.yaml exec -T authoring python authoring/manage.py shell -c "
+docker compose -f infra/local/docker-compose.yml exec -T authoring python manage.py shell -c "
 from django.contrib.auth import get_user_model
 User = get_user_model()
 if not User.objects.filter(username='admin').exists():
@@ -75,16 +75,16 @@ else:
 
 # Start remaining services
 echo "🚀 Starting remaining services..."
-docker compose -f infra/local/docker-compose.yaml up -d
+docker compose -f infra/local/docker-compose.yml up -d
 
 echo "🎉 IDP-CMS is now running!"
 echo ""
 echo "📊 Service Status:"
-docker compose -f infra/local/docker-compose.yaml ps
+docker compose -f infra/local/docker-compose.yml ps
 echo ""
 echo "🌐 Access URLs:"
 echo "   - Wagtail Admin: http://localhost:8000/admin/"
-echo "   - Portal: http://localhost:3000/"
+echo "   - Sites Frontend: http://localhost:3001/"
 echo "   - OpenSearch: http://localhost:9200/"
 echo "   - MinIO Console: http://localhost:9001/"
 echo "   - ClickHouse: http://localhost:8123/"

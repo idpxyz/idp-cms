@@ -2,12 +2,22 @@
 
 echo "🚀 Starting IDP-CMS in PRODUCTION mode..."
 
-# Check if .env file exists
-if [ ! -f .env ]; then
-    echo "❌ Error: .env file not found!"
-    echo "Please create .env file from env.example and configure it for production."
+# Check if required .env files exist
+if [ ! -f .env.core ] || [ ! -f .env.production ]; then
+    echo "❌ Error: Required environment files not found!"
+    echo "Missing files:"
+    [ ! -f .env.core ] && echo "  - .env.core"
+    [ ! -f .env.production ] && echo "  - .env.production"
+    echo ""
+    echo "Please ensure all required .env files are configured."
     exit 1
 fi
+
+echo "✅ Environment files found:"
+echo "  - .env.core"
+echo "  - .env.features"
+echo "  - .env.production"
+echo ""
 
 # Function to check if a service is healthy
 wait_for_service() {
@@ -17,7 +27,7 @@ wait_for_service() {
     
     echo "⏳ Waiting for $service to be ready..."
     while [ $attempt -le $max_attempts ]; do
-        if docker compose -f infra/production/docker-compose.yaml ps $service | grep -q "healthy"; then
+        if docker compose -f infra/production/docker-compose.yml ps $service | grep -q "healthy"; then
             echo "✅ $service is ready!"
             return 0
         fi
@@ -32,11 +42,11 @@ wait_for_service() {
 
 # Stop any existing services
 echo "🛑 Stopping existing services..."
-docker compose -f infra/production/docker-compose.yaml down
+docker compose -f infra/production/docker-compose.yml down
 
 # Start infrastructure services first
 echo "🏗️  Starting infrastructure services..."
-docker compose -f infra/production/docker-compose.yaml up -d postgres redis minio opensearch
+docker compose -f infra/production/docker-compose.yml up -d postgres redis minio opensearch
 
 # Wait for services to be ready
 wait_for_service postgres || exit 1
@@ -46,7 +56,7 @@ wait_for_service opensearch || exit 1
 
 # Start authoring service
 echo "📝 Starting authoring service..."
-docker compose -f infra/production/docker-compose.yaml up -d authoring
+docker compose -f infra/production/docker-compose.yml up -d authoring
 
 # Wait for authoring to be ready
 echo "⏳ Waiting for authoring service to be ready..."
@@ -54,20 +64,20 @@ sleep 30
 
 # Run migrations
 echo "🗄️  Running migrations..."
-docker compose -f infra/production/docker-compose.yaml exec -T authoring python authoring/manage.py migrate
+docker compose -f infra/production/docker-compose.yml exec -T authoring python manage.py migrate
 
 # Start portal service
 echo "🌐 Starting portal service..."
-docker compose -f infra/production/docker-compose.yaml up -d portal
+docker compose -f infra/production/docker-compose.yml up -d portal
 
 echo "🎉 IDP-CMS is now running in PRODUCTION mode!"
 echo ""
 echo "📊 Service Status:"
-docker compose -f infra/production/docker-compose.yaml ps
+docker compose -f infra/production/docker-compose.yml ps
 echo ""
 echo "🌐 Access URLs:"
 echo "   - Wagtail Admin: http://localhost:8000/admin/"
-echo "   - Portal: http://localhost:3000/"
+echo "   - Sites Frontend: http://localhost:3001/"
 echo "   - OpenSearch: http://localhost:9200/"
 echo "   - MinIO Console: http://localhost:9001/"
 echo ""

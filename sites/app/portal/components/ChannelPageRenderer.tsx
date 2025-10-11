@@ -16,13 +16,19 @@ import { useSearchParams } from 'next/navigation';
  * - 保持 URL 同步（用于刷新恢复状态）
  */
 const ChannelPageRenderer: React.FC = () => {
-  const { channels, currentChannelSlug } = useChannels();
+  const { channels, currentChannelSlug, channelsLoading } = useChannels();
   const searchParams = useSearchParams();
   const tags = searchParams?.get('tags') || undefined;
   
   // 🔍 查找对应频道
   const channel = channels.find(ch => ch.slug === currentChannelSlug);
   
+  // 🚀 如果频道数据正在加载，显示骨架屏
+  if (channelsLoading) {
+    return <SocialTemplateLoading />;
+  }
+  
+  // ❌ 如果加载完成但找不到频道，显示错误
   if (!channel) {
     return (
       <div className="container mx-auto px-4 py-20 text-center">

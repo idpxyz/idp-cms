@@ -18,10 +18,10 @@ class ModernFrontendCache {
   // 现代化缓存时间配置
   private static readonly CACHE_TIMES: Record<string, number> = {
     'breaking': 0,      // 突发新闻实时
-    'hot': 5,          // 热点5秒
-    'trending': 10,    // 趋势10秒
-    'normal': 15,      // 普通15秒
-    'recommend': 30    // 推荐30秒
+    'hot': 30,          // ⚡ 热点30秒（提高缓存时间）
+    'trending': 60,     // ⚡ 趋势1分钟（提高缓存时间）
+    'normal': 120,      // ⚡ 普通2分钟（提高缓存时间）
+    'recommend': 180    // ⚡ 推荐3分钟 - 首页推荐内容可以缓存更久
   };
   
   static set(key: string, data: any, contentType: string): void {
@@ -170,7 +170,7 @@ export async function getTopStories(
     const response = await fetch(apiUrl, {
       headers: getRequestHeaders(options?.userId),
       next: { revalidate: 60 }, // TopStories需要更频繁更新
-      signal: AbortSignal.timeout(8000), // 8秒超时，快速失败以优化 LCP
+      signal: AbortSignal.timeout(3000), // ⚡ 3秒超时，与Hero API保持一致，快速失败以优化 LCP
     });
     
     if (!response.ok) {

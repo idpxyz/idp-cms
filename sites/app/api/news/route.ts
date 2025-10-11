@@ -153,16 +153,15 @@ export async function GET(req: NextRequest) {
     };
 
     // 构建响应
-    const out = new NextResponse(JSON.stringify(adaptedData), {
+    // HTTP headers must be ASCII-only, so encode the channel name
+    const safeChannel = encodeURIComponent(channel);
+    return NextResponse.json(adaptedData, {
       status: response.status,
       headers: {
-        "Content-Type": "application/json",
         "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
-        "Surrogate-Key": `news:${channel} news:all site:localhost`,  
+        "Surrogate-Key": `news:${safeChannel} news:all site:localhost`,  
       },
     });
-
-    return out;
   } catch (error) {
     console.error(`News API error for channel ${channel}:`, error);  
 

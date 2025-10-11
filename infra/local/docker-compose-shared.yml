@@ -1,0 +1,211 @@
+# =============================================================================
+# 开发环境 - 使用共享基础设施
+# =============================================================================
+# 使用共享的 PostgreSQL, MinIO, ClickHouse
+# 
+# 前置条件: 先启动共享基础设施
+#   ./start-shared-infra.sh
+# 
+# 启动: docker compose -f infra/local/docker-compose-shared.yml up -d
+# =============================================================================
+
+# 使用共享网络
+networks:
+  default:
+    name: idp-shared-network
+    external: true
+
+services:
+  # =========================================================================
+  # 独立服务（不共享）
+  # =========================================================================
+  
+  redis:
+    image: redis:7
+    container_name: local-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  opensearch:
+    image: opensearchproject/opensearch:3.2.0
+    container_name: local-opensearch
+    environment:
+      - discovery.type=single-node
+      - OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m
+      - DISABLE_SECURITY_PLUGIN=true
+      - OPENSEARCH_INITIAL_ADMIN_PASSWORD=OpenSearch2024!@#$$%
+      - cluster.routing.allocation.disk.threshold_enabled=false
+    ports:
+      - "9200:9200"
+      - "9600:9600"
+    volumes:
+      - os_data:/usr/share/opensearch/data
+
+  os-dashboards:
+    image: opensearchproject/opensearch-dashboards:3.0.0
+    container_name: local-os-dashboards
+    environment:
+      - OPENSEARCH_HOSTS=["http://opensearch:9200"]
+      - DISABLE_SECURITY_DASHBOARDS_PLUGIN=true
+    ports:
+      - "5601:5601"
+    depends_on:
+      - opensearch
+
+  # =========================================================================
+  # 应用服务（连接到共享基础设施）
+  # =========================================================================
+
+  authoring:
+    build:
+      context: ../../
+      dockerfile: Dockerfile
+      target: development
+    container_name: local-authoring
+    command: sh /app/infra/local/start_authoring.sh
+    env_file:
+      - ../../.env.core
+      - ../../.env.features
+      - ../../.env.development
+    environment:
+      # 使用共享服务的容器名
+      POSTGRES_HOST: shared-postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-news}
+      POSTGRES_USER: ${POSTGRES_USER:-news}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-news}
+      
+      # Redis 使用本地容器
+      REDIS_URL: redis://redis:6379/1
+      
+      # MinIO 使用共享服务
+      MINIO_ENDPOINT: http://shared-minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin}
+      MINIO_BUCKET: ${MINIO_BUCKET:-media}
+      MINIO_USE_SSL: "false"
+      
+      # ClickHouse 使用共享服务
+      CLICKHOUSE_URL: clickhouse://default:thends@shared-clickhouse:9000/default
+      
+      # OpenSearch 使用本地容器
+      OPENSEARCH_URL: http://opensearch:9200
+      
+      # Django 配置
+      DJANGO_SETTINGS_MODULE: config.settings.dev
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-dev-secret-key-change-in-production}
+      DJANGO_DEBUG: 1
+      DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1,authoring,authoring.local
+      
+      # 前端配置
+      FRONTEND_ORIGIN: http://localhost:3001
+      FRONTEND_PUBLIC_URL: http://localhost:3001
+      FRONTEND_BASE_URL: http://localhost:3001
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../../:/app
+      - /app/sites/node_modules
+      - ../../logs:/app/logs
+    depends_on:
+      redis:
+        condition: service_healthy
+      opensearch:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health/readiness/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  celery:
+    build:
+      context: ../../
+      dockerfile: Dockerfile
+      target: development
+    container_name: local-celery
+    command: python manage.py run_huey -v 2 -w 4
+    env_file:
+      - ../../.env.core
+      - ../../.env.features
+      - ../../.env.development
+    environment:
+      POSTGRES_HOST: shared-postgres
+      POSTGRES_PORT: 5432
+      REDIS_URL: redis://redis:6379/1
+      MINIO_ENDPOINT: http://shared-minio:9000
+      CLICKHOUSE_URL: clickhouse://default:thends@shared-clickhouse:9000/default
+      OPENSEARCH_URL: http://opensearch:9200
+      DJANGO_SETTINGS_MODULE: config.settings.dev
+      FRONTEND_ORIGIN: http://localhost:3001
+      FRONTEND_PUBLIC_URL: http://localhost:3001
+    volumes:
+      - ../../:/app
+      - ../../logs:/app/logs
+    depends_on:
+      - authoring
+      - redis
+
+  celery-beat:
+    build:
+      context: ../../
+      dockerfile: Dockerfile
+      target: development
+    container_name: local-celery-beat
+    command: python manage.py run_huey -f -v 2
+    env_file:
+      - ../../.env.core
+      - ../../.env.features
+      - ../../.env.development
+    environment:
+      POSTGRES_HOST: shared-postgres
+      POSTGRES_PORT: 5432
+      REDIS_URL: redis://redis:6379/1
+      MINIO_ENDPOINT: http://shared-minio:9000
+      CLICKHOUSE_URL: clickhouse://default:thends@shared-clickhouse:9000/default
+      OPENSEARCH_URL: http://opensearch:9200
+      DJANGO_SETTINGS_MODULE: config.settings.dev
+      FRONTEND_ORIGIN: http://localhost:3001
+      FRONTEND_PUBLIC_URL: http://localhost:3001
+    volumes:
+      - ../../:/app
+      - ../../logs:/app/logs
+    depends_on:
+      - authoring
+      - redis
+
+  sites:
+    build:
+      context: ../../sites
+      dockerfile: Dockerfile
+      target: development
+    container_name: local-sites
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+      - NEXT_PUBLIC_SITE_URL=http://localhost:3001
+    ports:
+      - "3001:3000"
+    volumes:
+      - ../../sites:/app
+      - /app/node_modules
+      - /app/.next
+    depends_on:
+      - authoring
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  redis_data:
+  os_data:
+

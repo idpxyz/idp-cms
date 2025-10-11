@@ -22,6 +22,7 @@ SITE_MAPPINGS = {
     'localhost': 'localhost',
     '127.0.0.1': 'localhost',
     'localhost:3000': 'localhost',
+    'localhost:3001': 'localhost',
     'localhost:8000': 'localhost',
     
     # Docker内部服务名（通过代理访问时）

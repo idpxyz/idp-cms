@@ -1,0 +1,123 @@
+# =============================================================================
+# 共享基础设施服务
+# =============================================================================
+# 这些服务会被开发环境和生产环境共同使用
+# 
+# 启动: docker compose -f infra/shared/docker-compose.yml up -d
+# 停止: docker compose -f infra/shared/docker-compose.yml down
+# =============================================================================
+
+services:
+  postgres:
+    image: postgres:latest
+    container_name: shared-postgres
+    env_file:
+      - ../../.env.core
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-news}
+      POSTGRES_USER: ${POSTGRES_USER:-news}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-news}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"  # 使用标准端口
+    networks:
+      - shared-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-news}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  minio:
+    image: minio/minio:latest
+    container_name: shared-minio
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-minioadmin}
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"  # API 端口
+      - "9001:9001"  # 控制台端口
+    volumes:
+      - minio:/data
+    networks:
+      - shared-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    restart: unless-stopped
+
+  minio-setup:
+    image: minio/mc:latest
+    container_name: shared-minio-setup
+    depends_on:
+      - minio
+    networks:
+      - shared-network
+    entrypoint: >
+      /bin/sh -c "
+      sleep 5;
+      mc alias set shared http://minio:9000 ${MINIO_ACCESS_KEY:-minioadmin} ${MINIO_SECRET_KEY:-minioadmin};
+      
+      # 创建双桶结构
+      mc mb -p shared/idp-media-prod-public || true;
+      mc mb -p shared/idp-media-prod-private || true;
+      
+      # 保持原有桶兼容性
+      mc mb -p shared/${MINIO_BUCKET:-media} || true;
+      
+      # 设置桶权限
+      mc anonymous set public shared/idp-media-prod-public;
+      mc anonymous set none shared/idp-media-prod-private;
+      mc anonymous set public shared/${MINIO_BUCKET:-media};
+      
+      echo '✅ MinIO buckets setup completed';
+      exit 0;
+      "
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.3
+    container_name: shared-clickhouse
+    environment:
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_PASSWORD: "thends"
+    ports:
+      - "8123:8123"  # HTTP 接口
+      - "9123:9000"  # Native 接口（映射到 9123 避免与 MinIO 冲突）
+    volumes:
+      - chdata:/var/lib/clickhouse
+      - ../../:/app
+    networks:
+      - shared-network
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:8123/ping",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+networks:
+  shared-network:
+    name: idp-shared-network
+    driver: bridge
+
+volumes:
+  pgdata:
+    name: shared-pgdata
+  minio:
+    name: shared-minio
+  chdata:
+    name: shared-chdata
+

@@ -1,0 +1,203 @@
+# =============================================================================
+# 生产环境 - 使用共享基础设施
+# =============================================================================
+# 使用共享的 PostgreSQL, MinIO, ClickHouse
+# 
+# 前置条件: 先启动共享基础设施
+#   ./start-shared-infra.sh
+# 
+# 启动: docker compose -f infra/production/docker-compose-shared.yml up -d
+# =============================================================================
+
+# 使用共享网络
+networks:
+  default:
+    name: idp-shared-network
+    external: true
+
+services:
+  # =========================================================================
+  # 独立服务（不共享）
+  # =========================================================================
+  
+  redis:
+    image: redis:7
+    container_name: production-redis
+    env_file:
+      - ../../.env.core
+      - ../../.env.production
+    command: redis-server --requirepass ${REDIS_PASSWORD:-redis}
+    ports:
+      - "6380:6379"  # 生产使用不同端口避免与开发环境冲突
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "--no-auth-warning", "-a", "${REDIS_PASSWORD:-redis}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  opensearch:
+    image: opensearchproject/opensearch:3.2.0
+    container_name: production-opensearch
+    environment:
+      - discovery.type=single-node
+      - OPENSEARCH_JAVA_OPTS=-Xms1g -Xmx1g
+      - DISABLE_SECURITY_PLUGIN=false
+      - OPENSEARCH_INITIAL_ADMIN_PASSWORD=${OPENSEARCH_PASSWORD:-OpenSearch2024!@#$$%}
+      - cluster.routing.allocation.disk.threshold_enabled=false
+    ports:
+      - "9201:9200"  # 生产使用不同端口
+      - "9601:9600"
+    volumes:
+      - os_data:/usr/share/opensearch/data
+
+  # =========================================================================
+  # 应用服务（连接到共享基础设施）
+  # =========================================================================
+
+  authoring:
+    build:
+      context: ../../
+      dockerfile: Dockerfile
+      target: production
+    container_name: production-authoring
+    command: python manage.py runserver 0.0.0.0:8000
+    env_file:
+      - ../../.env.core
+      - ../../.env.features
+      - ../../.env.production
+    environment:
+      # 使用共享服务的容器名
+      POSTGRES_HOST: shared-postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-news_prod}  # 使用独立的生产数据库
+      POSTGRES_USER: ${POSTGRES_USER:-news}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-news}
+      
+      # Redis 使用本地容器
+      REDIS_URL: redis://:${REDIS_PASSWORD:-redis}@redis:6379/1
+      
+      # MinIO 使用共享服务
+      MINIO_ENDPOINT: http://shared-minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin}
+      MINIO_BUCKET: ${MINIO_BUCKET:-media-prod}
+      MINIO_USE_SSL: "false"
+      
+      # ClickHouse 使用共享服务
+      CLICKHOUSE_URL: clickhouse://default:thends@shared-clickhouse:9000/default
+      
+      # OpenSearch 使用本地容器
+      OPENSEARCH_URL: http://opensearch:9200
+      OPENSEARCH_USER: admin
+      OPENSEARCH_PASSWORD: ${OPENSEARCH_PASSWORD:-OpenSearch2024!@#$$%}
+      
+      # Django 配置
+      DJANGO_SETTINGS_MODULE: config.settings.prod
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY}
+      DJANGO_DEBUG: 0
+      DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1}
+      
+      # 前端配置
+      FRONTEND_ORIGIN: ${FRONTEND_PUBLIC_URL:-http://localhost:3001}
+      FRONTEND_PUBLIC_URL: ${FRONTEND_PUBLIC_URL:-http://localhost:3001}
+    ports:
+      - "8001:8000"  # 生产使用不同端口
+    volumes:
+      - ../../:/app
+      - /app/sites/node_modules
+      - ../../logs:/app/logs
+    depends_on:
+      redis:
+        condition: service_healthy
+      opensearch:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health/readiness/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  celery:
+    build:
+      context: ../../
+      dockerfile: Dockerfile
+      target: production
+    container_name: production-celery
+    command: python manage.py run_huey -v 2 -w 4
+    env_file:
+      - ../../.env.core
+      - ../../.env.features
+      - ../../.env.production
+    environment:
+      POSTGRES_HOST: shared-postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-news_prod}
+      REDIS_URL: redis://:${REDIS_PASSWORD:-redis}@redis:6379/1
+      MINIO_ENDPOINT: http://shared-minio:9000
+      CLICKHOUSE_URL: clickhouse://default:thends@shared-clickhouse:9000/default
+      OPENSEARCH_URL: http://opensearch:9200
+      DJANGO_SETTINGS_MODULE: config.settings.prod
+      FRONTEND_ORIGIN: ${FRONTEND_PUBLIC_URL:-http://localhost:3001}
+      FRONTEND_PUBLIC_URL: ${FRONTEND_PUBLIC_URL:-http://localhost:3001}
+    volumes:
+      - ../../:/app
+      - ../../logs:/app/logs
+    depends_on:
+      - authoring
+      - redis
+
+  celery-beat:
+    build:
+      context: ../../
+      dockerfile: Dockerfile
+      target: production
+    container_name: production-celery-beat
+    command: python manage.py run_huey -f -v 2
+    env_file:
+      - ../../.env.core
+      - ../../.env.features
+      - ../../.env.production
+    environment:
+      POSTGRES_HOST: shared-postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-news_prod}
+      REDIS_URL: redis://:${REDIS_PASSWORD:-redis}@redis:6379/1
+      MINIO_ENDPOINT: http://shared-minio:9000
+      CLICKHOUSE_URL: clickhouse://default:thends@shared-clickhouse:9000/default
+      OPENSEARCH_URL: http://opensearch:9200
+      DJANGO_SETTINGS_MODULE: config.settings.prod
+      FRONTEND_ORIGIN: ${FRONTEND_PUBLIC_URL:-http://localhost:3001}
+      FRONTEND_PUBLIC_URL: ${FRONTEND_PUBLIC_URL:-http://localhost:3001}
+    volumes:
+      - ../../:/app
+      - ../../logs:/app/logs
+    depends_on:
+      - authoring
+      - redis
+
+  sites:
+    build:
+      context: ../../sites
+      dockerfile: Dockerfile
+      target: production
+    container_name: production-sites
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=${DJANGO_PUBLIC_URL:-http://localhost:8001}
+      - NEXT_PUBLIC_SITE_URL=${FRONTEND_PUBLIC_URL:-http://localhost:3002}
+    ports:
+      - "3002:3000"  # 生产使用不同端口
+    depends_on:
+      - authoring
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  redis_data:
+  os_data:
+

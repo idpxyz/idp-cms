@@ -108,6 +108,7 @@ class URLConfig:
         return (
             os.getenv('FRONTEND_BASE_URL') or
             'http://localhost:3000'
+            'http://localhost:3001'
         )
     
     @classmethod

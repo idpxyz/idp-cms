@@ -24,6 +24,7 @@ interface ChannelContextType {
   getCurrentChannel: () => Channel | undefined;
   isNavigating: boolean; // 导航状态
   setContentReady: (ready: boolean) => void; // 🚀 新增：内容就绪状态控制
+  channelsLoading: boolean; // 🚀 新增：频道数据加载状态
 }
 
 const ChannelContext = createContext<ChannelContextType | undefined>(undefined);
@@ -157,6 +158,7 @@ export function ChannelProvider({ children, initialChannels }: ChannelProviderPr
     getCurrentChannel,
     isNavigating: isNavigatingState || !isContentReady, // 🚀 导航中或内容未就绪时都显示骨架屏
     setContentReady: handleSetContentReady, // 🚀 暴露给子组件，让它们控制内容就绪状态
+    channelsLoading, // 🚀 暴露频道数据加载状态
   };
 
   return (

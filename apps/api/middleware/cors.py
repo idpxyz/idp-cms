@@ -25,7 +25,8 @@ class CORSMiddleware:
         
         # 从设置中获取CORS配置
         self.allowed_origins = getattr(settings, 'CORS_ALLOWED_ORIGINS', [
-            'http://localhost:3000',  # Next.js开发服务器
+            'http://localhost:3000',
+            'http://localhost:3001',  # Next.js开发服务器
             'http://localhost:8000',  # Django开发服务器
             'https://yourdomain.com',  # 生产域名
         ])

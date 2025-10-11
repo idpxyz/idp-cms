@@ -35,7 +35,7 @@ case $choice in
         docker compose up -d
         echo "✅ 所有服务启动完成！"
         echo "🌐 访问地址："
-        echo "   - Portal: http://localhost:3000"
+        echo "   - Sites Frontend: http://localhost:3001"
         echo "   - Sites: http://localhost:3001"
         ;;
     2)

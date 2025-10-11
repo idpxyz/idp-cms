@@ -128,7 +128,7 @@ services:
       - ../../.env.development
     environment:
       # 动态覆盖配置（仅在需要时使用）
-      DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1,192.168.8.195,portal.local}
+      DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1,192.168.8.195}
       # 新的统一环境变量配置
       CMS_ORIGIN: http://authoring:8000
       CMS_PUBLIC_URL: http://localhost:8000
@@ -205,37 +205,6 @@ services:
         condition: service_healthy
     command: python manage.py run_celery_beat
 
-  portal:
-    build: { context: ../../portal/next, dockerfile: Dockerfile }
-    env_file:
-      - ../../.env.core
-      - ../../.env.features
-    environment:
-      # ★ SSR 在容器内访问后端（服务名 authoring）
-      DJANGO_API_URL: http://authoring:8000
-      FEED_API_URL: ${FEED_API_URL:-http://authoring:8000}
-      # ★ CSR 在浏览器访问后端；Cursor 端口转发时默认走 localhost
-      NEXT_PUBLIC_FEED_API_URL: ${NEXT_PUBLIC_FEED_API_URL:-http://localhost:8000}
-      # 事件上报（如你 .env 已有别名，可自行覆写）
-      NEXT_PUBLIC_TRACK_URL: ${NEXT_PUBLIC_TRACK_URL:-http://localhost:8000/api/track}
-      # 可选：仅在你的代码读取该变量时有用
-      SITE_HOSTNAME: ${SITE_HOSTNAME:-localhost}
-    ports: ["3000:3000"] # 如使用 Cursor 端口转发，可去掉此行避免端口冲突
-    volumes:
-      - ../../portal/next:/app
-      - /app/node_modules
-    depends_on:
-      authoring:
-        condition: service_started
-    user: "root"
-    command:
-      [
-        "sh",
-        "-c",
-        "npm install && rm -rf /app/.next && mkdir -p /app/.next && touch /app/.next/fallback-build-manifest.json && echo '{}' > /app/.next/fallback-build-manifest.json && npm run dev -- -p 3000",
-      ]
-
-  # 新增：多站点前端服务
   sites:
     build:
       context: ../../sites
