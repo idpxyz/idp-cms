@@ -24,6 +24,8 @@ const CommentSectionWrapper = dynamic(() => import("./components/CommentSectionW
   ),
 });
 
+const ImageLoadHandler = dynamic(() => import("./components/ImageLoadHandler"));
+
 const RecommendedArticles = dynamic(() => import("../../components/RecommendedArticles"), {
   loading: () => (
     <div className="animate-pulse px-6 md:px-12 py-6">
@@ -319,6 +321,9 @@ export default async function ArticlePage({
 
         {/* 主内容区插槽 - 评论等客户端组件 */}
         <div slot="content">
+          {/* 图片加载处理器 - 移除占位符动画 */}
+          <ImageLoadHandler />
+          
           {/* 评论区 - 客户端组件，懒加载 */}
           <div className="px-6 md:px-12 py-6 bg-white" data-comment-section>
             <CommentSectionWrapper articleId={article.id.toString()} />

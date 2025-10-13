@@ -41,12 +41,12 @@ export function optimizeArticleImages(html: string): string {
     // 确定原图片的MIME类型
     const imageType = ext.toLowerCase() === 'png' ? 'png' : 'jpeg';
     
-    // 构建picture标签
+    // 构建picture标签（使用CSS类而不是内联style，避免hydration问题）
     return `<picture>
   <source type="image/webp" srcset="${webpSrc}">
   <source type="image/${imageType}" srcset="${src}">
   <img
-    src="${src}"${alt ? `\n    alt="${alt}"` : ''}${className ? `\n    class="${className}"` : ''}${width ? `\n    width="${width}"` : ''}${height ? `\n    height="${height}"` : ''}${style ? `\n    style="${style}"` : ''}
+    src="${src}"${alt ? `\n    alt="${alt}"` : ''}${className ? `\n    class="${className} lazy-image-placeholder"` : '\n    class="lazy-image-placeholder"'}${width ? `\n    width="${width}"` : ''}${height ? `\n    height="${height}"` : ''}${style ? `\n    style="${style}"` : ''}
     loading="lazy"
     decoding="async"
   >
