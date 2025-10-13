@@ -5,6 +5,9 @@ import type { Metadata } from "next";
 import ArticleStaticLayout from "./components/ArticleStaticLayout";
 import SidebarRelatedArticles from "./components/SidebarRelatedArticles";
 
+// 🚀 临时重命名当前版本为备份
+// 如需回滚，可以将此文件重命名回来
+
 // 🚀 性能优化：懒加载客户端组件
 // Next.js 15: 移除 ssr: false，因为组件本身已经是客户端组件
 const ArticleInteractions = dynamic(() => import("./components/ArticleInteractions"), {
@@ -70,16 +73,19 @@ interface Article {
 async function getArticle(slug: string, site?: string): Promise<Article | null> {
   try {
     const decodedSlug = decodeURIComponent(slug);
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+    // 🚀 关键修复：服务端使用内部地址，避免网络回环
+    const baseUrl = typeof window === 'undefined' 
+      ? "http://localhost:3000"  // 服务端：使用容器内部地址
+      : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"); // 客户端：使用公共地址
 
     const url = new URL(`${baseUrl}/api/articles/${decodedSlug}`);
     if (site) {
       url.searchParams.set("site", site);
     }
 
-    // 🚀 性能优化：添加1.5秒超时控制
+    // 🚀 性能优化：添加5秒超时控制 (给慢速文章足够时间)
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 1500);
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
 
     try {
       const response = await fetch(url.toString(), {
@@ -104,7 +110,7 @@ async function getArticle(slug: string, site?: string): Promise<Article | null> 
     } catch (fetchError: any) {
       clearTimeout(timeoutId);
       if (fetchError.name === 'AbortError') {
-        console.error(`Article fetch timeout (1.5s) for slug: ${slug}`);
+        console.error(`Article fetch timeout (5s) for slug: ${slug}`);
         throw new Error('TIMEOUT');
       }
       throw fetchError;
@@ -130,7 +136,10 @@ async function getRelatedArticles(
   currentTags: string[] = []
 ): Promise<any[]> {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+    // 🚀 关键修复：服务端使用内部地址，避免网络回环
+    const baseUrl = typeof window === 'undefined' 
+      ? "http://localhost:3000"  // 服务端：使用容器内部地址
+      : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"); // 客户端：使用公共地址
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 2000); // 🚀 优化：减少到2秒

@@ -76,9 +76,9 @@ async function getArticle(slug: string, site?: string): Promise<Article | null> 
       url.searchParams.set("site", site);
     }
 
-    // 🚀 关键优化：设置AbortController，1.5秒超时快速失败
+    // 🚀 关键优化：设置AbortController，3秒超时（给足够时间但避免无限等待）
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 1500);
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
 
     try {
       const response = await fetch(url.toString(), {
@@ -106,7 +106,7 @@ async function getArticle(slug: string, site?: string): Promise<Article | null> 
     }
   } catch (error: any) {
     if (error.name === 'AbortError') {
-      console.error('Article fetch timeout (1.5s)');
+      console.error('Article fetch timeout (3s)');
       throw new Error('TIMEOUT');
     }
     if (error.message?.includes("404")) {

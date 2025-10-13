@@ -66,9 +66,20 @@ sleep 30
 echo "🗄️  Running migrations..."
 docker compose -f infra/production/docker-compose.yml exec -T authoring python manage.py migrate
 
-# Start portal service
-echo "🌐 Starting portal service..."
-docker compose -f infra/production/docker-compose.yml up -d portal
+# Start sites (portal) service
+echo "🌐 Starting sites service..."
+docker compose -f infra/production/docker-compose.yml up -d sites
+
+# Wait for Sites service to be ready
+echo "⏳ Waiting for Sites service to be ready..."
+for i in {1..60}; do
+    if curl -s http://localhost:3001/ > /dev/null 2>&1; then
+        echo "✅ Sites service is ready!"
+        break
+    fi
+    echo "   Attempt $i/60 - waiting..."
+    sleep 2
+done
 
 echo "🎉 IDP-CMS is now running in PRODUCTION mode!"
 echo ""

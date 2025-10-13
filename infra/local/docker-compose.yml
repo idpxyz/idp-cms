@@ -208,15 +208,19 @@ services:
   sites:
     build:
       context: ../../sites
-      target: development
+      target: development  # 保持开发模式，但优化配置
     ports:
       - "3001:3000"
     volumes:
       - ../../sites:/app
-      - /app/node_modules
+      # 注释掉node_modules卷，使用宿主机的node_modules（包含SWR）
+      # - /app/node_modules
       - /app/.next
     environment:
       - NODE_ENV=development
+      # 🚀 性能优化环境变量
+      - NEXT_TELEMETRY_DISABLED=1  # 禁用遥测，减少开销
+      - WATCHPACK_POLLING=false  # 禁用轮询，减少CPU使用
       - NEXT_PUBLIC_API_BASE=/cms/api/v1
       # 统一环境变量配置
       - CMS_ORIGIN=http://authoring:8000
@@ -230,11 +234,11 @@ services:
     depends_on:
       - authoring
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/ready"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 30s
+      test: ["CMD", "sh", "-c", "wget --spider -q http://localhost:3000/api/ready && (pgrep -f warmup || sh /app/warmup.sh &)"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 45s  # 给足够时间启动和预热
 
 volumes:
   pgdata: {}
