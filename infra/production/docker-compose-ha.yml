@@ -1,0 +1,306 @@
+# =============================================================================
+# 高可用模式 - 主编排文件
+# =============================================================================
+# 此文件用于编排整个高可用部署，包含说明和引用
+# 
+# 部署架构：
+# - 服务器1: 主节点（主库、主Redis、应用）
+# - 服务器2: 从节点（从库、从Redis、应用）
+# - 共享: PostgreSQL主从、MinIO分布式、ClickHouse
+# 
+# 不直接使用此文件启动，请按步骤使用各节点的配置文件
+# =============================================================================
+
+# 部署步骤说明
+# 
+# 1. 准备工作（两台服务器都需要）
+# -----------------------------------
+# a) 安装 Docker 和 Docker Compose
+# b) 配置防火墙规则
+# c) 配置服务器间网络互通
+# d) 克隆代码到 /opt/idp-cms
+# e) 复制并配置环境变量文件
+#
+# 2. 服务器1 - 部署共享基础设施和主节点
+# -----------------------------------
+# cd /opt/idp-cms
+# 
+# # 创建 Docker 网络
+# docker network create idp-ha-network --driver bridge --subnet 172.28.0.0/16
+# 
+# # 启动共享基础设施（PostgreSQL主库、MinIO、ClickHouse、Sentinel）
+# docker compose -f infra/shared/docker-compose-ha.yml up -d
+# 
+# # 等待服务启动并检查状态
+# docker compose -f infra/shared/docker-compose-ha.yml ps
+# 
+# # 初始化 PostgreSQL 复制用户
+# docker exec -it ha-postgres-master psql -U news -d news_ha -c \
+#   "CREATE USER replication WITH REPLICATION PASSWORD 'ReplicationPass123!';"
+# 
+# # 创建复制槽
+# docker exec -it ha-postgres-master psql -U news -d news_ha -c \
+#   "SELECT * FROM pg_create_physical_replication_slot('replica1_slot');"
+# 
+# # 启动服务器1应用
+# docker compose -f infra/production/docker-compose-ha-node1.yml up -d
+# 
+# # 检查服务状态
+# docker compose -f infra/production/docker-compose-ha-node1.yml ps
+#
+# 3. 服务器2 - 部署从节点
+# -----------------------------------
+# cd /opt/idp-cms
+# 
+# # 加入已存在的 Docker 网络（如果跨主机需要 overlay 网络）
+# # 单机测试可以使用 external: true
+# 
+# # 初始化 PostgreSQL 从库（基础备份）
+# # 在服务器2执行
+# docker run --rm --network idp-ha-network \
+#   -v postgres_replica_data:/var/lib/postgresql/data \
+#   postgres:15-alpine \
+#   pg_basebackup -h 172.28.0.10 -U replication -D /var/lib/postgresql/data -Fp -Xs -P -R
+# 
+# # 启动服务器2应用（包括从库、MinIO节点3-4）
+# docker compose -f infra/production/docker-compose-ha-node2.yml up -d
+# 
+# # 检查服务状态
+# docker compose -f infra/production/docker-compose-ha-node2.yml ps
+#
+# 4. 配置负载均衡器（Nginx）
+# -----------------------------------
+# # 可以在服务器1或独立服务器上部署
+# # 参考配置: infra/configs/nginx/lb-ha.conf
+# 
+# # 安装 Nginx
+# sudo apt update && sudo apt install nginx -y
+# 
+# # 复制配置
+# sudo cp infra/configs/nginx/lb-ha.conf /etc/nginx/sites-available/idp-cms-ha
+# 
+# # 修改配置中的 SERVER1_IP 和 SERVER2_IP
+# sudo sed -i 's/SERVER1_IP/实际IP1/g' /etc/nginx/sites-available/idp-cms-ha
+# sudo sed -i 's/SERVER2_IP/实际IP2/g' /etc/nginx/sites-available/idp-cms-ha
+# sudo sed -i 's/YOUR_DOMAIN.COM/实际域名/g' /etc/nginx/sites-available/idp-cms-ha
+# 
+# # 启用站点
+# sudo ln -s /etc/nginx/sites-available/idp-cms-ha /etc/nginx/sites-enabled/
+# 
+# # 测试配置
+# sudo nginx -t
+# 
+# # 重载 Nginx
+# sudo systemctl reload nginx
+#
+# 5. 配置 SSL 证书
+# -----------------------------------
+# sudo apt install certbot python3-certbot-nginx -y
+# sudo certbot --nginx -d yourdomain.com -d www.yourdomain.com
+#
+# 6. 验证高可用性
+# -----------------------------------
+# # 检查 PostgreSQL 复制状态
+# docker exec -it ha-postgres-master psql -U news -d news_ha -c \
+#   "SELECT * FROM pg_stat_replication;"
+# 
+# # 检查 Redis Sentinel 状态
+# docker exec -it ha-redis-sentinel-1 redis-cli -p 26379 sentinel masters
+# 
+# # 检查 MinIO 分布式状态
+# docker exec -it ha-minio1 mc admin info local
+# 
+# # 测试故障转移（停止节点1的应用）
+# docker compose -f infra/production/docker-compose-ha-node1.yml stop authoring
+# # 验证负载均衡器自动切换到节点2
+# curl -I https://yourdomain.com/api/health
+
+# 环境变量配置说明
+# 
+# .env.node1 (服务器1)
+# -----------------------------------
+# NODE_NAME=node1
+# NODE_ROLE=primary
+# SERVER1_IP=实际服务器1的IP
+# SERVER2_IP=实际服务器2的IP
+# 
+# POSTGRES_HOST=172.28.0.10
+# POSTGRES_DB=news_ha
+# POSTGRES_USER=news
+# POSTGRES_PASSWORD=SecurePassword123!
+# REPLICATION_PASSWORD=ReplicationPass123!
+# 
+# REDIS_PASSWORD=SecureRedisPass123!
+# 
+# MINIO_ACCESS_KEY=minioadmin
+# MINIO_SECRET_KEY=MinioSecurePass123!
+# 
+# OPENSEARCH_PASSWORD=OpenSearchPass123!
+# CLICKHOUSE_PASSWORD=ClickHousePass123!
+# 
+# DJANGO_SECRET_KEY=生成一个安全的密钥
+# DJANGO_ALLOWED_HOSTS=yourdomain.com,www.yourdomain.com
+# 
+# CMS_PUBLIC_URL=https://yourdomain.com
+# FRONTEND_PUBLIC_URL=https://yourdomain.com
+# 
+# .env.node2 (服务器2)
+# -----------------------------------
+# NODE_NAME=node2
+# NODE_ROLE=replica
+# SERVER1_IP=实际服务器1的IP
+# SERVER2_IP=实际服务器2的IP
+# 
+# # 其他配置与 node1 相同
+# # 密码必须完全一致
+
+# 端口映射说明
+# 
+# 服务器1对外端口:
+# -----------------------------------
+# 5432  - PostgreSQL 主库
+# 6379  - Redis 主节点
+# 8000  - Django 后端
+# 3000  - Next.js 前端
+# 9000  - MinIO API
+# 9001  - MinIO Console
+# 9200  - OpenSearch
+# 8123  - ClickHouse HTTP
+# 26379 - Redis Sentinel
+# 
+# 服务器2对外端口:
+# -----------------------------------
+# 5432  - PostgreSQL 从库
+# 6379  - Redis 从节点
+# 8000  - Django 后端
+# 3000  - Next.js 前端
+# 9002  - MinIO API (节点3)
+# 9003  - MinIO Console
+# 9200  - OpenSearch
+# 26379 - Redis Sentinel
+# 
+# 负载均衡器端口:
+# -----------------------------------
+# 80    - HTTP (重定向到 443)
+# 443   - HTTPS
+# 8080  - Nginx 状态页（仅内网）
+
+# 监控和健康检查
+# 
+# 应用健康检查:
+# -----------------------------------
+# Django:     http://SERVER_IP:8000/health/readiness/
+# Next.js:    http://SERVER_IP:3000/api/health
+# MinIO:      http://SERVER_IP:9000/minio/health/live
+# OpenSearch: https://SERVER_IP:9200/_cluster/health
+# 
+# 数据库复制状态:
+# -----------------------------------
+# docker exec ha-postgres-master psql -U news -d news_ha -c \
+#   "SELECT application_name, state, sync_state FROM pg_stat_replication;"
+# 
+# Redis 主从状态:
+# -----------------------------------
+# docker exec node1-redis-master redis-cli -a PASSWORD info replication
+# docker exec node2-redis-replica redis-cli -a PASSWORD info replication
+# 
+# Sentinel 状态:
+# -----------------------------------
+# docker exec ha-redis-sentinel-1 redis-cli -p 26379 sentinel masters
+# docker exec ha-redis-sentinel-1 redis-cli -p 26379 sentinel replicas mymaster
+
+# 故障恢复流程
+# 
+# 场景1: 节点1（主节点）宕机
+# -----------------------------------
+# 1. Nginx 自动将流量切换到节点2
+# 2. Redis Sentinel 自动提升 replica 为 master
+# 3. 手动提升 PostgreSQL replica（如需要）:
+#    docker exec ha-postgres-replica pg_ctl promote
+# 4. 修复节点1后，将其作为从节点重新加入
+# 
+# 场景2: 节点2（从节点）宕机
+# -----------------------------------
+# 1. Nginx 自动移除故障节点
+# 2. 所有流量由节点1处理
+# 3. 修复节点2后重新启动即可自动同步
+# 
+# 场景3: PostgreSQL 主库故障
+# -----------------------------------
+# 1. 手动提升从库为主库
+# 2. 修改应用配置指向新主库
+# 3. 重启应用容器
+
+# 性能优化建议
+# 
+# 1. 数据库连接池:
+#    - 调整 PostgreSQL max_connections
+#    - 使用 PgBouncer 作为连接池
+# 
+# 2. 缓存策略:
+#    - Redis 主节点处理写入
+#    - Redis 从节点处理读取
+#    - 使用 Sentinel 自动故障转移
+# 
+# 3. 静态资源:
+#    - 使用 CDN 加速
+#    - Nginx 配置缓存
+#    - MinIO 启用纠删码
+# 
+# 4. 应用优化:
+#    - Gunicorn worker 数量 = (2 * CPU核心数) + 1
+#    - 启用持久连接 (keepalive)
+#    - 配置请求超时
+
+# 安全清单
+# 
+# ✅ 所有服务使用强密码
+# ✅ PostgreSQL 启用 SSL/TLS
+# ✅ Redis 启用密码认证
+# ✅ MinIO 使用访问密钥
+# ✅ 防火墙限制端口访问
+# ✅ 数据库仅允许内网连接
+# ✅ 定期备份数据
+# ✅ 日志记录和审计
+# ✅ SSL 证书配置
+# ✅ 安全头配置
+
+# 备份策略
+# 
+# 数据库备份（每天）:
+# -----------------------------------
+# docker exec ha-postgres-master pg_dump -U news news_ha | \
+#   gzip > /backup/postgres-$(date +%Y%m%d).sql.gz
+# 
+# MinIO 数据备份:
+# -----------------------------------
+# docker exec ha-minio1 mc mirror local/idp-media-prod-public /backup/minio/
+# 
+# 配置文件备份:
+# -----------------------------------
+# tar -czf /backup/config-$(date +%Y%m%d).tar.gz \
+#   /opt/idp-cms/infra/configs \
+#   /opt/idp-cms/.env.*
+
+# 故障排查
+# 
+# 常见问题:
+# -----------------------------------
+# 1. 网络不通: 检查防火墙和路由配置
+# 2. 复制延迟: 检查网络带宽和磁盘IO
+# 3. Sentinel 无法故障转移: 检查 quorum 配置
+# 4. MinIO 节点离线: 检查节点间网络连接
+# 5. 会话丢失: 确认 Redis 配置正确
+# 
+# 日志查看:
+# -----------------------------------
+# docker compose -f infra/production/docker-compose-ha-node1.yml logs -f
+# docker compose -f infra/production/docker-compose-ha-node2.yml logs -f
+
+version: '3.8'
+
+# 此文件仅作为文档和说明，实际部署请使用：
+# - infra/shared/docker-compose-ha.yml (共享基础设施)
+# - infra/production/docker-compose-ha-node1.yml (服务器1)
+# - infra/production/docker-compose-ha-node2.yml (服务器2)
+

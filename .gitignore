@@ -109,3 +109,9 @@ FINAL_*.md
 WEBUSER_*.md
 FRONTEND_*.md
 backup/
+
+# 高可用部署环境变量（包含真实密码，不提交）
+.env.node1
+.env.node2
+.env.node1.production
+.env.node2.production

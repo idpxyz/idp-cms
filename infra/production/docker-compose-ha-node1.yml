@@ -1,0 +1,321 @@
+# =============================================================================
+# 高可用模式 - 服务器1 (主节点)
+# =============================================================================
+# 应用服务：Django + Next.js + Redis Master + OpenSearch
+# 
+# 前置条件：
+# 1. 共享基础设施已启动 (docker-compose-ha.yml)
+# 2. 网络已配置 (ha-network)
+# 3. 环境变量已设置 (.env.node1)
+# 
+# 启动命令：
+# docker compose -f infra/production/docker-compose-ha-node1.yml up -d
+# =============================================================================
+
+networks:
+  ha-network:
+    name: idp-ha-network
+    external: true
+
+services:
+  # =========================================================================
+  # Redis 主节点
+  # =========================================================================
+  redis-master:
+    image: redis:7-alpine
+    container_name: node1-redis-master
+    hostname: redis-master
+    volumes:
+      - ../configs/redis/redis-master.conf:/etc/redis/redis.conf:ro
+      - redis_master_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      ha-network:
+        ipv4_address: 172.28.1.10
+    command: redis-server /etc/redis/redis.conf
+    healthcheck:
+      test: ["CMD", "redis-cli", "--no-auth-warning", "-a", "${REDIS_PASSWORD:-SecureRedisPass123!}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    labels:
+      - "app=idp-cms"
+      - "role=cache"
+      - "type=master"
+      - "node=1"
+
+  # =========================================================================
+  # OpenSearch (搜索引擎)
+  # =========================================================================
+  opensearch:
+    image: opensearchproject/opensearch:2.11.0
+    container_name: node1-opensearch
+    hostname: opensearch-node1
+    environment:
+      - cluster.name=idp-cluster
+      - node.name=opensearch-node1
+      - discovery.type=single-node  # 简化配置，生产环境建议集群模式
+      - bootstrap.memory_lock=true
+      - "OPENSEARCH_JAVA_OPTS=-Xms2g -Xmx2g"
+      - OPENSEARCH_INITIAL_ADMIN_PASSWORD=${OPENSEARCH_PASSWORD:-OpenSearchPass123!}
+      - plugins.security.disabled=false
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    volumes:
+      - opensearch_data:/usr/share/opensearch/data
+      - opensearch_logs:/usr/share/opensearch/logs
+    ports:
+      - "9200:9200"
+      - "9600:9600"
+    networks:
+      ha-network:
+        ipv4_address: 172.28.1.20
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f -k -u admin:${OPENSEARCH_PASSWORD:-OpenSearchPass123!} https://localhost:9200/_cluster/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    labels:
+      - "app=idp-cms"
+      - "role=search"
+      - "node=1"
+
+  # =========================================================================
+  # Django/Wagtail 后端应用
+  # =========================================================================
+  authoring:
+    build:
+      context: ../../
+      dockerfile: Dockerfile
+      target: production
+    container_name: node1-authoring
+    hostname: authoring-node1
+    env_file:
+      - ../../.env.core
+      - ../../.env.features
+      - ../../.env.node1
+    environment:
+      # 数据库配置（连接到共享主库）
+      POSTGRES_HOST: 172.28.0.10  # postgres-master IP
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-news_ha}
+      POSTGRES_USER: ${POSTGRES_USER:-news}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-SecurePassword123!}
+      
+      # Redis 配置（本地主节点）
+      REDIS_URL: redis://:${REDIS_PASSWORD:-SecureRedisPass123!}@redis-master:6379/0
+      REDIS_HOST: redis-master
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-SecureRedisPass123!}
+      
+      # MinIO 配置（分布式）
+      MINIO_ENDPOINT: http://172.28.0.20:9000  # minio1
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-MinioSecurePass123!}
+      MINIO_BUCKET: idp-media-prod-public
+      MINIO_USE_SSL: "false"
+      
+      # ClickHouse 配置
+      CLICKHOUSE_URL: clickhouse://default:${CLICKHOUSE_PASSWORD:-ClickHousePass123!}@172.28.0.30:9000/analytics
+      
+      # OpenSearch 配置（本地）
+      OPENSEARCH_URL: https://opensearch:9200
+      OPENSEARCH_USER: admin
+      OPENSEARCH_PASSWORD: ${OPENSEARCH_PASSWORD:-OpenSearchPass123!}
+      OPENSEARCH_VERIFY_CERTS: "false"
+      
+      # Django 配置
+      DJANGO_SETTINGS_MODULE: config.settings.prod
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY}
+      DJANGO_DEBUG: "0"
+      DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-*}
+      
+      # 会话配置（使用 Redis）
+      SESSION_ENGINE: django.contrib.sessions.backends.cache
+      SESSION_CACHE_ALIAS: default
+      
+      # 应用 URL
+      CMS_PUBLIC_URL: ${CMS_PUBLIC_URL:-https://yourdomain.com}
+      FRONTEND_PUBLIC_URL: ${FRONTEND_PUBLIC_URL:-https://yourdomain.com}
+      
+      # 节点标识
+      NODE_NAME: node1
+      NODE_ROLE: primary
+    volumes:
+      - ../../:/app
+      - /app/sites/node_modules
+      - django_static:/app/staticfiles
+      - django_media:/app/media
+      - ../../logs:/app/logs
+    ports:
+      - "8000:8000"
+    networks:
+      ha-network:
+        ipv4_address: 172.28.1.30
+    depends_on:
+      redis-master:
+        condition: service_healthy
+      opensearch:
+        condition: service_healthy
+    command: >
+      sh -c "
+        python manage.py migrate --noinput &&
+        python manage.py collectstatic --noinput &&
+        gunicorn config.wsgi:application 
+          --bind 0.0.0.0:8000 
+          --workers 4 
+          --threads 2 
+          --worker-class gthread 
+          --worker-tmp-dir /dev/shm 
+          --max-requests 1000 
+          --max-requests-jitter 100 
+          --timeout 120 
+          --graceful-timeout 30 
+          --keep-alive 5 
+          --access-logfile /app/logs/gunicorn-access.log 
+          --error-logfile /app/logs/gunicorn-error.log 
+          --log-level info
+      "
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health/readiness/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+    labels:
+      - "app=idp-cms"
+      - "role=backend"
+      - "node=1"
+
+  # =========================================================================
+  # Celery Worker
+  # =========================================================================
+  celery:
+    build:
+      context: ../../
+      dockerfile: Dockerfile
+      target: production
+    container_name: node1-celery
+    hostname: celery-node1
+    env_file:
+      - ../../.env.core
+      - ../../.env.features
+      - ../../.env.node1
+    environment:
+      POSTGRES_HOST: 172.28.0.10
+      REDIS_URL: redis://:${REDIS_PASSWORD:-SecureRedisPass123!}@redis-master:6379/0
+      MINIO_ENDPOINT: http://172.28.0.20:9000
+      CLICKHOUSE_URL: clickhouse://default:${CLICKHOUSE_PASSWORD:-ClickHousePass123!}@172.28.0.30:9000/analytics
+      OPENSEARCH_URL: https://opensearch:9200
+      DJANGO_SETTINGS_MODULE: config.settings.prod
+      NODE_NAME: node1
+    volumes:
+      - ../../:/app
+      - ../../logs:/app/logs
+    networks:
+      - ha-network
+    depends_on:
+      - authoring
+      - redis-master
+    command: celery -A config worker -l info -c 4 --max-tasks-per-child=1000
+    restart: unless-stopped
+    labels:
+      - "app=idp-cms"
+      - "role=worker"
+      - "node=1"
+
+  # =========================================================================
+  # Celery Beat (定时任务调度器)
+  # 注意: 仅在一个节点运行
+  # =========================================================================
+  celery-beat:
+    build:
+      context: ../../
+      dockerfile: Dockerfile
+      target: production
+    container_name: node1-celery-beat
+    hostname: celery-beat-node1
+    env_file:
+      - ../../.env.core
+      - ../../.env.features
+      - ../../.env.node1
+    environment:
+      POSTGRES_HOST: 172.28.0.10
+      REDIS_URL: redis://:${REDIS_PASSWORD:-SecureRedisPass123!}@redis-master:6379/0
+      DJANGO_SETTINGS_MODULE: config.settings.prod
+      NODE_NAME: node1
+    volumes:
+      - ../../:/app
+      - ../../logs:/app/logs
+      - celery_beat_data:/app/celerybeat
+    networks:
+      - ha-network
+    depends_on:
+      - authoring
+      - redis-master
+    command: celery -A config beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    restart: unless-stopped
+    labels:
+      - "app=idp-cms"
+      - "role=scheduler"
+      - "node=1"
+
+  # =========================================================================
+  # Next.js 前端应用
+  # =========================================================================
+  frontend:
+    build:
+      context: ../../sites
+      dockerfile: Dockerfile
+      target: production
+    container_name: node1-frontend
+    hostname: frontend-node1
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=${CMS_PUBLIC_URL:-https://yourdomain.com}
+      - NEXT_PUBLIC_SITE_URL=${FRONTEND_PUBLIC_URL:-https://yourdomain.com}
+      - DJANGO_API_URL=http://authoring:8000
+      - NODE_NAME=node1
+    ports:
+      - "3000:3000"
+    networks:
+      ha-network:
+        ipv4_address: 172.28.1.40
+    depends_on:
+      authoring:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+    labels:
+      - "app=idp-cms"
+      - "role=frontend"
+      - "node=1"
+
+volumes:
+  redis_master_data:
+    name: node1-redis-master-data
+  opensearch_data:
+    name: node1-opensearch-data
+  opensearch_logs:
+    name: node1-opensearch-logs
+  django_static:
+    name: node1-django-static
+  django_media:
+    name: node1-django-media
+  celery_beat_data:
+    name: node1-celery-beat-data
+

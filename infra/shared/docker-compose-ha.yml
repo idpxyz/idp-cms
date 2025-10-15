@@ -1,0 +1,266 @@
+# =============================================================================
+# 高可用模式 - 共享基础设施
+# =============================================================================
+# PostgreSQL 主从复制 + MinIO 分布式 + ClickHouse
+# 
+# 部署说明：
+# 1. 在服务器1上部署主库和共享服务
+# 2. 在服务器2上部署从库
+# 3. 配置网络互通和防火墙规则
+# =============================================================================
+
+networks:
+  ha-network:
+    name: idp-ha-network
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
+
+services:
+  # =========================================================================
+  # PostgreSQL 主库（部署在服务器1）
+  # =========================================================================
+  postgres-master:
+    image: postgres:15-alpine
+    container_name: ha-postgres-master
+    hostname: postgres-master
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-news_ha}
+      POSTGRES_USER: ${POSTGRES_USER:-news}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-SecurePassword123!}
+      # 复制用户
+      POSTGRES_REPLICATION_USER: replication
+      POSTGRES_REPLICATION_PASSWORD: ${REPLICATION_PASSWORD:-ReplicationPass123!}
+    volumes:
+      - postgres_master_data:/var/lib/postgresql/data
+      - ../configs/postgresql/master.conf:/etc/postgresql/postgresql.conf:ro
+      - ../configs/postgresql/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
+      - postgres_archive:/archive
+      - ./init-scripts:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "5432:5432"
+    networks:
+      ha-network:
+        ipv4_address: 172.28.0.10
+    command: >
+      postgres
+      -c config_file=/etc/postgresql/postgresql.conf
+      -c hba_file=/etc/postgresql/pg_hba.conf
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-news} -d ${POSTGRES_DB:-news_ha}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    labels:
+      - "app=idp-cms"
+      - "role=database"
+      - "type=primary"
+
+  # =========================================================================
+  # PostgreSQL 从库（部署在服务器2）
+  # 注意: 需要先在服务器1创建复制槽
+  # =========================================================================
+  # postgres-replica:
+  #   image: postgres:15-alpine
+  #   container_name: ha-postgres-replica
+  #   hostname: postgres-replica
+  #   environment:
+  #     POSTGRES_DB: ${POSTGRES_DB:-news_ha}
+  #     POSTGRES_USER: ${POSTGRES_USER:-news}
+  #     POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-SecurePassword123!}
+  #     PGDATA: /var/lib/postgresql/data/pgdata
+  #   volumes:
+  #     - postgres_replica_data:/var/lib/postgresql/data
+  #     - ../configs/postgresql/replica.conf:/etc/postgresql/postgresql.conf:ro
+  #   ports:
+  #     - "5432:5432"
+  #   networks:
+  #     ha-network:
+  #       ipv4_address: 172.28.0.11
+  #   command: >
+  #     postgres
+  #     -c config_file=/etc/postgresql/postgresql.conf
+  #   depends_on:
+  #     - postgres-master
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-news}"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+  #   restart: unless-stopped
+
+  # =========================================================================
+  # MinIO 分布式模式（4节点，服务器1和2各2个）
+  # =========================================================================
+  minio1:
+    image: minio/minio:latest
+    container_name: ha-minio1
+    hostname: minio1
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-MinioSecurePass123!}
+      MINIO_DISTRIBUTED_MODE_ENABLED: "yes"
+      MINIO_DISTRIBUTED_NODES: "http://minio{1...4}:9000/data"
+    volumes:
+      - minio1_data:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    networks:
+      ha-network:
+        ipv4_address: 172.28.0.20
+    command: server http://minio{1...4}:9000/data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    restart: unless-stopped
+    labels:
+      - "app=idp-cms"
+      - "role=storage"
+      - "node=1"
+
+  minio2:
+    image: minio/minio:latest
+    container_name: ha-minio2
+    hostname: minio2
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-MinioSecurePass123!}
+      MINIO_DISTRIBUTED_MODE_ENABLED: "yes"
+      MINIO_DISTRIBUTED_NODES: "http://minio{1...4}:9000/data"
+    volumes:
+      - minio2_data:/data
+    networks:
+      ha-network:
+        ipv4_address: 172.28.0.21
+    command: server http://minio{1...4}:9000/data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    restart: unless-stopped
+    labels:
+      - "app=idp-cms"
+      - "role=storage"
+      - "node=2"
+
+  # minio3 和 minio4 部署在服务器2
+
+  # =========================================================================
+  # MinIO 初始化（创建桶和策略）
+  # =========================================================================
+  minio-setup:
+    image: minio/mc:latest
+    container_name: ha-minio-setup
+    depends_on:
+      - minio1
+      - minio2
+    networks:
+      - ha-network
+    entrypoint: >
+      /bin/sh -c "
+      sleep 10;
+      mc alias set ha http://minio1:9000 ${MINIO_ACCESS_KEY:-minioadmin} ${MINIO_SECRET_KEY:-MinioSecurePass123!};
+      
+      # 创建生产桶
+      mc mb -p ha/idp-media-prod-public || true;
+      mc mb -p ha/idp-media-prod-private || true;
+      mc mb -p ha/idp-backup || true;
+      
+      # 设置桶权限
+      mc anonymous set public ha/idp-media-prod-public;
+      mc anonymous set none ha/idp-media-prod-private;
+      mc anonymous set none ha/idp-backup;
+      
+      # 启用版本控制
+      mc version enable ha/idp-media-prod-public;
+      mc version enable ha/idp-media-prod-private;
+      
+      # 配置生命周期规则（30天后删除不完整上传）
+      mc ilm add --expiry-days 30 --prefix 'uploads/' ha/idp-media-prod-public;
+      
+      echo '✅ MinIO HA setup completed';
+      exit 0;
+      "
+
+  # =========================================================================
+  # ClickHouse（分析数据库）
+  # =========================================================================
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.3
+    container_name: ha-clickhouse
+    hostname: clickhouse
+    environment:
+      CLICKHOUSE_DB: ${CLICKHOUSE_DB:-analytics}
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-default}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-ClickHousePass123!}
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+      - clickhouse_logs:/var/log/clickhouse-server
+      - ../../scripts/init_clickhouse.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "8123:8123"  # HTTP 接口
+      - "9123:9000"  # Native 接口
+    networks:
+      ha-network:
+        ipv4_address: 172.28.0.30
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8123/ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    labels:
+      - "app=idp-cms"
+      - "role=analytics"
+
+  # =========================================================================
+  # Redis Sentinel 1（部署在服务器1）
+  # =========================================================================
+  redis-sentinel-1:
+    image: redis:7-alpine
+    container_name: ha-redis-sentinel-1
+    hostname: redis-sentinel-1
+    volumes:
+      - ../configs/redis/sentinel.conf:/etc/redis/sentinel.conf:ro
+      - redis_sentinel1_data:/data
+    ports:
+      - "26379:26379"
+    networks:
+      ha-network:
+        ipv4_address: 172.28.0.40
+    command: redis-sentinel /etc/redis/sentinel.conf
+    restart: unless-stopped
+    labels:
+      - "app=idp-cms"
+      - "role=sentinel"
+      - "node=1"
+
+volumes:
+  postgres_master_data:
+    name: ha-postgres-master-data
+  postgres_replica_data:
+    name: ha-postgres-replica-data
+  postgres_archive:
+    name: ha-postgres-archive
+  minio1_data:
+    name: ha-minio1-data
+  minio2_data:
+    name: ha-minio2-data
+  clickhouse_data:
+    name: ha-clickhouse-data
+  clickhouse_logs:
+    name: ha-clickhouse-logs
+  redis_sentinel1_data:
+    name: ha-redis-sentinel1-data
+
