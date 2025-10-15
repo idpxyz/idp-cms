@@ -8,19 +8,34 @@ FROM python:3.11-slim AS base
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV DEBIAN_FRONTEND=noninteractive
+ENV PIP_DEFAULT_TIMEOUT=20
+ENV PIP_RETRIES=3
+ENV PIP_NO_CACHE_DIR=1
 
-# 安装系统依赖
-RUN apt-get update && apt-get install -y \
-    gcc \
-    g++ \
-    libpq-dev \
-    libjpeg-dev \
-    libfreetype6-dev \
-    zlib1g-dev \
-    libwebp-dev \
-    build-essential \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
+# 安装系统依赖（切换至就近镜像并强制 IPv4，加速构建）
+RUN set -eux; \
+    . /etc/os-release; codename=$VERSION_CODENAME; \
+    echo "deb https://mirrors.aliyun.com/debian $codename main contrib non-free non-free-firmware" > /etc/apt/sources.list; \
+    echo "deb https://mirrors.aliyun.com/debian $codename-updates main contrib non-free non-free-firmware" >> /etc/apt/sources.list; \
+    echo "deb https://mirrors.aliyun.com/debian-security $codename-security main contrib non-free non-free-firmware" >> /etc/apt/sources.list; \
+    # Debian 12+ 使用 deb822 格式的 sources，优先级高于 sources.list，这里移除以避免回落到 deb.debian.org
+    rm -f /etc/apt/sources.list.d/debian.sources; \
+    # 配置 pip 使用国内镜像（清华）并增加官方 PyPI 作为后备
+    printf "[global]\nindex-url = https://pypi.tuna.tsinghua.edu.cn/simple\nextra-index-url = https://pypi.org/simple\ntrusted-host = pypi.tuna.tsinghua.edu.cn\nretries = 3\ntimeout = 20\n" > /etc/pip.conf; \
+    apt-get -o Acquire::ForceIPv4=true -o Acquire::Retries=3 update; \
+    apt-get install -y --no-install-recommends \
+      gcc \
+      g++ \
+      libpq-dev \
+      libjpeg-dev \
+      libfreetype6-dev \
+      zlib1g-dev \
+      libwebp-dev \
+      build-essential \
+      curl \
+      ca-certificates; \
+    python -m pip install --upgrade pip setuptools wheel; \
+    rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
