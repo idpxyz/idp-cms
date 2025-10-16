@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0030_delete_collectionextension'),
+        ('core', '0025_add_collection_extension'),  # 已合并 0026-0030
         ('media', '0001_initial'),
         ('news', '0011_alter_articlepage_cover_alter_topic_cover_image'),
         ('taggit', '0006_rename_taggeditem_content_type_object_id_taggit_tagg_content_8fc721_idx'),
