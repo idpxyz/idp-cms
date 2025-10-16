@@ -80,7 +80,11 @@ SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin-allow-popups"
 SECURE_CROSS_ORIGIN_EMBEDDER_POLICY = "require-corp"
 
 # CORS配置（生产环境严格）
-CORS_ALLOWED_ORIGINS = os.getenv("CORS_ALLOWED_ORIGINS", "").split(",")
+_cors_origins = os.getenv("CORS_ALLOWED_ORIGINS", "")
+CORS_ALLOWED_ORIGINS = [origin.strip() for origin in _cors_origins.split(",") if origin.strip()]
+if not CORS_ALLOWED_ORIGINS:
+    # 如果未配置，使用默认值（本地开发）
+    CORS_ALLOWED_ORIGINS = ["http://localhost:3000"]
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
 CORS_ALLOWED_HEADERS = [
