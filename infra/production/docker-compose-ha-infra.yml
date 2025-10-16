@@ -137,20 +137,17 @@ services:
   # OpenSearch - 搜索引擎
   # =========================================================================
   opensearch:
-    image: opensearchproject/opensearch:3.2.0  # 🔒 统一为开发环境版本
+    image: opensearchproject/opensearch:3.2.0  # 🔒 完全对齐本地开发环境
     container_name: ha-opensearch
     environment:
       - discovery.type=single-node
-      - plugins.security.disabled=true  # 🔒 与本地开发环境完全一致
+      - plugins.security.disabled=true
       - bootstrap.memory_lock=true
-      - "OPENSEARCH_JAVA_OPTS=-Xms1g -Xmx1g"  # 🔒 调整为 1GB（服务器内存有限）
+      - OPENSEARCH_JAVA_OPTS=-Xms1g -Xmx1g  # 🔒 调整为 1GB（服务器内存有限）
     ulimits:
       memlock:
         soft: -1
         hard: -1
-      nofile:
-        soft: 65536
-        hard: 65536
     volumes:
       - opensearch_data:/usr/share/opensearch/data
       - opensearch_logs:/usr/share/opensearch/logs
