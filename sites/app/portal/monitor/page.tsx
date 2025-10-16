@@ -3,6 +3,9 @@
 import React, { useState, useEffect } from "react";
 // Removed api-url dependency - using relative paths instead
 
+// 强制动态渲染，禁用静态生成
+export const dynamic = 'force-dynamic';
+
 interface RealTimeEvent {
   ts: string;
   event: string;

@@ -5,6 +5,9 @@ import Image from "next/image";
 import { formatDateShort } from "@/lib/utils/date";
 // Removed api-url dependency - using relative paths instead
 
+// 强制动态渲染，禁用静态生成
+export const dynamic = 'force-dynamic';
+
 // 相对时间格式化
 function formatRelativeTime(dateString: string): string {
   const date = new Date(dateString);

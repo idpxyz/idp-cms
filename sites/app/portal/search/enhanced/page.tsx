@@ -8,6 +8,9 @@ import { formatDateShort } from "@/lib/utils/date";
 import { trackSearch, trackSearchDwell } from "@/lib/tracking/analytics";
 import SmartSearchBox from "@/components/search/SmartSearchBox";
 import SearchFilters, { SearchFilters as FilterType } from "@/components/search/SearchFilters";
+
+// 强制动态渲染，禁用静态生成
+export const dynamic = 'force-dynamic';
 import RelatedSearches, { generateRelatedSearches, RelatedSearch } from "@/components/search/RelatedSearches";
 import TrendingSearches from "@/components/search/TrendingSearches";
 import { useSearchHistory } from "@/lib/hooks/useSearchHistory";

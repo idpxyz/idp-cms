@@ -4,6 +4,9 @@ import React, { useState, useEffect } from "react";
 import { formatDateTime } from "@/lib/utils/date";
 // Removed api-url dependency - using relative paths instead
 
+// 强制动态渲染，禁用静态生成
+export const dynamic = 'force-dynamic';
+
 interface AnalyticsData {
   totalEvents: number;
   uniqueUsers: number;
