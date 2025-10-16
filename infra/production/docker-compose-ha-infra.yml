@@ -28,7 +28,7 @@ services:
   # PostgreSQL 主数据库
   # =========================================================================
   postgres:
-    image: postgres:16-alpine
+    image: postgres:17  # 🔒 统一为开发环境版本 17.6
     container_name: ha-postgres
     hostname: postgres-master
     environment:
@@ -60,7 +60,7 @@ services:
   # Redis - 缓存、会话、Celery队列
   # =========================================================================
   redis:
-    image: redis:7-alpine
+    image: redis:7  # 🔒 统一为开发环境版本 7.4.5
     container_name: ha-redis
     hostname: redis-master
     command: >
@@ -100,7 +100,7 @@ services:
   # ClickHouse - 分析数据库
   # =========================================================================
   clickhouse:
-    image: clickhouse/clickhouse-server:23.8-alpine
+    image: clickhouse/clickhouse-server:24.3  # 🔒 统一为开发环境版本 24.3.18
     container_name: ha-clickhouse
     hostname: clickhouse
     environment:
@@ -137,7 +137,7 @@ services:
   # OpenSearch - 搜索引擎
   # =========================================================================
   opensearch:
-    image: opensearchproject/opensearch:2.11.0
+    image: opensearchproject/opensearch:3.2.0  # 🔒 统一为开发环境版本
     container_name: ha-opensearch
     hostname: opensearch-master
     environment:
@@ -180,7 +180,7 @@ services:
   # MinIO - 对象存储 (可选)
   # =========================================================================
   minio:
-    image: minio/minio:latest
+    image: minio/minio:RELEASE.2025-07-23T15-54-02Z  # 🔒 统一为开发环境版本
     container_name: ha-minio
     hostname: minio
     command: server /data --console-address ":9001"
