@@ -20,8 +20,8 @@ RUN set -eux; \
     echo "deb https://mirrors.aliyun.com/debian-security $codename-security main contrib non-free non-free-firmware" >> /etc/apt/sources.list; \
     # Debian 12+ 使用 deb822 格式的 sources，优先级高于 sources.list，这里移除以避免回落到 deb.debian.org
     rm -f /etc/apt/sources.list.d/debian.sources; \
-    # 配置 pip 使用国内镜像（清华）并增加官方 PyPI 作为后备
-    printf "[global]\nindex-url = https://pypi.tuna.tsinghua.edu.cn/simple\nextra-index-url = https://pypi.org/simple\ntrusted-host = pypi.tuna.tsinghua.edu.cn\nretries = 3\ntimeout = 20\n" > /etc/pip.conf; \
+    # 配置 pip 使用国内镜像（阿里云）并增加清华作为后备
+    printf "[global]\nindex-url = https://mirrors.aliyun.com/pypi/simple/\nextra-index-url = https://pypi.tuna.tsinghua.edu.cn/simple\ntrusted-host = mirrors.aliyun.com pypi.tuna.tsinghua.edu.cn\nretries = 5\ntimeout = 30\n" > /etc/pip.conf; \
     apt-get -o Acquire::ForceIPv4=true -o Acquire::Retries=3 update; \
     apt-get install -y --no-install-recommends \
       gcc \
