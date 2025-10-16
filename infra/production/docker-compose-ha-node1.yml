@@ -144,7 +144,7 @@ services:
       - ha-network
     depends_on:
       - authoring
-    command: celery -A config beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    command: celery -A config beat -l info
     restart: unless-stopped
     labels:
       - "app=idp-cms"
