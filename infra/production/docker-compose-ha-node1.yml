@@ -140,7 +140,6 @@ services:
     volumes:
       - ../../:/app
       - ../../logs:/app/logs
-      - celery_beat_data:/app/celerybeat-schedule
     networks:
       - ha-network
     depends_on:
@@ -193,5 +192,3 @@ volumes:
     name: node1-django-static
   django_media:
     name: node1-django-media
-  celery_beat_data:
-    name: node1-celery-beat-data
