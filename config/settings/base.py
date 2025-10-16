@@ -50,6 +50,7 @@ WAGTAIL_APPS = [
     "wagtail.embeds",
     "wagtail.snippets",
     "wagtail.sites",
+    "wagtail.contrib.redirects",
     "wagtail.contrib.settings",
     "wagtail.search",
 ]
