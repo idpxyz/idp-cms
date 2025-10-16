@@ -187,8 +187,10 @@ echo -e "${GREEN}✅ 基础设施服务启动完成${NC}"
 
 echo ""
 echo -e "${BLUE}━━━ 第二阶段：启动应用服务 ━━━${NC}"
-echo "停止并删除现有应用容器..."
-docker-compose -f infra/production/docker-compose-ha-node1.yml down --remove-orphans
+echo "停止现有应用容器..."
+# 注意：不使用 --remove-orphans，避免删除基础设施容器（ha-postgres, ha-redis 等）
+docker-compose -f infra/production/docker-compose-ha-node1.yml stop
+docker-compose -f infra/production/docker-compose-ha-node1.yml rm -f
 
 # 根据参数决定构建策略
 BUILD_ARGS=""
