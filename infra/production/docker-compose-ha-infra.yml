@@ -142,6 +142,8 @@ services:
     environment:
       - discovery.type=single-node
       - plugins.security.disabled=true
+      - OPENSEARCH_SECURITY_DISABLED=true  # 🔒 与本地完全一致
+      - OPENSEARCH_PASSWORD=OpenSearch2024!@#$%  # 🔒 与本地完全一致（虽然安全插件禁用了）
       - bootstrap.memory_lock=true
       - OPENSEARCH_JAVA_OPTS=-Xms1g -Xmx1g  # 🔒 调整为 1GB（服务器内存有限）
     ulimits:
