@@ -125,7 +125,7 @@ echo -e "${GREEN}✅ 镜像拉取完成${NC}"
 print_step "步骤 6/8: 启动服务"
 
 echo "启动单节点服务（单机模式）..."
-docker-compose -f infra/production/docker-compose-ha-node1.yml --env-file "$ENV_FILE" up -d
+docker-compose -f infra/production/docker-compose-ha-node1.yml --env-file "$ENV_FILE" up -d --build --force-recreate
 
 echo "等待服务启动..."
 sleep 10
