@@ -141,7 +141,7 @@ services:
     container_name: ha-opensearch
     environment:
       - discovery.type=single-node
-      - DISABLE_SECURITY_PLUGIN=true  # 🔒 完全跳过安全插件安装（不是禁用）
+      - plugins.security.disabled=true  # 🔒 与本地开发环境完全一致
       - bootstrap.memory_lock=true
       - "OPENSEARCH_JAVA_OPTS=-Xms1g -Xmx1g"  # 🔒 调整为 1GB（服务器内存有限）
     ulimits:
