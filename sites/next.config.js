@@ -7,15 +7,6 @@ const nextConfig = {
 
   // Docker Compose环境配置
   output: "standalone",
-  
-  // 🔥 强制所有页面动态渲染，禁用静态生成（临时方案）
-  // 原因：客户端组件使用 useSearchParams 等 hook 导致预渲染失败
-  // 未来优化：重构客户端页面为服务端组件
-  experimental: {
-    optimizePackageImports: ["@/themes", "@/components", "@/lib"],
-    staticGenerationRetryCount: 0,
-    isrMemoryCacheSize: 0,
-  },
 
   // 禁用构建时预渲染，避免构建时连接错误
   trailingSlash: true,
@@ -32,6 +23,14 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
 
+  // 性能优化配置
+  experimental: {
+    optimizePackageImports: ["@/themes", "@/components", "@/lib"],
+    // 开发环境禁用静态生成
+    ...(process.env.NODE_ENV === "development" && {
+      staticGenerationRetryCount: 0,
+    }),
+  },
 
   // 编译优化
   compiler: {
