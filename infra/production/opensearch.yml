@@ -4,6 +4,12 @@ cluster.name: docker-cluster
 # Bind to all interfaces because we don't know what IP address Docker will assign to us.
 network.host: 0.0.0.0
 
-# Note: discovery.type, plugins.security.disabled, and bootstrap.memory_lock 
-# are set via environment variables in docker-compose to avoid duplication
+# Single node mode for development
+discovery.type: single-node
+
+# Disable security plugin for development
+plugins.security.disabled: true
+
+# Memory settings
+bootstrap.memory_lock: true
 
