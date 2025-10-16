@@ -189,8 +189,8 @@ services:
     volumes:
       - minio_data:/data
     ports:
-      - "9000:9000"
-      - "9001:9001"
+      - "9002:9000"  # MinIO API (避免与 ClickHouse 9000 端口冲突)
+      - "9001:9001"  # MinIO Console
     networks:
       ha-network:
         ipv4_address: 172.28.0.50
