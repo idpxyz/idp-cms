@@ -144,7 +144,7 @@ services:
       - DISABLE_INSTALL_DEMO_CONFIG=true  # 🔒 跳过演示安全配置安装
       - DISABLE_SECURITY_PLUGIN=true  # 🔒 完全禁用安全插件（自动设置 plugins.security.disabled=true）
       - bootstrap.memory_lock=true
-      - "OPENSEARCH_JAVA_OPTS=-Xms2g -Xmx2g"
+      - "OPENSEARCH_JAVA_OPTS=-Xms1g -Xmx1g"  # 🔒 调整为 1GB（服务器内存有限）
     ulimits:
       memlock:
         soft: -1
