@@ -144,7 +144,7 @@ services:
       - ha-network
     depends_on:
       - authoring
-    command: celery -A config beat -l info
+    command: python manage.py run_celery_beat
     restart: unless-stopped
     labels:
       - "app=idp-cms"
