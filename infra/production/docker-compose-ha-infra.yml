@@ -153,8 +153,7 @@ services:
     volumes:
       - opensearch_data:/usr/share/opensearch/data
       - opensearch_logs:/usr/share/opensearch/logs
-      # 不挂载配置文件，安装脚本会检测到文件就退出
-      # - ./opensearch.yml:/usr/share/opensearch/config/opensearch.yml:ro
+      - ./opensearch.yml:/usr/share/opensearch/config/opensearch.yml:ro  # 🔒 与本地完全一致
     ports:
       - "9200:9200"
       - "9600:9600"
