@@ -142,7 +142,7 @@ services:
     environment:
       - discovery.type=single-node
       - plugins.security.disabled=true  # 🔒 与本地完全一致
-      - OPENSEARCH_SECURITY_DISABLED=true  # 🔒 与本地完全一致
+      - DISABLE_INSTALL_DEMO_CONFIG=true  # 🔒 阻止演示配置自动安装
       - OPENSEARCH_INITIAL_ADMIN_PASSWORD=OpenSearch@Admin123!  # 🔒 3.2.0安装脚本必需
       - bootstrap.memory_lock=true
       - OPENSEARCH_JAVA_OPTS=-Xms1g -Xmx1g  # 🔒 调整为 1GB（服务器内存有限）
