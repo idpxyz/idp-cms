@@ -149,7 +149,7 @@ echo "创建 ClickHouse 数据目录..."
 mkdir -p data/clickhouse
 
 echo "创建日志目录..."
-mkdir -p logs/{nginx,django,nextjs,redis,opensearch}
+mkdir -p logs/{nginx,django,nextjs,redis,opensearch,clickhouse}
 
 echo "设置目录权限..."
 chmod -R 777 logs/
@@ -172,7 +172,22 @@ echo "创建 Docker 网络（如果不存在）..."
 docker network create --driver bridge --subnet=172.28.0.0/16 idp-ha-network 2>/dev/null || \
     echo -e "${GREEN}✅ 网络已存在${NC}"
 
-echo "停止并删除现有容器..."
+echo ""
+echo -e "${BLUE}━━━ 第一阶段：启动基础设施服务 ━━━${NC}"
+echo "停止并删除现有基础设施容器..."
+docker-compose -f infra/production/docker-compose-ha-infra.yml down --remove-orphans 2>/dev/null || true
+
+echo "启动共享基础设施（PostgreSQL, Redis, ClickHouse, OpenSearch, MinIO）..."
+docker-compose -f infra/production/docker-compose-ha-infra.yml --env-file "$ENV_FILE" up -d
+
+echo "等待基础设施服务启动..."
+sleep 20
+
+echo -e "${GREEN}✅ 基础设施服务启动完成${NC}"
+
+echo ""
+echo -e "${BLUE}━━━ 第二阶段：启动应用服务 ━━━${NC}"
+echo "停止并删除现有应用容器..."
 docker-compose -f infra/production/docker-compose-ha-node1.yml down --remove-orphans
 
 # 根据参数决定构建策略
@@ -188,31 +203,47 @@ elif [ "$REBUILD_FRONTEND" = true ]; then
     docker-compose -f infra/production/docker-compose-ha-node1.yml build --no-cache frontend
 fi
 
-echo "启动单节点服务（单机模式）..."
+echo "启动应用服务（Django, Next.js, Celery）..."
 docker-compose -f infra/production/docker-compose-ha-node1.yml --env-file "$ENV_FILE" up -d
 
-echo "等待服务启动..."
-sleep 10
+echo "等待应用服务启动..."
+sleep 15
 
-echo -e "${GREEN}✅ 服务启动完成${NC}"
+echo -e "${GREEN}✅ 应用服务启动完成${NC}"
 
 # 7. 健康检查
 print_step "步骤 7/8: 健康检查"
 
-echo "检查服务状态..."
+echo "检查基础设施服务状态..."
+docker-compose -f infra/production/docker-compose-ha-infra.yml ps
+
+echo ""
+echo "检查应用服务状态..."
 docker-compose -f infra/production/docker-compose-ha-node1.yml ps
 
 echo ""
 echo "检查数据库连接..."
-timeout 30 bash -c 'until docker exec $(docker ps -qf "name=postgres") pg_isready -U postgres; do sleep 2; done' && \
+timeout 30 bash -c 'until docker exec ha-postgres pg_isready -U ${POSTGRES_USER:-news}; do sleep 2; done' && \
     echo -e "${GREEN}✅ PostgreSQL 就绪${NC}" || \
     echo -e "${RED}❌ PostgreSQL 启动失败${NC}"
 
 echo ""
 echo "检查 Redis 连接..."
-timeout 30 bash -c 'until docker exec $(docker ps -qf "name=redis") redis-cli ping | grep -q PONG; do sleep 2; done' && \
+timeout 30 bash -c 'until docker exec ha-redis redis-cli --no-auth-warning -a ${REDIS_PASSWORD:-SecureRedisPass123!} ping | grep -q PONG; do sleep 2; done' && \
     echo -e "${GREEN}✅ Redis 就绪${NC}" || \
     echo -e "${RED}❌ Redis 启动失败${NC}"
+
+echo ""
+echo "检查 ClickHouse 连接..."
+timeout 30 bash -c 'until docker exec ha-clickhouse clickhouse-client --query "SELECT 1" > /dev/null 2>&1; do sleep 2; done' && \
+    echo -e "${GREEN}✅ ClickHouse 就绪${NC}" || \
+    echo -e "${YELLOW}⚠️  ClickHouse 未就绪${NC}"
+
+echo ""
+echo "检查 OpenSearch 连接..."
+timeout 30 bash -c 'until docker exec ha-opensearch curl -f -k -u admin:${OPENSEARCH_PASSWORD:-admin} https://localhost:9200 > /dev/null 2>&1; do sleep 2; done' && \
+    echo -e "${GREEN}✅ OpenSearch 就绪${NC}" || \
+    echo -e "${YELLOW}⚠️  OpenSearch 未就绪${NC}"
 
 echo ""
 echo "检查应用服务..."

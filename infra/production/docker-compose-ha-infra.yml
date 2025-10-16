@@ -1,0 +1,224 @@
+# =============================================================================
+# 高可用模式 - 共享基础设施
+# =============================================================================
+# 包含所有有状态服务，供所有应用节点共享
+# 
+# 服务列表：
+# - PostgreSQL: 主数据库 (172.28.0.10)
+# - ClickHouse: 分析数据库 (172.28.0.30)
+# - Redis: 缓存/会话/Celery队列 (172.28.0.20)
+# - OpenSearch: 搜索引擎 (172.28.0.40)
+# - MinIO: 对象存储 (172.28.0.50, 可选)
+# 
+# 部署顺序：
+# 1. 先部署此基础设施: docker-compose -f docker-compose-ha-infra.yml up -d
+# 2. 再部署应用节点: docker-compose -f docker-compose-ha-node1.yml up -d
+# =============================================================================
+
+networks:
+  ha-network:
+    name: idp-ha-network
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
+
+services:
+  # =========================================================================
+  # PostgreSQL 主数据库
+  # =========================================================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: ha-postgres
+    hostname: postgres-master
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-news_ha}
+      POSTGRES_USER: ${POSTGRES_USER:-news}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-SecurePassword123!}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --lc-collate=C --lc-ctype=C"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./logs/postgres:/var/log/postgresql
+    ports:
+      - "5432:5432"
+    networks:
+      ha-network:
+        ipv4_address: 172.28.0.10
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-news}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    labels:
+      - "app=idp-cms"
+      - "role=database"
+      - "tier=infrastructure"
+
+  # =========================================================================
+  # Redis - 缓存、会话、Celery队列
+  # =========================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: ha-redis
+    hostname: redis-master
+    command: >
+      sh -c "echo 'bind 0.0.0.0' > /tmp/redis.conf &&
+             echo 'port 6379' >> /tmp/redis.conf &&
+             echo 'protected-mode no' >> /tmp/redis.conf &&
+             echo 'requirepass ${REDIS_PASSWORD:-SecureRedisPass123!}' >> /tmp/redis.conf &&
+             echo 'maxmemory 2gb' >> /tmp/redis.conf &&
+             echo 'maxmemory-policy allkeys-lru' >> /tmp/redis.conf &&
+             echo 'save 900 1' >> /tmp/redis.conf &&
+             echo 'save 300 10' >> /tmp/redis.conf &&
+             echo 'save 60 10000' >> /tmp/redis.conf &&
+             echo 'appendonly yes' >> /tmp/redis.conf &&
+             echo 'appendfsync everysec' >> /tmp/redis.conf &&
+             echo 'loglevel notice' >> /tmp/redis.conf &&
+             echo 'logfile \"\"' >> /tmp/redis.conf &&
+             redis-server /tmp/redis.conf"
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      ha-network:
+        ipv4_address: 172.28.0.20
+    healthcheck:
+      test: ["CMD", "redis-cli", "--no-auth-warning", "-a", "${REDIS_PASSWORD:-SecureRedisPass123!}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    labels:
+      - "app=idp-cms"
+      - "role=cache"
+      - "tier=infrastructure"
+
+  # =========================================================================
+  # ClickHouse - 分析数据库
+  # =========================================================================
+  clickhouse:
+    image: clickhouse/clickhouse-server:23.8-alpine
+    container_name: ha-clickhouse
+    hostname: clickhouse
+    environment:
+      CLICKHOUSE_DB: ${CLICKHOUSE_DB:-analytics}
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-default}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-ClickHousePass123!}
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+      - clickhouse_logs:/var/log/clickhouse-server
+    ports:
+      - "8123:8123"  # HTTP 接口
+      - "9000:9000"  # Native 接口
+    networks:
+      ha-network:
+        ipv4_address: 172.28.0.30
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    healthcheck:
+      test: ["CMD", "clickhouse-client", "--query", "SELECT 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    restart: unless-stopped
+    labels:
+      - "app=idp-cms"
+      - "role=analytics"
+      - "tier=infrastructure"
+
+  # =========================================================================
+  # OpenSearch - 搜索引擎
+  # =========================================================================
+  opensearch:
+    image: opensearchproject/opensearch:2.11.0
+    container_name: ha-opensearch
+    hostname: opensearch-master
+    environment:
+      - cluster.name=idp-cluster
+      - node.name=opensearch-master
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - "OPENSEARCH_JAVA_OPTS=-Xms2g -Xmx2g"
+      - OPENSEARCH_INITIAL_ADMIN_PASSWORD=${OPENSEARCH_PASSWORD:-OpenSearchPass123!}
+      - plugins.security.disabled=false
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    volumes:
+      - opensearch_data:/usr/share/opensearch/data
+      - opensearch_logs:/usr/share/opensearch/logs
+    ports:
+      - "9200:9200"
+      - "9600:9600"
+    networks:
+      ha-network:
+        ipv4_address: 172.28.0.40
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f -k -u admin:${OPENSEARCH_PASSWORD:-admin} https://localhost:9200/_cluster/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    restart: unless-stopped
+    labels:
+      - "app=idp-cms"
+      - "role=search"
+      - "tier=infrastructure"
+
+  # =========================================================================
+  # MinIO - 对象存储 (可选)
+  # =========================================================================
+  minio:
+    image: minio/minio:latest
+    container_name: ha-minio
+    hostname: minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-MinIOPass123!}
+    volumes:
+      - minio_data:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    networks:
+      ha-network:
+        ipv4_address: 172.28.0.50
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    labels:
+      - "app=idp-cms"
+      - "role=storage"
+      - "tier=infrastructure"
+
+volumes:
+  postgres_data:
+    name: ha-postgres-data
+  redis_data:
+    name: ha-redis-data
+  clickhouse_data:
+    name: ha-clickhouse-data
+  clickhouse_logs:
+    name: ha-clickhouse-logs
+  opensearch_data:
+    name: ha-opensearch-data
+  opensearch_logs:
+    name: ha-opensearch-logs
+  minio_data:
+    name: ha-minio-data
+
