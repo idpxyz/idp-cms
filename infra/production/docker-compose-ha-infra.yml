@@ -145,7 +145,7 @@ services:
       - DISABLE_INSTALL_DEMO_CONFIG=true  # 🔒 阻止演示配置自动安装
       - OPENSEARCH_INITIAL_ADMIN_PASSWORD=OpenSearch@Admin123!  # 🔒 3.2.0安装脚本必需
       - bootstrap.memory_lock=true
-      - OPENSEARCH_JAVA_OPTS=-Xms1g -Xmx1g -Djava.security.egd=file:/dev/urandom  # 🔒 使用非阻塞随机数
+      - OPENSEARCH_JAVA_OPTS=-Xms1g -Xmx1g -Djava.security.egd=file:/dev/urandom -Dsecurerandom.source=file:/dev/./urandom  # 🔒 使用非阻塞随机数
     ulimits:
       memlock:
         soft: -1
