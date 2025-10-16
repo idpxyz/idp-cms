@@ -1,13 +1,13 @@
 ---
-cluster.name: idp-production-cluster
+cluster.name: docker-cluster
 
-# Bind to all interfaces
+# Bind to all interfaces because we don't know what IP address Docker will assign to us.
 network.host: 0.0.0.0
 
-# Single node mode
+# Single node mode for development
 discovery.type: single-node
 
-# Disable security plugin (internal network)
+# Disable security plugin for development
 plugins.security.disabled: true
 
 # Memory settings
