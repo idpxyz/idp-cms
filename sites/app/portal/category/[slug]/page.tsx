@@ -7,7 +7,7 @@ import Section from "@/components/layout/Section";
 import { notFound } from 'next/navigation';
 
 // 强制动态渲染，禁用静态生成
-export const dynamicParams = 'force-dynamic';
+export const dynamic = 'force-dynamic';
 
 interface CategoryPageProps {
   params: Promise<{ slug: string }>;

@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 // 强制动态渲染，禁用静态生成
-export const dynamicParams = 'force-dynamic';
+export const dynamic = 'force-dynamic';
 
 async function getTagArticles(slug: string, page = 1, size = 20) {
   try {

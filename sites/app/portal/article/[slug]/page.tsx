@@ -1,25 +1,25 @@
 import React from "react";
 import { notFound } from "next/navigation";
-import dynamic from "next/dynamic";
+import dynamicImport from "next/dynamic";
 import type { Metadata } from "next";
 import ArticleStaticLayout from "./components/ArticleStaticLayout";
 import SidebarRelatedArticles from "./components/SidebarRelatedArticles";
 
 // 强制动态渲染，禁用静态生成
-export const dynamicParams = 'force-dynamic';
+export const dynamic = 'force-dynamic';
 
 // 🚀 临时重命名当前版本为备份
 // 如需回滚，可以将此文件重命名回来
 
 // 🚀 性能优化：懒加载客户端组件
 // Next.js 15: 移除 ssr: false，因为组件本身已经是客户端组件
-const ArticleInteractions = dynamic(() => import("./components/ArticleInteractions"), {
+const ArticleInteractions = dynamicImport(() => import("./components/ArticleInteractions"), {
   loading: () => <div className="px-6 md:px-12 py-2 bg-white h-20 animate-pulse" />,
 });
 
-const ReadingTracker = dynamic(() => import("./components/ReadingTracker"));
+const ReadingTracker = dynamicImport(() => import("./components/ReadingTracker"));
 
-const CommentSectionWrapper = dynamic(() => import("./components/CommentSectionWrapper"), {
+const CommentSectionWrapper = dynamicImport(() => import("./components/CommentSectionWrapper"), {
   loading: () => (
     <div className="flex items-center justify-center py-12">
       <div className="text-gray-500">加载评论中...</div>
@@ -27,9 +27,9 @@ const CommentSectionWrapper = dynamic(() => import("./components/CommentSectionW
   ),
 });
 
-const ImageLoadHandler = dynamic(() => import("./components/ImageLoadHandler"));
+const ImageLoadHandler = dynamicImport(() => import("./components/ImageLoadHandler"));
 
-const RecommendedArticles = dynamic(() => import("../../components/RecommendedArticles"), {
+const RecommendedArticles = dynamicImport(() => import("../../components/RecommendedArticles"), {
   loading: () => (
     <div className="animate-pulse px-6 md:px-12 py-6">
       <div className="h-8 bg-gray-200 rounded mb-4 w-48"></div>
