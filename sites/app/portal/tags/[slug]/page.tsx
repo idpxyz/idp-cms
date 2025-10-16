@@ -1,5 +1,8 @@
 import Link from "next/link";
 
+// 强制动态渲染，禁用静态生成
+export const dynamicParams = 'force-dynamic';
+
 async function getTagArticles(slug: string, page = 1, size = 20) {
   try {
     const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_PATH || ""}/api/tags/${encodeURIComponent(slug)}?page=${page}&size=${size}`, {

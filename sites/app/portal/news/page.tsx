@@ -2,6 +2,9 @@ import React from "react";
 import Link from "next/link";
 import InfiniteNewsList from "../components/InfiniteNewsList";
 
+// 强制动态渲染，因为此页面使用客户端组件
+export const dynamic = 'force-dynamic';
+
 export default function AllNewsPage() {
   return (
     <div className="bg-gray-50 min-h-screen">

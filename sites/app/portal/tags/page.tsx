@@ -1,5 +1,8 @@
 import Link from "next/link";
 
+// 强制动态渲染，禁用静态生成
+export const dynamic = 'force-dynamic';
+
 async function getTopTags() {
   try {
     const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_PATH || ""}/api/tags/top`, {

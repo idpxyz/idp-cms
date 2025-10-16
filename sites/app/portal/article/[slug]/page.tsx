@@ -5,6 +5,9 @@ import type { Metadata } from "next";
 import ArticleStaticLayout from "./components/ArticleStaticLayout";
 import SidebarRelatedArticles from "./components/SidebarRelatedArticles";
 
+// 强制动态渲染，禁用静态生成
+export const dynamicParams = 'force-dynamic';
+
 // 🚀 临时重命名当前版本为备份
 // 如需回滚，可以将此文件重命名回来
 

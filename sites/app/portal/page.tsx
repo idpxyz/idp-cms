@@ -1,6 +1,9 @@
 import React from "react";
 import ChannelPageRenderer from "./components/ChannelPageRenderer";
 
+// 强制动态渲染，禁用静态生成
+export const dynamic = 'force-dynamic';
+
 /**
  * 🚀 Portal 页面 - 性能优化版
  * 

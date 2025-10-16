@@ -3,6 +3,9 @@ import { Metadata } from "next";
 import TopicPageRenderer from "../../components/TopicPageRenderer";
 import { getMainSite } from "@/lib/config/sites";
 
+// 强制动态渲染，禁用静态生成
+export const dynamicParams = 'force-dynamic';
+
 // 获取单个专题的数据
 async function fetchTopic(slug: string, site?: string) {
   try {

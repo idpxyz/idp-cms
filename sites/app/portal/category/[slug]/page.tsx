@@ -6,6 +6,9 @@ import PageContainer from "@/components/layout/PageContainer";
 import Section from "@/components/layout/Section";
 import { notFound } from 'next/navigation';
 
+// 强制动态渲染，禁用静态生成
+export const dynamicParams = 'force-dynamic';
+
 interface CategoryPageProps {
   params: Promise<{ slug: string }>;
   searchParams?: Promise<{ page?: string; size?: string; tags?: string }>;
