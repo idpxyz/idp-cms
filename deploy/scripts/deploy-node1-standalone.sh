@@ -4,9 +4,52 @@
 # 单节点部署脚本 - 服务器1独立运行模式
 # 用途: 快速部署单服务器，未来可平滑升级到HA模式
 # 服务器: 121.40.167.71
+# 
+# 使用方法:
+#   ./deploy-node1-standalone.sh                    # 标准部署
+#   ./deploy-node1-standalone.sh --no-cache         # 强制重新构建所有镜像
+#   ./deploy-node1-standalone.sh --rebuild-backend  # 只重建后端
+#   ./deploy-node1-standalone.sh --rebuild-frontend # 只重建前端
+#   ./deploy-node1-standalone.sh --help             # 显示帮助
 ################################################################################
 
 set -e
+
+# 解析命令行参数
+NO_CACHE=false
+REBUILD_BACKEND=false
+REBUILD_FRONTEND=false
+
+for arg in "$@"; do
+  case $arg in
+    --no-cache)
+      NO_CACHE=true
+      shift
+      ;;
+    --rebuild-backend)
+      REBUILD_BACKEND=true
+      shift
+      ;;
+    --rebuild-frontend)
+      REBUILD_FRONTEND=true
+      shift
+      ;;
+    --help|-h)
+      echo "使用方法:"
+      echo "  $0                    # 标准部署"
+      echo "  $0 --no-cache         # 强制重新构建所有镜像（忽略缓存）"
+      echo "  $0 --rebuild-backend  # 强制重建后端镜像"
+      echo "  $0 --rebuild-frontend # 强制重建前端镜像"
+      echo "  $0 --help             # 显示此帮助信息"
+      exit 0
+      ;;
+    *)
+      echo "未知参数: $arg"
+      echo "使用 --help 查看帮助"
+      exit 1
+      ;;
+  esac
+done
 
 # 颜色定义
 RED='\033[0;31m'
@@ -132,8 +175,21 @@ docker network create --driver bridge --subnet=172.28.0.0/16 idp-ha-network 2>/d
 echo "停止并删除现有容器..."
 docker-compose -f infra/production/docker-compose-ha-node1.yml down --remove-orphans
 
+# 根据参数决定构建策略
+BUILD_ARGS=""
+if [ "$NO_CACHE" = true ]; then
+    echo "🔨 强制重新构建所有镜像（无缓存）..."
+    docker-compose -f infra/production/docker-compose-ha-node1.yml build --no-cache
+elif [ "$REBUILD_BACKEND" = true ]; then
+    echo "🔨 强制重建后端镜像..."
+    docker-compose -f infra/production/docker-compose-ha-node1.yml build --no-cache authoring celery celery-beat
+elif [ "$REBUILD_FRONTEND" = true ]; then
+    echo "🔨 强制重建前端镜像..."
+    docker-compose -f infra/production/docker-compose-ha-node1.yml build --no-cache frontend
+fi
+
 echo "启动单节点服务（单机模式）..."
-docker-compose -f infra/production/docker-compose-ha-node1.yml --env-file "$ENV_FILE" up -d --build
+docker-compose -f infra/production/docker-compose-ha-node1.yml --env-file "$ENV_FILE" up -d
 
 echo "等待服务启动..."
 sleep 10

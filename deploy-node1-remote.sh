@@ -3,6 +3,12 @@
 ################################################################################
 # 从本地部署到远程服务器1 - 单节点部署
 # 用途: 从本地机器自动部署到服务器1 (121.40.167.71)
+# 
+# 使用方法:
+#   ./deploy-node1-remote.sh                    # 标准部署
+#   ./deploy-node1-remote.sh --no-cache         # 强制重新构建所有镜像
+#   ./deploy-node1-remote.sh --rebuild-backend  # 只重建后端
+#   ./deploy-node1-remote.sh --rebuild-frontend # 只重建前端
 ################################################################################
 
 set -e
@@ -154,7 +160,8 @@ print_success "数据目录创建完成"
 print_step "步骤 6/7: 执行部署"
 
 echo "在远程服务器执行部署脚本..."
-ssh $SSH_USER@$NODE1_IP "cd $REMOTE_DIR && chmod +x deploy/scripts/deploy-node1-standalone.sh && ./deploy/scripts/deploy-node1-standalone.sh"
+# 将本地的参数传递给远程脚本
+ssh $SSH_USER@$NODE1_IP "cd $REMOTE_DIR && chmod +x deploy/scripts/deploy-node1-standalone.sh && ./deploy/scripts/deploy-node1-standalone.sh $*"
 
 print_success "部署执行完成"
 
