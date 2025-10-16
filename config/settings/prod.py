@@ -35,10 +35,6 @@ CACHES = {
         "LOCATION": os.getenv("REDIS_URL"),
         "KEY_PREFIX": "idp_cms_prod",
         "TIMEOUT": 300,
-        "VERSION": 1,
-        "OPTIONS": {
-            "CONNECTION_POOL_KWARGS": {"max_connections": 50},
-        }
     },
     "api": {
         "BACKEND": "django.core.cache.backends.redis.RedisCache",
