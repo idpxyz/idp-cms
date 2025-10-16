@@ -141,6 +141,8 @@ services:
     container_name: ha-opensearch
     environment:
       - discovery.type=single-node
+      - DISABLE_INSTALL_DEMO_CONFIG=true  # 🔒 跳过演示安全配置安装
+      - DISABLE_SECURITY_PLUGIN=true  # 🔒 完全禁用安全插件
       - plugins.security.disabled=true  # 🔒 统一为开发环境配置（内网安全）
       - bootstrap.memory_lock=true
       - "OPENSEARCH_JAVA_OPTS=-Xms2g -Xmx2g"
