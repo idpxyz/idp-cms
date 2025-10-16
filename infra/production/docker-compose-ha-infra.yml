@@ -34,7 +34,7 @@ services:
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-news_ha}
       POSTGRES_USER: ${POSTGRES_USER:-news}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-SecurePassword123!}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-news}  # 🔒 统一为开发环境密码
       POSTGRES_INITDB_ARGS: "--encoding=UTF8 --lc-collate=C --lc-ctype=C"
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -67,7 +67,7 @@ services:
       sh -c "echo 'bind 0.0.0.0' > /tmp/redis.conf &&
              echo 'port 6379' >> /tmp/redis.conf &&
              echo 'protected-mode no' >> /tmp/redis.conf &&
-             echo 'requirepass ${REDIS_PASSWORD:-SecureRedisPass123!}' >> /tmp/redis.conf &&
+             echo 'requirepass ${REDIS_PASSWORD:-devredis123}' >> /tmp/redis.conf &&  # 🔒 统一为开发环境密码
              echo 'maxmemory 2gb' >> /tmp/redis.conf &&
              echo 'maxmemory-policy allkeys-lru' >> /tmp/redis.conf &&
              echo 'save 900 1' >> /tmp/redis.conf &&
@@ -86,7 +86,7 @@ services:
       ha-network:
         ipv4_address: 172.28.0.20
     healthcheck:
-      test: ["CMD", "redis-cli", "--no-auth-warning", "-a", "${REDIS_PASSWORD:-SecureRedisPass123!}", "ping"]
+      test: ["CMD", "redis-cli", "--no-auth-warning", "-a", "${REDIS_PASSWORD:-devredis123}", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -106,7 +106,7 @@ services:
     environment:
       CLICKHOUSE_DB: ${CLICKHOUSE_DB:-analytics}
       CLICKHOUSE_USER: ${CLICKHOUSE_USER:-default}
-      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-ClickHousePass123!}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-thends}  # 🔒 统一为开发环境密码
       CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
     volumes:
       - clickhouse_data:/var/lib/clickhouse
@@ -146,8 +146,7 @@ services:
       - discovery.type=single-node
       - bootstrap.memory_lock=true
       - "OPENSEARCH_JAVA_OPTS=-Xms2g -Xmx2g"
-      - OPENSEARCH_INITIAL_ADMIN_PASSWORD=${OPENSEARCH_PASSWORD:-OpenSearchPass123!}
-      - plugins.security.disabled=false
+      - plugins.security.disabled=true  # 🔒 统一为开发环境配置（内网安全）
     ulimits:
       memlock:
         soft: -1
@@ -165,7 +164,7 @@ services:
       ha-network:
         ipv4_address: 172.28.0.40
     healthcheck:
-      test: ["CMD-SHELL", "curl -f -k -u admin:${OPENSEARCH_PASSWORD:-admin} https://localhost:9200/_cluster/health || exit 1"]
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]  # 🔒 HTTP 无认证（内网安全）
       interval: 30s
       timeout: 10s
       retries: 5
@@ -185,8 +184,8 @@ services:
     hostname: minio
     command: server /data --console-address ":9001"
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-MinIOPass123!}
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-minioadmin}  # 🔒 统一为开发环境密码
     volumes:
       - minio_data:/data
     ports:
@@ -204,6 +203,41 @@ services:
     labels:
       - "app=idp-cms"
       - "role=storage"
+      - "tier=infrastructure"
+
+  # =========================================================================
+  # MinIO 自动配置 - 创建桶并设置权限
+  # =========================================================================
+  minio-setup:
+    image: minio/mc:RELEASE.2025-07-21T05-28-08Z
+    container_name: ha-minio-setup
+    networks:
+      - ha-network
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      sleep 5;
+      mc alias set ha-minio http://minio:9000 ${MINIO_ACCESS_KEY:-minioadmin} ${MINIO_SECRET_KEY:-minioadmin};
+      
+      # 创建双桶结构
+      mc mb -p ha-minio/idp-media-prod-public || true;
+      mc mb -p ha-minio/idp-media-prod-private || true;
+      
+      # 设置桶权限
+      mc anonymous set public ha-minio/idp-media-prod-public;
+      mc anonymous set none ha-minio/idp-media-prod-private;
+      
+      echo '✅ MinIO buckets setup completed:';
+      echo '  - idp-media-prod-public (public)';
+      echo '  - idp-media-prod-private (private)';
+      exit 0;
+      "
+    restart: "no"
+    labels:
+      - "app=idp-cms"
+      - "role=setup"
       - "tier=infrastructure"
 
 volumes:

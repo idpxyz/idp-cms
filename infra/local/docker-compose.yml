@@ -69,7 +69,7 @@ services:
       "
 
   opensearch:
-    image: opensearchproject/opensearch:2.11.0  # 🔧 统一为生产环境版本
+    image: opensearchproject/opensearch:3.2.0  # 🔒 锁定为开发环境实际版本
     env_file:
       - ../../.env.core
       - ../../.env.features
@@ -78,7 +78,6 @@ services:
       - plugins.security.disabled=${OPENSEARCH_SECURITY_DISABLED:-true}
       - bootstrap.memory_lock=true
       - OPENSEARCH_JAVA_OPTS=-Xms2g -Xmx2g
-      - OPENSEARCH_INITIAL_ADMIN_PASSWORD=${OPENSEARCH_PASSWORD:-OpenSearchDev123!}  # 🔧 兼容 2.11 要求
     ulimits: { memlock: { soft: -1, hard: -1 } }
     ports: ["9200:9200", "9600:9600"]
     volumes:
@@ -87,7 +86,7 @@ services:
       - ./opensearch.yml:/usr/share/opensearch/config/opensearch.yml:ro
 
   os-dashboards:
-    image: opensearchproject/opensearch-dashboards:2.11.0  # 🔧 统一为生产环境版本
+    image: opensearchproject/opensearch-dashboards:3.0.0  # 🔒 锁定为开发环境实际版本
     environment:
       - OPENSEARCH_HOSTS=["http://opensearch:9200"]
       - OPENSEARCH_SECURITY_DISABLED=true
