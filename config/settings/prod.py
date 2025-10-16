@@ -6,11 +6,11 @@ from .base import *
 
 # 生产环境特定配置
 DEBUG = False
-ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS", "").split(",")
-
-# 确保有允许的主机
-if not ALLOWED_HOSTS or ALLOWED_HOSTS == [""]:
-    raise ValueError("DJANGO_ALLOWED_HOSTS must be set in production")
+_allowed_hosts = os.getenv("DJANGO_ALLOWED_HOSTS", "*")
+ALLOWED_HOSTS = [host.strip() for host in _allowed_hosts.split(",") if host.strip()]
+if not ALLOWED_HOSTS:
+    # 默认允许所有（单节点部署场景）
+    ALLOWED_HOSTS = ["*"]
 
 # 数据库配置（生产环境）
 DATABASES = {
@@ -22,8 +22,7 @@ DATABASES = {
         "HOST": os.getenv("POSTGRES_HOST"),
         "PORT": int(os.getenv("POSTGRES_PORT", "5432")),
         "OPTIONS": {
-            "MAX_CONNS": 20,
-            "sslmode": "require",
+            # "sslmode": "require",  # 注释掉SSL要求，因为是内网连接
         },
         "CONN_MAX_AGE": 60,
     }
@@ -64,14 +63,16 @@ EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
 DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "noreply@idpcms.com")
 
 # 安全配置（生产环境）
+# 注意：单节点部署使用HTTP，SSL配置需要在Nginx层配置
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
-SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-SECURE_HSTS_SECONDS = 31536000  # 1年
-SECURE_HSTS_PRELOAD = True
-SECURE_SSL_REDIRECT = True
-SESSION_COOKIE_SECURE = True
-CSRF_COOKIE_SECURE = True
+# HSTS和SSL相关配置暂时关闭，使用HTTP直连
+# SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+# SECURE_HSTS_SECONDS = 31536000
+# SECURE_HSTS_PRELOAD = True
+SECURE_SSL_REDIRECT = False  # HTTP环境，不强制SSL
+SESSION_COOKIE_SECURE = False  # HTTP环境
+CSRF_COOKIE_SECURE = False  # HTTP环境
 X_FRAME_OPTIONS = "DENY"
 
 # 增强安全配置
@@ -127,7 +128,11 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 CSRF_COOKIE_AGE = 3600  # 1小时
 CSRF_COOKIE_HTTPONLY = True
 CSRF_COOKIE_SAMESITE = "Lax"
-CSRF_TRUSTED_ORIGINS = os.getenv("CSRF_TRUSTED_ORIGINS", "").split(",")
+_csrf_origins = os.getenv("CSRF_TRUSTED_ORIGINS", "")
+CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in _csrf_origins.split(",") if origin.strip()]
+if not CSRF_TRUSTED_ORIGINS:
+    # 默认信任本地和节点IP
+    CSRF_TRUSTED_ORIGINS = ["http://localhost:3000", "http://localhost:8000"]
 
 # 密码策略
 AUTH_PASSWORD_VALIDATORS = [
