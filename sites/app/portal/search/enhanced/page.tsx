@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, Suspense } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import { formatDateShort } from "@/lib/utils/date";
@@ -11,6 +11,7 @@ import SearchFilters, { SearchFilters as FilterType } from "@/components/search/
 import RelatedSearches, { generateRelatedSearches, RelatedSearch } from "@/components/search/RelatedSearches";
 import TrendingSearches from "@/components/search/TrendingSearches";
 import { useSearchHistory } from "@/lib/hooks/useSearchHistory";
+import SearchParamsWrapper from "@/components/common/SearchParamsWrapper";
 
 // 强制动态渲染，禁用静态生成
 export const dynamic = 'force-dynamic';
@@ -384,15 +385,8 @@ function EnhancedSearchPageContent() {
 
 export default function EnhancedSearchPage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">加载中...</p>
-        </div>
-      </div>
-    }>
+    <SearchParamsWrapper>
       <EnhancedSearchPageContent />
-    </Suspense>
+    </SearchParamsWrapper>
   );
 }
