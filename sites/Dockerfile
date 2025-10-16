@@ -39,11 +39,21 @@ CMD ["npm", "run", "dev"]
 # 生产阶段
 FROM base AS production
 
+# 设置 Puppeteer 跳过下载
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+ENV PUPPETEER_SKIP_DOWNLOAD=true
+
+# 先安装所有依赖（包括 devDependencies）用于构建
+RUN npm install
+
 # 复制源代码
 COPY . .
 
 # 构建应用
 RUN npm run build
+
+# 清理开发依赖，减小最终镜像大小
+RUN npm prune --production
 
 # 暴露端口
 EXPOSE 3000
