@@ -129,8 +129,11 @@ echo "创建 Docker 网络（如果不存在）..."
 docker network create --driver bridge --subnet=172.28.0.0/16 idp-ha-network 2>/dev/null || \
     echo -e "${GREEN}✅ 网络已存在${NC}"
 
+echo "停止并删除现有容器..."
+docker-compose -f infra/production/docker-compose-ha-node1.yml down --remove-orphans
+
 echo "启动单节点服务（单机模式）..."
-docker-compose -f infra/production/docker-compose-ha-node1.yml --env-file "$ENV_FILE" up -d --build --force-recreate
+docker-compose -f infra/production/docker-compose-ha-node1.yml --env-file "$ENV_FILE" up -d --build
 
 echo "等待服务启动..."
 sleep 10
