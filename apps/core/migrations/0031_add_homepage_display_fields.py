@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0030_delete_collectionextension'),
+        ('core', '0025_add_collection_extension'),  # 已合并 0026-0030
     ]
 
     operations = [
