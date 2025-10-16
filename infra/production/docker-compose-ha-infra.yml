@@ -162,12 +162,14 @@ services:
     networks:
       ha-network:
         ipv4_address: 172.28.0.40
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]  # 🔒 HTTP 无认证（内网安全）
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 60s
+    # 健康检查暂时禁用 - OpenSearch 启动需要2-3分钟，且是可选服务
+    # 如需启用搜索功能，可在服务启动后手动验证
+    # healthcheck:
+    #   test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+    #   interval: 30s
+    #   timeout: 10s
+    #   retries: 5
+    #   start_period: 180s
     restart: unless-stopped
     labels:
       - "app=idp-cms"
