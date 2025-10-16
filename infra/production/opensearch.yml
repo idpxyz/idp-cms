@@ -1,0 +1,15 @@
+---
+cluster.name: idp-production-cluster
+
+# Bind to all interfaces
+network.host: 0.0.0.0
+
+# Single node mode
+discovery.type: single-node
+
+# Disable security plugin (internal network)
+plugins.security.disabled: true
+
+# Memory settings
+bootstrap.memory_lock: true
+
