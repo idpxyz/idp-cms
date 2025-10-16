@@ -154,8 +154,7 @@ services:
     volumes:
       - opensearch_data:/usr/share/opensearch/data
       - opensearch_logs:/usr/share/opensearch/logs
-      # 移除配置文件挂载，完全使用环境变量配置
-      # - ./opensearch.yml:/usr/share/opensearch/config/opensearch.yml:ro
+      - ./opensearch.yml:/usr/share/opensearch/config/opensearch.yml:ro  # 🔒 与本地环境一致
     ports:
       - "9200:9200"
       - "9600:9600"
