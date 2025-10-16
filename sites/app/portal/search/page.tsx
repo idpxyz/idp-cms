@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import { formatDateShort } from "@/lib/utils/date";
+import SearchParamsWrapper from "@/components/common/SearchParamsWrapper";
 // Removed api-url dependency - using relative paths instead
 
 // 强制动态渲染，禁用静态生成
@@ -72,7 +73,7 @@ interface SearchResponse {
   query: string;
 }
 
-export default function SearchPage() {
+function SearchPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   
@@ -526,5 +527,13 @@ export default function SearchPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SearchPage() {
+  return (
+    <SearchParamsWrapper>
+      <SearchPageContent />
+    </SearchParamsWrapper>
   );
 }
