@@ -106,12 +106,13 @@ echo "创建 ClickHouse 数据目录..."
 mkdir -p data/clickhouse
 
 echo "创建日志目录..."
-mkdir -p logs/{nginx,django,nextjs}
+mkdir -p logs/{nginx,django,nextjs,redis,opensearch}
 
 echo "设置目录权限..."
+chmod -R 777 logs/
 chmod -R 755 data/
 
-echo -e "${GREEN}✅ 数据目录创建完成${NC}"
+echo -e "${GREEN}✅ 数据目录和日志目录创建完成${NC}"
 
 # 5. 拉取 Docker 镜像
 print_step "步骤 5/8: 拉取 Docker 镜像"
@@ -123,6 +124,10 @@ echo -e "${GREEN}✅ 镜像拉取完成${NC}"
 
 # 6. 启动服务
 print_step "步骤 6/8: 启动服务"
+
+echo "创建 Docker 网络（如果不存在）..."
+docker network create --driver bridge --subnet=172.28.0.0/16 idp-ha-network 2>/dev/null || \
+    echo -e "${GREEN}✅ 网络已存在${NC}"
 
 echo "启动单节点服务（单机模式）..."
 docker-compose -f infra/production/docker-compose-ha-node1.yml --env-file "$ENV_FILE" up -d --build --force-recreate
