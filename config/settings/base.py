@@ -152,9 +152,6 @@ CACHES = {
         "KEY_PREFIX": "idp_cms",
         "TIMEOUT": 300,
         "VERSION": 1,
-        "OPTIONS": {
-            "CLIENT_CLASS": "django_redis.client.DefaultClient",
-        }
     },
     "api": {
         "BACKEND": "django.core.cache.backends.redis.RedisCache", 

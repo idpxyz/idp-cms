@@ -37,7 +37,6 @@ CACHES = {
         "TIMEOUT": 300,
         "VERSION": 1,
         "OPTIONS": {
-            "CLIENT_CLASS": "django_redis.client.DefaultClient",
             "CONNECTION_POOL_KWARGS": {"max_connections": 50},
         }
     },
