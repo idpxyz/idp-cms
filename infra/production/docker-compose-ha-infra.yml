@@ -141,10 +141,9 @@ services:
     container_name: ha-opensearch
     environment:
       - discovery.type=single-node
-      - plugins.security.disabled=true  # 🔒 与开发环境完全一致
+      - DISABLE_SECURITY_PLUGIN=true  # 🔒 完全跳过安全插件安装（不是禁用）
       - bootstrap.memory_lock=true
       - "OPENSEARCH_JAVA_OPTS=-Xms1g -Xmx1g"  # 🔒 调整为 1GB（服务器内存有限）
-      - OPENSEARCH_INITIAL_ADMIN_PASSWORD=OpenSearch@Admin123!  # 🔒 3.2.0+ 启动必需（即使禁用安全插件）
     ulimits:
       memlock:
         soft: -1
