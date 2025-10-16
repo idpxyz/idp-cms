@@ -147,6 +147,7 @@ services:
       - bootstrap.memory_lock=true
       - "OPENSEARCH_JAVA_OPTS=-Xms2g -Xmx2g"
       - plugins.security.disabled=true  # 🔒 统一为开发环境配置（内网安全）
+      - OPENSEARCH_INITIAL_ADMIN_PASSWORD=OpenSearch@123  # 🔒 OpenSearch 3.2.0+ 必需（即使禁用安全插件）
     ulimits:
       memlock:
         soft: -1
