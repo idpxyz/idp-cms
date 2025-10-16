@@ -141,9 +141,8 @@ services:
     container_name: ha-opensearch
     environment:
       - discovery.type=single-node
-      - plugins.security.disabled=true
-      - OPENSEARCH_SECURITY_DISABLED=true  # 🔒 与本地完全一致
-      - OPENSEARCH_PASSWORD=OpenSearch2024!@#$%  # 🔒 与本地完全一致（虽然安全插件禁用了）
+      - DISABLE_INSTALL_DEMO_CONFIG=true  # 🔒 跳过安全插件演示配置安装
+      - DISABLE_SECURITY_PLUGIN=true  # 🔒 完全禁用安全插件
       - bootstrap.memory_lock=true
       - OPENSEARCH_JAVA_OPTS=-Xms1g -Xmx1g  # 🔒 调整为 1GB（服务器内存有限）
     ulimits:
@@ -153,7 +152,8 @@ services:
     volumes:
       - opensearch_data:/usr/share/opensearch/data
       - opensearch_logs:/usr/share/opensearch/logs
-      - ./opensearch.yml:/usr/share/opensearch/config/opensearch.yml:ro  # 🔒 与本地环境一致
+      # 不挂载配置文件，安装脚本会检测到文件就退出
+      # - ./opensearch.yml:/usr/share/opensearch/config/opensearch.yml:ro
     ports:
       - "9200:9200"
       - "9600:9600"
