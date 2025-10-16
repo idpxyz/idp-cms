@@ -150,6 +150,8 @@ services:
       memlock:
         soft: -1
         hard: -1
+    devices:
+      - "/dev/urandom:/dev/random"  # 将阻塞的 /dev/random 映射为 /dev/urandom
     volumes:
       - opensearch_data:/usr/share/opensearch/data
       - opensearch_logs:/usr/share/opensearch/logs
