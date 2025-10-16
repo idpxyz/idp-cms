@@ -99,12 +99,13 @@ echo "创建远程目录..."
 ssh $SSH_USER@$NODE1_IP "mkdir -p $REMOTE_DIR"
 
 echo "同步代码（排除不必要的文件）..."
-rsync -avz --progress \
+rsync -avz --progress --delete \
     --exclude='.git' \
     --exclude='node_modules' \
     --exclude='__pycache__' \
     --exclude='*.pyc' \
     --exclude='.next' \
+    --exclude='.next-local' \
     --exclude='data' \
     --exclude='logs' \
     --exclude='*.log' \
