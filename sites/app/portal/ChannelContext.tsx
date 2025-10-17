@@ -29,6 +29,23 @@ interface ChannelContextType {
 
 const ChannelContext = createContext<ChannelContextType | undefined>(undefined);
 
+// 🎯 添加虚拟"推荐"频道的辅助函数（组件外定义，避免重复创建）
+const addRecommendChannelIfMissing = (channels: Channel[]): Channel[] => {
+  const hasRecommend = channels.some((ch: Channel) => ch.slug === 'recommend');
+  if (!hasRecommend) {
+    const recommendChannel = { 
+      id: 'recommend', 
+      slug: 'recommend', 
+      name: '推荐', 
+      order: -1,
+      show_in_homepage: true,
+      homepage_order: -1
+    } as Channel;
+    return [recommendChannel, ...channels];
+  }
+  return channels;
+};
+
 interface ChannelProviderProps {
   children: ReactNode;
   initialChannels: Channel[]; // 必需，来自服务端
@@ -40,8 +57,10 @@ export function ChannelProvider({ children, initialChannels }: ChannelProviderPr
   const pathname = usePathname();
   const searchParams = useSearchParams();
   
-  // 🚀 性能优化：客户端加载频道数据
-  const [channels, setChannels] = useState<Channel[]>(initialChannels || []);
+  // 🚀 性能优化：客户端加载频道数据（初始化时就添加虚拟推荐频道）
+  const [channels, setChannels] = useState<Channel[]>(
+    addRecommendChannelIfMissing(initialChannels || [])
+  );
   const [channelsLoading, setChannelsLoading] = useState(initialChannels.length === 0);
   
   // 客户端获取个性化频道
@@ -57,14 +76,24 @@ export function ChannelProvider({ children, initialChannels }: ChannelProviderPr
       .then(res => res.json())
       .then(data => {
         // API 返回格式：{ channels: [...], strategy: "...", ... }
-        setChannels(data.channels || []);
+        const fetchedChannels = data.channels || [];
+        
+        // 使用辅助函数添加虚拟推荐频道
+        setChannels(addRecommendChannelIfMissing(fetchedChannels));
         setChannelsLoading(false);
       })
       .catch(error => {
         console.error('Failed to load channels:', error);
-        // 降级：使用默认频道列表
+        // 降级：使用默认频道列表（只有推荐频道）
         setChannels([
-          { id: 'recommend', slug: 'recommend', name: '推荐', sort_order: 0 } as Channel
+          { 
+            id: 'recommend', 
+            slug: 'recommend', 
+            name: '推荐', 
+            order: -1,
+            show_in_homepage: true,
+            homepage_order: -1
+          } as Channel
         ]);
         setChannelsLoading(false);
       });

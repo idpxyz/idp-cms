@@ -562,12 +562,12 @@ export default function NewsContent({
 
   // 处理文章点击
   const handleArticleClick = useCallback((slug: string) => {
-    trackClick("article", slug);
-  }, []);
+    trackClick(slug, currentChannelSlug);
+  }, [currentChannelSlug]);
 
   // 处理话题点击
   const handleTopicClick = useCallback((slug: string) => {
-    trackClick("topic", slug);
+    trackClick(slug, 'topic');
   }, []);
 
   // 获取策略显示名称

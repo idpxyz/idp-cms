@@ -9,15 +9,16 @@ import { CategoryProvider } from "./CategoryContext";
 import ChannelNavigation from "./components/ChannelNavigation";
 import { getBreakingNews } from "./components/BreakingTicker.utils";
 import { getPersonalizedChannelsSSR } from "@/lib/api";
+import { channelService, type Channel } from "@/lib/api";
 
 export const metadata: Metadata = {
-  title: "党报头条 - 倾听人民的声音",
+  title: "今日湖北 - 传播湖北声音 讲好湖北故事",
   description:
-    "党报头条是权威主流媒体融合平台，坚持党媒属性，传播党的声音，服务人民群众， 倾听人民的声音。聚焦要闻时政、民生服务、经济发展、文化传承、科技创新等重点领域，打造有思想、有温度、有品质的新闻资讯服务。",
-  keywords: "党报头条,主流媒体,融媒体,要闻时政,民生服务,权威资讯,党的声音,人民的声音,新闻平台",
+    "今日湖北是湖北省权威主流媒体融合平台，专注于传播湖北声音，讲好湖北故事。聚焦湖北要闻时政、民生服务、经济发展、文化传承、科技创新等重点领域，打造有思想、有温度、有品质的湖北新闻资讯服务。",
+  keywords: "今日湖北,湖北新闻,湖北要闻,主流媒体,融媒体,要闻时政,民生服务,权威资讯,新闻平台,HUBEI TODAY",
   openGraph: {
-    title: "党报头条 - 倾听人民的声音",
-    description: "倾听人民的声音，聚焦要闻时政、民生服务、经济发展、文化传承、科技创新等重点领域，打造有思想、有温度、有品质的新闻资讯服务。",
+    title: "今日湖北 - 传播湖北声音 讲好湖北故事",
+    description: "传播湖北声音，讲好湖北故事。聚焦湖北要闻时政、民生服务、经济发展、文化传承、科技创新等重点领域，打造有思想、有温度、有品质的新闻资讯服务。",
     type: "website",
     locale: "zh_CN",
   },

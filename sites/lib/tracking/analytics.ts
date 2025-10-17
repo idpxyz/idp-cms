@@ -33,8 +33,16 @@ const TRACKING_CONFIG = {
   batchSize: 10, // 批量发送大小
   flushInterval: 5000, // 发送间隔（毫秒）
   debounceDelay: 300, // 防抖延迟
-  site: "aivoya.com", // 默认站点
 };
+
+// 🎯 动态获取站点标识（运行时获取，避免构建时固化）
+function getSiteIdentifier(): string {
+  if (typeof window === 'undefined') {
+    return 'localhost';
+  }
+  // 优先使用环境变量，否则使用 hostname
+  return (window as any).NEXT_PUBLIC_PORTAL_SITE || window.location.hostname || 'localhost';
+}
 
 // 埋点队列
 let trackingQueue: TrackingData[] = [];
@@ -135,7 +143,7 @@ function track(
     user_id: session.userId,
     device_id: session.deviceId,
     session_id: session.sessionId,
-    site: TRACKING_CONFIG.site,
+    site: getSiteIdentifier(), // 🎯 动态获取 site
     ts: Date.now(),
     channel: options.channel,
     dwell_ms: options.dwellMs,
