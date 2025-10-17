@@ -40,8 +40,21 @@ function getSiteIdentifier(): string {
   if (typeof window === 'undefined') {
     return 'localhost';
   }
-  // 优先使用环境变量，否则使用 hostname
-  return (window as any).NEXT_PUBLIC_PORTAL_SITE || window.location.hostname || 'localhost';
+  // 🚨 重要：强制使用环境变量配置的站点标识，确保与后端数据一致
+  // 这对于用户行为追踪和文章数据关联至关重要！
+  const configuredSite = (window as any).NEXT_PUBLIC_PORTAL_SITE;
+  if (configuredSite) {
+    return configuredSite;
+  }
+  
+  // 🎯 备用方案：根据 hostname 映射到标准站点标识
+  const hostname = window.location.hostname;
+  // IP 地址或 localhost 都映射到 'localhost'
+  if (hostname === 'localhost' || hostname.match(/^\d+\.\d+\.\d+\.\d+$/)) {
+    return 'localhost';
+  }
+  // 域名使用标准化的站点标识
+  return hostname;
 }
 
 // 埋点队列
