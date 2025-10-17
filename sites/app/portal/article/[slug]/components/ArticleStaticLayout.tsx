@@ -175,6 +175,15 @@ export default function ArticleStaticLayout({
                   </div>
                 </header>
 
+                {/* 文章摘要 - 突出显示 */}
+                {article.excerpt && (
+                  <div className="px-6 md:px-12 py-4 bg-gray-50 border-l-4 border-red-500 mx-6 md:mx-12 rounded-r">
+                    <p className="text-lg text-gray-700 leading-relaxed italic">
+                      {article.excerpt}
+                    </p>
+                  </div>
+                )}
+
                 {/* 交互按钮区域 - 客户端组件插槽 */}
                 {interactionsContent}
 

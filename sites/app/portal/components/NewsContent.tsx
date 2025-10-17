@@ -1259,7 +1259,7 @@ export default function NewsContent({
                           {news.title}
                         </a>
                       </h3>
-                      <p className="news-excerpt mb-4 line-clamp-3">
+                      <p className="news-excerpt mb-4 line-clamp-2">
                         {news.excerpt || '暂无摘要'}
                       </p>
                       <div className="flex items-center justify-between text-sm text-gray-500">
