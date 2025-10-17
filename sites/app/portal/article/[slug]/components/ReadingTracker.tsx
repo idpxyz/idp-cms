@@ -34,11 +34,18 @@ export default function ReadingTracker({
 
   // 🎯 设置当前频道，确保频道导航高亮正确
   useEffect(() => {
-    if (channelSlug && channelSlug !== 'unknown' && channels.length > 0) {
-      const channel = channels.find(ch => ch.slug === channelSlug);
-      if (channel) {
-        switchChannel(channel.id);
-      }
+    if (channels.length === 0) return;
+    
+    // 如果是未知频道，清除高亮（传递空字符串，不会匹配任何频道）
+    if (!channelSlug || channelSlug === 'unknown') {
+      switchChannel('');
+      return;
+    }
+    
+    // 查找并切换到文章所属的实际频道
+    const channel = channels.find(ch => ch.slug === channelSlug);
+    if (channel) {
+      switchChannel(channel.id);
     }
   }, [channelSlug, channels, switchChannel]);
 
