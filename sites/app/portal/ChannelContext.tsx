@@ -102,7 +102,11 @@ export function ChannelProvider({ children, initialChannels }: ChannelProviderPr
   // 🚀 性能优化：使用纯客户端状态管理频道，不依赖路由
   // 初始值从 URL 参数获取（用于页面刷新恢复状态）
   const initialChannelSlug = useMemo(() => {
+    // 搜索页面：不高亮任何频道
     if (pathname === '/portal/search') return '';
+    // 文章详情页：不高亮任何频道，让用户专注内容
+    if (pathname?.startsWith('/portal/article/')) return '';
+    // 频道页面：从 URL 获取或默认推荐频道
     return searchParams?.get('channel') || 'recommend';
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
   
@@ -117,6 +121,14 @@ export function ChannelProvider({ children, initialChannels }: ChannelProviderPr
   // 🔄 监听 URL 参数变化，同步更新频道状态
   // 当通过 router.push() 导航到新频道时，URL 会变化，需要同步更新状态
   useEffect(() => {
+    // 文章详情页和搜索页：清除频道高亮
+    if (pathname === '/portal/search' || pathname?.startsWith('/portal/article/')) {
+      if (currentChannelSlug !== '') {
+        setCurrentChannelSlug('');
+      }
+      return;
+    }
+    
     // 只在频道页面内同步 URL 参数
     if (pathname === '/portal' || pathname === '/portal/') {
       const urlChannel = searchParams?.get('channel') || 'recommend';
