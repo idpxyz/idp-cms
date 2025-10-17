@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useReadingHistory } from "@/lib/hooks/useReadingHistory";
 import { trackPageView, trackDwell } from "@/lib/tracking/analytics";
-import { useChannels } from "@/app/portal/ChannelContext";
 
 interface ReadingTrackerProps {
   articleId: number;
@@ -23,7 +22,6 @@ export default function ReadingTracker({
   channelSlug,
 }: ReadingTrackerProps) {
   const { addToHistory } = useReadingHistory();
-  const { switchChannel, channels } = useChannels();
   const [readingProgress, setReadingProgress] = useState(0);
   const [readingStartTime] = useState(Date.now());
   const [currentReadDuration, setCurrentReadDuration] = useState(0);
@@ -32,22 +30,11 @@ export default function ReadingTracker({
   const latestProgressRef = useRef(0);
   const latestDurationRef = useRef(0);
 
-  // 🎯 设置当前频道，确保频道导航高亮正确
-  useEffect(() => {
-    if (channels.length === 0) return;
-    
-    // 如果是未知频道，清除高亮（传递空字符串，不会匹配任何频道）
-    if (!channelSlug || channelSlug === 'unknown') {
-      switchChannel('');
-      return;
-    }
-    
-    // 查找并切换到文章所属的实际频道
-    const channel = channels.find(ch => ch.slug === channelSlug);
-    if (channel) {
-      switchChannel(channel.id);
-    }
-  }, [channelSlug, channels, switchChannel]);
+  // 🎯 文章页面不切换频道，保持用户从哪个频道进入的状态
+  // 避免频道跳转和"频道不存在"的提示
+  // useEffect(() => {
+  //   // 频道切换逻辑已禁用
+  // }, []);
 
   // 页面访问追踪
   useEffect(() => {
