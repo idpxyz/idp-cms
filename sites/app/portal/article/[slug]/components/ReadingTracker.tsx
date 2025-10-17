@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useReadingHistory } from "@/lib/hooks/useReadingHistory";
 import { trackPageView, trackDwell } from "@/lib/tracking/analytics";
+import { useChannels } from "@/app/portal/ChannelContext";
 
 interface ReadingTrackerProps {
   articleId: number;
@@ -22,6 +23,7 @@ export default function ReadingTracker({
   channelSlug,
 }: ReadingTrackerProps) {
   const { addToHistory } = useReadingHistory();
+  const { switchChannel, channels } = useChannels();
   const [readingProgress, setReadingProgress] = useState(0);
   const [readingStartTime] = useState(Date.now());
   const [currentReadDuration, setCurrentReadDuration] = useState(0);
@@ -29,6 +31,16 @@ export default function ReadingTracker({
   // 使用 useRef 获取最新的值，避免闭包问题
   const latestProgressRef = useRef(0);
   const latestDurationRef = useRef(0);
+
+  // 🎯 设置当前频道，确保频道导航高亮正确
+  useEffect(() => {
+    if (channelSlug && channelSlug !== 'unknown' && channels.length > 0) {
+      const channel = channels.find(ch => ch.slug === channelSlug);
+      if (channel) {
+        switchChannel(channel.id);
+      }
+    }
+  }, [channelSlug, channels, switchChannel]);
 
   // 页面访问追踪
   useEffect(() => {
