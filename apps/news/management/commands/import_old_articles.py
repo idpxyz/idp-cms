@@ -45,6 +45,8 @@ class Command(BaseCommand):
             'cover_images_failed': 0,
             'inline_images_downloaded': 0,
             'inline_images_failed': 0,
+            'images_from_local': 0,  # 从本地文件读取
+            'images_from_http': 0,   # 从HTTP下载
         }
         self.category_mapping = {}  # 将在prepare_environment中加载
 
@@ -91,7 +93,18 @@ class Command(BaseCommand):
             '--old-site-url',
             type=str,
             default='http://www.hubeitoday.com.cn',
-            help='旧站点URL（用于拼接相对路径图片）'
+            help='旧站点URL（用于拼接相对路径图片，HTTP下载模式）'
+        )
+        parser.add_argument(
+            '--old-media-path',
+            type=str,
+            default='/data/webapp/www/file.hubeitoday.com.cn/public',
+            help='旧系统图片文件目录（本地文件模式，优先使用）'
+        )
+        parser.add_argument(
+            '--force-download',
+            action='store_true',
+            help='强制使用HTTP下载模式（忽略本地文件）'
         )
         parser.add_argument(
             '--channel-slug',
@@ -315,7 +328,7 @@ class Command(BaseCommand):
         return slug[:255]  # Django slug字段通常限制255字符
 
     def download_and_create_image(self, image_url, title, image_type='cover'):
-        """下载图片并创建CustomImage
+        """读取图片并创建CustomImage（优先使用本地文件，降级为HTTP下载）
         
         Args:
             image_url: 图片URL（相对或绝对路径）
@@ -325,40 +338,71 @@ class Command(BaseCommand):
         if not image_url:
             return None
 
-        # 处理相对路径
-        if not image_url.startswith('http'):
-            # 跳过占位图
-            if 'placeholder' in image_url.lower():
-                return None
-            # 拼接完整URL
-            old_site_url = self.options.get('old_site_url', 'http://www.hubeitoday.com.cn')
-            image_url = old_site_url.rstrip('/') + '/' + image_url.lstrip('/')
+        # 跳过占位图
+        if 'placeholder' in image_url.lower():
+            return None
 
         try:
-            # 下载图片
-            response = requests.get(image_url, timeout=15)
-            response.raise_for_status()
+            image_content = None
+            filename = None
+            source_method = None
 
-            # 检查文件大小（最大10MB）
-            content_length = len(response.content)
-            if content_length > 10 * 1024 * 1024:
-                raise Exception(f'图片过大: {content_length / 1024 / 1024:.1f}MB')
+            # 优先尝试本地文件模式（如果未强制下载）
+            if not self.options.get('force_download'):
+                # 处理相对路径
+                relative_path = image_url.lstrip('/')
+                old_media_path = self.options.get('old_media_path', '/data/webapp/www/file.hubeitoday.com.cn/public')
+                local_file_path = Path(old_media_path) / relative_path
+                
+                if local_file_path.exists() and local_file_path.is_file():
+                    # 从本地文件读取
+                    with open(local_file_path, 'rb') as f:
+                        image_content = f.read()
+                    
+                    # 检查文件大小（最大10MB）
+                    if len(image_content) > 10 * 1024 * 1024:
+                        raise Exception(f'图片过大: {len(image_content) / 1024 / 1024:.1f}MB')
+                    
+                    filename = local_file_path.name
+                    source_method = 'local'
+                else:
+                    # 本地文件不存在，降级为HTTP下载
+                    source_method = 'http_fallback'
 
-            # 获取文件名
-            filename = os.path.basename(image_url.split('?')[0])
-            if not filename or len(filename) > 100:
-                ext = 'jpg'
-                if 'image/png' in response.headers.get('Content-Type', ''):
-                    ext = 'png'
-                filename = f'{image_type}_{int(time.time())}_{hash(image_url) % 10000}.{ext}'
+            # 如果本地文件模式失败，使用HTTP下载
+            if image_content is None:
+                # 处理相对路径为完整URL
+                if not image_url.startswith('http'):
+                    old_site_url = self.options.get('old_site_url', 'http://www.hubeitoday.com.cn')
+                    image_url = old_site_url.rstrip('/') + '/' + image_url.lstrip('/')
+                
+                # 下载图片
+                response = requests.get(image_url, timeout=15)
+                response.raise_for_status()
+                
+                image_content = response.content
+                
+                # 检查文件大小
+                if len(image_content) > 10 * 1024 * 1024:
+                    raise Exception(f'图片过大: {len(image_content) / 1024 / 1024:.1f}MB')
+                
+                # 获取文件名
+                filename = os.path.basename(image_url.split('?')[0])
+                if not filename or len(filename) > 100:
+                    ext = 'jpg'
+                    if 'image/png' in response.headers.get('Content-Type', ''):
+                        ext = 'png'
+                    filename = f'{image_type}_{int(time.time())}_{hash(image_url) % 10000}.{ext}'
+                
+                source_method = 'http' if source_method != 'http_fallback' else 'http_fallback'
 
-            # 创建CustomImage
+            # 创建CustomImage（会自动上传到MinIO）
             image = CustomImage(
                 title=title[:100],
             )
             image.file.save(
                 filename,
-                ContentFile(response.content),
+                ContentFile(image_content),
                 save=True
             )
 
@@ -367,6 +411,21 @@ class Command(BaseCommand):
                 self.stats['cover_images_downloaded'] += 1
             else:
                 self.stats['inline_images_downloaded'] += 1
+            
+            # 更新来源统计
+            if source_method == 'local':
+                self.stats['images_from_local'] += 1
+            else:
+                self.stats['images_from_http'] += 1
+            
+            # 显示详细信息（仅在非批量模式）
+            if self.options.get('test') or self.stats.get('total', 0) <= 100:
+                method_text = {
+                    'local': '📁本地',
+                    'http': '🌐HTTP',
+                    'http_fallback': '🌐HTTP(降级)'
+                }.get(source_method, source_method)
+                self.stdout.write(f'    {method_text} {image_type}: {filename[:30]}...')
             
             return image
 
@@ -378,7 +437,7 @@ class Command(BaseCommand):
                 self.stats['inline_images_failed'] += 1
                 
             self.stdout.write(self.style.WARNING(
-                f'  {image_type}图片下载失败: {image_url[:50]}... - {str(e)}'
+                f'  {image_type}图片失败: {str(image_url)[:50]}... - {str(e)}'
             ))
             return None
 
@@ -487,6 +546,7 @@ class Command(BaseCommand):
         self.stdout.write('\n📸 图片统计:')
         cover_total = self.stats["cover_images_downloaded"] + self.stats["cover_images_failed"]
         inline_total = self.stats["inline_images_downloaded"] + self.stats["inline_images_failed"]
+        total_images = self.stats["cover_images_downloaded"] + self.stats["inline_images_downloaded"]
         
         self.stdout.write(f'  封面图片:')
         self.stdout.write(f'    ✓ 成功:    {self.stats["cover_images_downloaded"]}')
@@ -501,6 +561,15 @@ class Command(BaseCommand):
         if inline_total > 0:
             success_rate = (self.stats["inline_images_downloaded"] / inline_total) * 100
             self.stdout.write(f'    成功率:    {success_rate:.1f}%')
+        
+        # 图片来源统计
+        if total_images > 0:
+            self.stdout.write(f'  图片来源:')
+            local_count = self.stats["images_from_local"]
+            http_count = self.stats["images_from_http"]
+            self.stdout.write(f'    📁 本地文件: {local_count} ({local_count/total_images*100:.1f}%)')
+            self.stdout.write(f'    🌐 HTTP下载: {http_count} ({http_count/total_images*100:.1f}%)')
+            self.stdout.write(f'  💾 存储到MinIO: {total_images} 个')
         
         # 时间统计
         self.stdout.write('\n⏱️  时间统计:')
