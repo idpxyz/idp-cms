@@ -41,8 +41,10 @@ class Command(BaseCommand):
             'success': 0,
             'skipped': 0,
             'failed': 0,
-            'images_downloaded': 0,
-            'images_failed': 0,
+            'cover_images_downloaded': 0,
+            'cover_images_failed': 0,
+            'inline_images_downloaded': 0,
+            'inline_images_failed': 0,
         }
         self.category_mapping = {}  # 将在prepare_environment中加载
 
@@ -78,7 +80,18 @@ class Command(BaseCommand):
         parser.add_argument(
             '--skip-images',
             action='store_true',
-            help='跳过图片下载'
+            help='跳过所有图片下载'
+        )
+        parser.add_argument(
+            '--skip-inline-images',
+            action='store_true',
+            help='跳过正文图片下载（仅下载封面图）'
+        )
+        parser.add_argument(
+            '--old-site-url',
+            type=str,
+            default='http://www.hubeitoday.com.cn',
+            help='旧站点URL（用于拼接相对路径图片）'
         )
         parser.add_argument(
             '--channel-slug',
@@ -301,20 +314,43 @@ class Command(BaseCommand):
 
         return slug[:255]  # Django slug字段通常限制255字符
 
-    def download_and_create_image(self, image_url, title):
-        """下载图片并创建CustomImage"""
-        if not image_url or not image_url.startswith('http'):
+    def download_and_create_image(self, image_url, title, image_type='cover'):
+        """下载图片并创建CustomImage
+        
+        Args:
+            image_url: 图片URL（相对或绝对路径）
+            title: 图片标题
+            image_type: 图片类型（'cover'封面或'inline'正文）
+        """
+        if not image_url:
             return None
+
+        # 处理相对路径
+        if not image_url.startswith('http'):
+            # 跳过占位图
+            if 'placeholder' in image_url.lower():
+                return None
+            # 拼接完整URL
+            old_site_url = self.options.get('old_site_url', 'http://www.hubeitoday.com.cn')
+            image_url = old_site_url.rstrip('/') + '/' + image_url.lstrip('/')
 
         try:
             # 下载图片
-            response = requests.get(image_url, timeout=10)
+            response = requests.get(image_url, timeout=15)
             response.raise_for_status()
+
+            # 检查文件大小（最大10MB）
+            content_length = len(response.content)
+            if content_length > 10 * 1024 * 1024:
+                raise Exception(f'图片过大: {content_length / 1024 / 1024:.1f}MB')
 
             # 获取文件名
             filename = os.path.basename(image_url.split('?')[0])
-            if not filename:
-                filename = f'image_{int(time.time())}.jpg'
+            if not filename or len(filename) > 100:
+                ext = 'jpg'
+                if 'image/png' in response.headers.get('Content-Type', ''):
+                    ext = 'png'
+                filename = f'{image_type}_{int(time.time())}_{hash(image_url) % 10000}.{ext}'
 
             # 创建CustomImage
             image = CustomImage(
@@ -326,18 +362,28 @@ class Command(BaseCommand):
                 save=True
             )
 
-            self.stats['images_downloaded'] += 1
+            # 更新统计
+            if image_type == 'cover':
+                self.stats['cover_images_downloaded'] += 1
+            else:
+                self.stats['inline_images_downloaded'] += 1
+            
             return image
 
         except Exception as e:
-            self.stats['images_failed'] += 1
+            # 更新失败统计
+            if image_type == 'cover':
+                self.stats['cover_images_failed'] += 1
+            else:
+                self.stats['inline_images_failed'] += 1
+                
             self.stdout.write(self.style.WARNING(
-                f'  图片下载失败: {image_url[:50]}... - {str(e)}'
+                f'  {image_type}图片下载失败: {image_url[:50]}... - {str(e)}'
             ))
             return None
 
     def convert_html_to_richtext(self, html):
-        """转换HTML为Wagtail RichText格式"""
+        """转换HTML为Wagtail RichText格式并处理图片"""
         if not html:
             return ''
 
@@ -348,6 +394,33 @@ class Command(BaseCommand):
             # 移除script和style标签
             for tag in soup(['script', 'style']):
                 tag.decompose()
+
+            # 处理正文图片（如果未跳过）
+            if not self.options.get('skip_images') and not self.options.get('skip_inline_images'):
+                for img_tag in soup.find_all('img'):
+                    old_src = img_tag.get('src')
+                    if not old_src:
+                        continue
+                    
+                    # 下载图片并替换URL
+                    new_image = self.download_and_create_image(
+                        old_src,
+                        'inline-image',
+                        image_type='inline'
+                    )
+                    
+                    if new_image:
+                        # 替换为新的图片URL
+                        img_tag['src'] = new_image.file.url
+                        # 保留或添加alt属性
+                        if not img_tag.get('alt'):
+                            img_tag['alt'] = ''
+                    else:
+                        # 下载失败，保留原URL
+                        # 如果是相对路径，转换为绝对路径
+                        if not old_src.startswith('http'):
+                            old_site_url = self.options.get('old_site_url', 'http://www.hubeitoday.com.cn')
+                            img_tag['src'] = old_site_url.rstrip('/') + '/' + old_src.lstrip('/')
 
             # 获取清理后的HTML
             cleaned_html = str(soup)
@@ -398,23 +471,48 @@ class Command(BaseCommand):
 
     def print_statistics(self, elapsed):
         """打印统计信息"""
-        self.stdout.write('\n' + '=' * 60)
-        self.stdout.write(self.style.SUCCESS('导入完成！'))
-        self.stdout.write('=' * 60)
-        self.stdout.write(f'总计:           {self.stats["success"] + self.stats["failed"] + self.stats["skipped"]}')
-        self.stdout.write(self.style.SUCCESS(f'✓ 成功:        {self.stats["success"]}'))
-        self.stdout.write(self.style.WARNING(f'⊘ 跳过:        {self.stats["skipped"]}'))
-        self.stdout.write(self.style.ERROR(f'✗ 失败:        {self.stats["failed"]}'))
-        self.stdout.write(f'图片下载成功:   {self.stats["images_downloaded"]}')
-        self.stdout.write(f'图片下载失败:   {self.stats["images_failed"]}')
-        self.stdout.write(f'用时:           {elapsed:.2f} 秒')
+        self.stdout.write('\n' + '=' * 80)
+        self.stdout.write(self.style.SUCCESS('📊 导入完成！'))
+        self.stdout.write('=' * 80)
+        
+        # 文章统计
+        self.stdout.write('\n📄 文章统计:')
+        total = self.stats["success"] + self.stats["failed"] + self.stats["skipped"]
+        self.stdout.write(f'  总计:         {total}')
+        self.stdout.write(self.style.SUCCESS(f'  ✓ 成功:      {self.stats["success"]}'))
+        self.stdout.write(self.style.WARNING(f'  ⊘ 跳过:      {self.stats["skipped"]}'))
+        self.stdout.write(self.style.ERROR(f'  ✗ 失败:      {self.stats["failed"]}'))
+        
+        # 图片统计
+        self.stdout.write('\n📸 图片统计:')
+        cover_total = self.stats["cover_images_downloaded"] + self.stats["cover_images_failed"]
+        inline_total = self.stats["inline_images_downloaded"] + self.stats["inline_images_failed"]
+        
+        self.stdout.write(f'  封面图片:')
+        self.stdout.write(f'    ✓ 成功:    {self.stats["cover_images_downloaded"]}')
+        self.stdout.write(f'    ✗ 失败:    {self.stats["cover_images_failed"]}')
+        if cover_total > 0:
+            success_rate = (self.stats["cover_images_downloaded"] / cover_total) * 100
+            self.stdout.write(f'    成功率:    {success_rate:.1f}%')
+        
+        self.stdout.write(f'  正文图片:')
+        self.stdout.write(f'    ✓ 成功:    {self.stats["inline_images_downloaded"]}')
+        self.stdout.write(f'    ✗ 失败:    {self.stats["inline_images_failed"]}')
+        if inline_total > 0:
+            success_rate = (self.stats["inline_images_downloaded"] / inline_total) * 100
+            self.stdout.write(f'    成功率:    {success_rate:.1f}%')
+        
+        # 时间统计
+        self.stdout.write('\n⏱️  时间统计:')
+        self.stdout.write(f'  总用时:       {elapsed:.2f} 秒 ({elapsed/60:.1f} 分钟)')
         
         if self.stats['success'] > 0:
             avg_time = elapsed / self.stats['success']
-            self.stdout.write(f'平均速度:       {avg_time:.2f} 秒/篇')
+            self.stdout.write(f'  平均速度:     {avg_time:.2f} 秒/篇')
         
+        # 错误日志
         if self.stats['failed'] > 0:
-            self.stdout.write(self.style.WARNING(f'\n错误日志: {self.error_log}'))
+            self.stdout.write('\n' + self.style.WARNING(f'⚠️  错误日志: {self.error_log}'))
         
-        self.stdout.write('=' * 60)
+        self.stdout.write('\n' + '=' * 80)
 
