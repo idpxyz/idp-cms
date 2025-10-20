@@ -27,16 +27,87 @@ print('=' * 100)
 print('创建Channel和Category结构')
 print('=' * 100)
 
-# 定义Channel结构
+# 定义Channel结构（12个频道 - 适度细分）
 channels_data = [
-    {'name': '新闻资讯', 'slug': 'news', 'order': 1, 'description': '时政、社会、法制、党建'},
-    {'name': '经济财经', 'slug': 'finance', 'order': 2, 'description': '金融、证券、理财、投资、房产'},
-    {'name': '文化娱乐', 'slug': 'culture', 'order': 3, 'description': '文化、艺术、娱乐、书画'},
-    {'name': '民生服务', 'slug': 'livelihood', 'order': 4, 'description': '民生、健康、医疗、家居、美食'},
-    {'name': '体育运动', 'slug': 'sports', 'order': 5, 'description': '体育相关'},
-    {'name': '科技数码', 'slug': 'tech', 'order': 6, 'description': '科技、互联网'},
-    {'name': '教育培训', 'slug': 'education', 'order': 7, 'description': '教育相关'},
-    {'name': '汽车旅游', 'slug': 'auto-travel', 'order': 8, 'description': '汽车、旅游'},
+    # ===== 政务类（3个）=====
+    {
+        'name': '时政新闻',
+        'slug': 'politics',
+        'order': 1,
+        'description': '时政要闻、新闻资讯、政策解读'
+    },
+    {
+        'name': '党建廉政',
+        'slug': 'party',
+        'order': 2,
+        'description': '党建工作、廉政建设、纪检监察'
+    },
+    {
+        'name': '法治军事',
+        'slug': 'law-military',
+        'order': 3,
+        'description': '法治建设、军事国防、公共安全'
+    },
+    
+    # ===== 经济类（2个）=====
+    {
+        'name': '经济产业',
+        'slug': 'economy',
+        'order': 4,
+        'description': '经济发展、产业资讯、企业动态、商业观察'
+    },
+    {
+        'name': '房产消费',
+        'slug': 'property',
+        'order': 5,
+        'description': '房地产、汽车、消费市场'
+    },
+    
+    # ===== 社会类（3个）=====
+    {
+        'name': '社会民生',
+        'slug': 'society',
+        'order': 6,
+        'description': '社会新闻、民生关注、百姓生活'
+    },
+    {
+        'name': '教育健康',
+        'slug': 'edu-health',
+        'order': 7,
+        'description': '教育培训、医疗健康、养生保健'
+    },
+    {
+        'name': '科技创新',
+        'slug': 'tech',
+        'order': 8,
+        'description': '科技前沿、创新创业、数字经济'
+    },
+    
+    # ===== 特色类（4个）=====
+    {
+        'name': '乡村振兴',
+        'slug': 'rural',
+        'order': 9,
+        'description': '三农资讯、乡村建设、农业发展'
+    },
+    {
+        'name': '文化旅游',
+        'slug': 'culture',
+        'order': 10,
+        'description': '文化艺术、旅游休闲、荆楚美食'
+    },
+    {
+        'name': '体育娱乐',
+        'slug': 'sports',
+        'order': 11,
+        'description': '体育赛事、娱乐资讯、休闲生活'
+    },
+    {
+        'name': '视频专题',
+        'slug': 'special',
+        'order': 12,
+        'description': '视频新闻、网络直播、深度专题'
+    },
 ]
 
 # 定义Category结构（扁平化：湖北各地市 + 全国）
