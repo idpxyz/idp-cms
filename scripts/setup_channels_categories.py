@@ -39,30 +39,29 @@ channels_data = [
     {'name': '汽车旅游', 'slug': 'auto-travel', 'order': 8, 'description': '汽车、旅游'},
 ]
 
-# 定义Category结构（湖北各地市）
+# 定义Category结构（扁平化：湖北各地市 + 全国）
 categories_data = [
-    # 顶级分类
-    {'name': '湖北', 'slug': 'hubei', 'parent_slug': None, 'order': 1, 'description': '湖北省各地市新闻'},
-    {'name': '全国', 'slug': 'national', 'parent_slug': None, 'order': 2, 'description': '全国性新闻'},
+    # 湖北各地市（按行政级别和重要性排序）- 全部为顶级分类
+    {'name': '武汉', 'slug': 'wuhan', 'parent_slug': None, 'order': 1, 'description': '省会城市'},
+    {'name': '襄阳', 'slug': 'xiangyang', 'parent_slug': None, 'order': 2, 'description': '副中心城市'},
+    {'name': '宜昌', 'slug': 'yichang', 'parent_slug': None, 'order': 3, 'description': '副中心城市'},
+    {'name': '荆州', 'slug': 'jingzhou', 'parent_slug': None, 'order': 4, 'description': '地级市'},
+    {'name': '黄石', 'slug': 'huangshi', 'parent_slug': None, 'order': 5, 'description': '地级市'},
+    {'name': '十堰', 'slug': 'shiyan', 'parent_slug': None, 'order': 6, 'description': '地级市'},
+    {'name': '黄冈', 'slug': 'huanggang', 'parent_slug': None, 'order': 7, 'description': '地级市'},
+    {'name': '荆门', 'slug': 'jingmen', 'parent_slug': None, 'order': 8, 'description': '地级市'},
+    {'name': '鄂州', 'slug': 'ezhou', 'parent_slug': None, 'order': 9, 'description': '地级市'},
+    {'name': '孝感', 'slug': 'xiaogan', 'parent_slug': None, 'order': 10, 'description': '地级市'},
+    {'name': '咸宁', 'slug': 'xianning', 'parent_slug': None, 'order': 11, 'description': '地级市'},
+    {'name': '随州', 'slug': 'suizhou', 'parent_slug': None, 'order': 12, 'description': '地级市'},
+    {'name': '恩施', 'slug': 'enshi', 'parent_slug': None, 'order': 13, 'description': '自治州'},
+    {'name': '仙桃', 'slug': 'xiantao', 'parent_slug': None, 'order': 14, 'description': '省直管市'},
+    {'name': '潜江', 'slug': 'qianjiang', 'parent_slug': None, 'order': 15, 'description': '省直管市'},
+    {'name': '天门', 'slug': 'tianmen', 'parent_slug': None, 'order': 16, 'description': '省直管市'},
+    {'name': '神农架', 'slug': 'shennongjia', 'parent_slug': None, 'order': 17, 'description': '林区'},
     
-    # 湖北各地市（按行政级别和重要性排序）
-    {'name': '武汉', 'slug': 'wuhan', 'parent_slug': 'hubei', 'order': 1, 'description': '省会城市'},
-    {'name': '襄阳', 'slug': 'xiangyang', 'parent_slug': 'hubei', 'order': 2, 'description': '副中心城市'},
-    {'name': '宜昌', 'slug': 'yichang', 'parent_slug': 'hubei', 'order': 3, 'description': '副中心城市'},
-    {'name': '荆州', 'slug': 'jingzhou', 'parent_slug': 'hubei', 'order': 4, 'description': '地级市'},
-    {'name': '黄石', 'slug': 'huangshi', 'parent_slug': 'hubei', 'order': 5, 'description': '地级市'},
-    {'name': '十堰', 'slug': 'shiyan', 'parent_slug': 'hubei', 'order': 6, 'description': '地级市'},
-    {'name': '黄冈', 'slug': 'huanggang', 'parent_slug': 'hubei', 'order': 7, 'description': '地级市'},
-    {'name': '荆门', 'slug': 'jingmen', 'parent_slug': 'hubei', 'order': 8, 'description': '地级市'},
-    {'name': '鄂州', 'slug': 'ezhou', 'parent_slug': 'hubei', 'order': 9, 'description': '地级市'},
-    {'name': '孝感', 'slug': 'xiaogan', 'parent_slug': 'hubei', 'order': 10, 'description': '地级市'},
-    {'name': '咸宁', 'slug': 'xianning', 'parent_slug': 'hubei', 'order': 11, 'description': '地级市'},
-    {'name': '随州', 'slug': 'suizhou', 'parent_slug': 'hubei', 'order': 12, 'description': '地级市'},
-    {'name': '恩施', 'slug': 'enshi', 'parent_slug': 'hubei', 'order': 13, 'description': '自治州'},
-    {'name': '仙桃', 'slug': 'xiantao', 'parent_slug': 'hubei', 'order': 14, 'description': '省直管市'},
-    {'name': '潜江', 'slug': 'qianjiang', 'parent_slug': 'hubei', 'order': 15, 'description': '省直管市'},
-    {'name': '天门', 'slug': 'tianmen', 'parent_slug': 'hubei', 'order': 16, 'description': '省直管市'},
-    {'name': '神农架', 'slug': 'shennongjia', 'parent_slug': 'hubei', 'order': 17, 'description': '林区'},
+    # 全国分类（用于非地方性内容）
+    {'name': '全国', 'slug': 'national', 'parent_slug': None, 'order': 99, 'description': '全国性新闻'},
 ]
 
 with transaction.atomic():
@@ -99,8 +98,8 @@ with transaction.atomic():
     
     created_categories = {}
     
-    # 第一轮：创建顶级分类
-    for cat_data in [c for c in categories_data if c['parent_slug'] is None]:
+    # 扁平化结构：所有Category都是顶级分类
+    for cat_data in categories_data:
         category, created = Category.objects.get_or_create(
             slug=cat_data['slug'],
             defaults={
@@ -115,41 +114,14 @@ with transaction.atomic():
             category.name = cat_data['name']
             category.order = cat_data['order']
             category.description = cat_data.get('description', '')
+            category.parent = None  # 确保是顶级分类
             category.save()
         
         created_categories[cat_data['slug']] = category
         
         status = '✓ 新建' if created else '↻ 更新'
-        print(f'  {status} {category.name:15s} (slug: {category.slug:15s})')
-    
-    # 第二轮：创建子分类
-    for cat_data in [c for c in categories_data if c['parent_slug'] is not None]:
-        parent = created_categories.get(cat_data['parent_slug'])
-        if not parent:
-            print(f'  ⚠ 警告: 找不到父分类 {cat_data["parent_slug"]}，跳过 {cat_data["name"]}')
-            continue
-        
-        category, created = Category.objects.get_or_create(
-            slug=cat_data['slug'],
-            defaults={
-                'name': cat_data['name'],
-                'order': cat_data['order'],
-                'description': cat_data.get('description', ''),
-                'parent': parent,
-            }
-        )
-        
-        if not created:
-            category.name = cat_data['name']
-            category.order = cat_data['order']
-            category.description = cat_data.get('description', '')
-            category.parent = parent
-            category.save()
-        
-        created_categories[cat_data['slug']] = category
-        
-        status = '✓ 新建' if created else '↻ 更新'
-        print(f'  {status}   └─ {category.name:15s} (slug: {category.slug:15s}) -> 父: {parent.name}')
+        desc = f' - {cat_data.get("description", "")}' if cat_data.get('description') else ''
+        print(f'  {status} {category.name:10s} (slug: {category.slug:15s}){desc}')
     
     print(f'\n  共处理 {len(created_categories)} 个Category')
 
@@ -166,11 +138,10 @@ for channel in Channel.objects.all().order_by('order'):
     count = 0  # ArticlePage.objects.filter(channel=channel).count() if needed
     print(f'  {channel.order}. {channel.name:15s} [{channel.slug:15s}] - {channel.description}')
 
-print('\nCategory（分类）:')
-for category in Category.objects.filter(parent__isnull=True).order_by('order'):
-    print(f'  • {category.name} [{category.slug}]')
-    for child in Category.objects.filter(parent=category).order_by('order'):
-        print(f'      └─ {child.name} [{child.slug}]')
+print('\nCategory（分类）- 扁平化结构:')
+for category in Category.objects.all().order_by('order'):
+    desc = f' ({category.description})' if category.description else ''
+    print(f'  • {category.name:10s} [{category.slug:15s}]{desc}')
 
 print('\n' + '=' * 100)
 print('💡 下一步:')
