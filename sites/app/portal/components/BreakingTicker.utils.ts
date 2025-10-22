@@ -13,7 +13,7 @@ export async function getBreakingNews(limit: number = 8): Promise<BreakingNewsIt
     
     // 首先尝试获取 breaking news (最近24小时内的最新新闻) - 注意尾部斜杠
     // 🚀 使用 topstories 模式不限制频道，获取所有最新文章作为快讯
-    const headlinesPath = `/api/headlines/?size=${limit * 2}&hours=24&diversity=high&site=${process.env.NEXT_PUBLIC_PORTAL_SITE || 'localhost'}&mode=topstories`;
+    const headlinesPath = `/api/headlines/?size=${limit * 2}&hours=6&diversity=high&site=${process.env.NEXT_PUBLIC_PORTAL_SITE || 'localhost'}&mode=topstories`;
     const headlinesUrl = endpoints.getCmsEndpoint(headlinesPath);
     
     const response = await fetch(headlinesUrl, {
