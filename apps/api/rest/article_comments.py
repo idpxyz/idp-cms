@@ -117,6 +117,31 @@ def get_article_comments(request, article_id):
 def add_article_comment(request, article_id):
     """为文章添加评论"""
     try:
+        # 检查站点评论功能是否开启
+        from apps.core.site_config import SiteConfigManager
+        import logging
+        
+        logger = logging.getLogger(__name__)
+        
+        # 使用 localhost 作为默认站点（生产环境通常只有一个站点配置）
+        config_manager = SiteConfigManager()
+        try:
+            # 禁用缓存避免序列化问题
+            site_config = config_manager.get_config('localhost', use_cache=False)
+        except Exception as e:
+            # 如果 localhost 不存在，使用默认配置（评论功能关闭）
+            logger.error(f"Failed to load site config for comments: {e}", exc_info=True)
+            return JsonResponse({
+                'success': False,
+                'message': '站点配置错误，评论功能不可用'
+            }, status=403)
+        
+        if not site_config.features.comments_enabled:
+            return JsonResponse({
+                'success': False,
+                'message': '该站点未开启评论功能'
+            }, status=403)
+        
         # 验证用户认证
         user = get_user_from_token(request)
         if not user:
@@ -216,6 +241,9 @@ def add_article_comment(request, article_id):
             'message': '请求数据格式错误'
         }, status=400)
     except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"发表评论失败: {str(e)}", exc_info=True)
         return JsonResponse({
             'success': False,
             'message': f'发表评论失败: {str(e)}'

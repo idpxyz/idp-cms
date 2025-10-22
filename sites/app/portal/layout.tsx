@@ -26,6 +26,8 @@ export const metadata: Metadata = {
     index: true,
     follow: true,
   },
+  // 🚀 防止外部图床防盗链：不发送referer信息
+  referrer: "no-referrer",
 };
 
 interface PortalLayoutProps {

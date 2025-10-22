@@ -85,9 +85,15 @@ class SiteAnalytics:
 @dataclass
 class SiteSEO:
     """站点SEO配置"""
-    default_title: str = ""
-    default_description: str = ""
-    default_keywords: str = ""
+    site_title: str = ""  # 站点级SEO标题
+    site_description: str = ""  # 站点描述
+    site_keywords: str = ""  # 站点关键词
+    page_title_template: str = "{title} - {site_name}"  # 页面标题模板
+    page_description_template: str = ""  # 页面描述模板
+    auto_seo_enabled: bool = True  # 自动SEO
+    default_title: str = ""  # 兼容字段
+    default_description: str = ""  # 兼容字段
+    default_keywords: str = ""  # 兼容字段
     robots_txt_enabled: bool = True
     sitemap: bool = True
     structured_data: bool = True

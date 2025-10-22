@@ -8,10 +8,21 @@
 export function optimizeArticleImages(html: string): string {
   if (!html) return '';
   
-  // 正则匹配所有img标签
-  const imgRegex = /<img([^>]*?)src=["']([^"']+\.(jpg|jpeg|png|JPG|JPEG|PNG))["']([^>]*?)>/gi;
+  // 正则匹配所有img标签（包括URL中包含jpg/jpeg/png但后面可能有参数的）
+  const imgRegex = /<img([^>]*?)src=["']([^"']+\.(jpg|jpeg|png|JPG|JPEG|PNG)[^"']*)["']([^>]*?)>/gi;
   
   return html.replace(imgRegex, (match, beforeSrc, src, ext, afterSrc) => {
+    // 🚀 只对本站图片进行WebP转换，外部图床保持原样
+    const isExternalImage = src.startsWith('http://') || src.startsWith('https://');
+    if (isExternalImage && !src.includes(process.env.NEXT_PUBLIC_SITE_URL || '')) {
+      // 外部图床：不转换格式，只添加懒加载
+      // 移除afterSrc末尾的 / (自闭合标签)
+      const cleanAfterSrc = afterSrc.replace(/\/\s*$/, '').trim();
+      const cleanBeforeSrc = beforeSrc.trim();
+      const attrs = [cleanBeforeSrc, cleanAfterSrc].filter(Boolean).join(' ');
+      return `<img ${attrs} src="${src}" loading="lazy" decoding="async">`;
+    }
+    
     // 生成WebP版本的URL（直接替换扩展名，保持路径不变）
     const webpSrc = src.replace(/\.(jpg|jpeg|png|JPG|JPEG|PNG)$/i, '.webp');
     

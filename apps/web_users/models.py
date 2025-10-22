@@ -126,8 +126,8 @@ class UserComment(models.Model):
     user = models.ForeignKey(WebUser, on_delete=models.CASCADE, related_name='comments')
     article_id = models.CharField('文章ID', max_length=100)
     article_title = models.CharField('文章标题', max_length=200)
-    article_slug = models.SlugField('文章链接')
-    article_channel = models.CharField('文章频道', max_length=50)
+    article_slug = models.SlugField('文章链接', max_length=200)
+    article_channel = models.CharField('文章频道', max_length=100)
     
     # 评论内容
     content = models.TextField('评论内容')
@@ -162,8 +162,8 @@ class UserFavorite(models.Model):
     user = models.ForeignKey(WebUser, on_delete=models.CASCADE, related_name='favorites')
     article_id = models.CharField('文章ID', max_length=100)
     article_title = models.CharField('文章标题', max_length=200)
-    article_slug = models.SlugField('文章链接')
-    article_channel = models.CharField('文章频道', max_length=50)
+    article_slug = models.SlugField('文章链接', max_length=200)
+    article_channel = models.CharField('文章频道', max_length=100)
     article_excerpt = models.TextField('文章摘要', blank=True)
     article_image_url = models.URLField('文章图片', blank=True)
     article_publish_time = models.DateTimeField('文章发布时间', null=True)
