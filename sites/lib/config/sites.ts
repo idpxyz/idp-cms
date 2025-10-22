@@ -126,9 +126,22 @@ class SiteManager {
     return DEFAULT_SITES[0]; // localhost
   }
 
-  // 获取主站点
+  // 获取主站点（根据环境变量动态返回）
   getMainSite(): SiteConfig {
-    return this.getSiteById('aivoya')!;
+    // 优先使用环境变量配置的站点
+    // 客户端使用 NEXT_PUBLIC_ 前缀的环境变量
+    const siteHostname = process.env.NEXT_PUBLIC_SITE_HOSTNAME ||
+                         process.env.SITE_HOSTNAME || 
+                         process.env.NEXT_PUBLIC_PORTAL_SITE ||
+                         process.env.PORTAL_SITE || 
+                         'aivoya.com';
+    
+    // 尝试通过hostname或id查找站点
+    const site = this.getSiteByHostname(siteHostname) || 
+                 this.getSiteById(siteHostname);
+    
+    // 如果找不到，返回aivoya作为默认主站点
+    return site || this.getSiteById('aivoya')!;
   }
 
   // 获取地方站点
@@ -177,5 +190,15 @@ export const getMainSite = () => siteManager.getMainSite();
 export const getLocalSites = () => siteManager.getLocalSites();
 export const getSiteRouteMap = () => siteManager.getSiteRouteMap();
 export const getThemeConfigMap = () => siteManager.getThemeConfigMap();
+
+/**
+ * 获取 Portal 使用的站点标识
+ * 可以通过环境变量 PORTAL_SITE 来配置
+ * 默认: 'aivoya.com'
+ * 开发环境可以设置为: 'localhost'
+ */
+export const getPortalSiteIdentifier = (): string => {
+  return process.env.PORTAL_SITE || process.env.NEXT_PUBLIC_PORTAL_SITE || 'aivoya.com';
+};
 
 // 导出类型已在上面定义

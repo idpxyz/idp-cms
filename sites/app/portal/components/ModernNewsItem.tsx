@@ -126,7 +126,7 @@ const ModernNewsItem: React.FC<ModernNewsItemProps> = React.memo(({
 
         {/* 右侧图片 */}
         <div className="flex-shrink-0">
-          <div className="relative w-32 h-20 sm:w-36 sm:h-24 bg-gray-200 rounded-lg overflow-hidden">
+          <div className="relative w-32 h-20 sm:w-36 sm:h-24 bg-gray-100 rounded-lg overflow-hidden">
             <Image
               src={(news.image_url && !imageError) ? news.image_url : placeholderImageUrl}
               alt={news.title}
@@ -146,10 +146,10 @@ const ModernNewsItem: React.FC<ModernNewsItemProps> = React.memo(({
               }}
             />
             
-            {/* 图片来源标识 */}
+            {/* 默认封面标识（仅在开发环境显示） */}
             {(!news.image_url || imageError) && process.env.NODE_ENV === 'development' && (
               <div className="absolute top-1 right-1 bg-blue-500 text-white text-xs px-1 py-0.5 rounded opacity-75">
-                Picsum
+                默认
               </div>
             )}
             {/* 阅读时间标签 */}

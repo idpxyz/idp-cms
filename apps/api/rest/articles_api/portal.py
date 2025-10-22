@@ -70,16 +70,63 @@ def portal_articles(request):
         hits = res.get("hits", {})
         total = hits.get("total", {}).get("value", 0)
 
-        # 5. 序列化
+        # 5. 序列化（优化：按 slug 批量补齐封面图，避免 id 不一致问题）
+        # 先收集需要补充封面的 slug
+        slugs_need_cover = []
+        for h in hits.get("hits", []):
+            s = h.get("_source", {})
+            if not (s.get("cover_url") or s.get("image_url")) and s.get("slug"):
+                slugs_need_cover.append(s.get("slug"))
+
+        # 批量查询数据库：优先使用封面外键，其次从正文提取首图
+        from apps.news.models import ArticlePage
+        from wagtail.images import get_image_model
+        import re
+        slug_to_cover = {}
+        if slugs_need_cover:
+            qs = ArticlePage.objects.filter(slug__in=slugs_need_cover).select_related("cover").values("slug", "body", "cover_id")
+
+            # 批量取封面文件 URL
+            Image = get_image_model()
+            cover_ids = [row["cover_id"] for row in qs if row.get("cover_id")]
+            id_to_url = {}
+            if cover_ids:
+                for img in Image.objects.filter(id__in=cover_ids).only("id", "file"):
+                    try:
+                        id_to_url[img.id] = img.file.url
+                    except Exception:
+                        pass
+
+            # 构建 slug -> cover_url 映射
+            for row in qs:
+                url = id_to_url.get(row.get("cover_id"), "")
+                if not url:
+                    body_html = str(row.get("body") or "")
+                    m = re.search(r'<img[^>]*src=["\']([^"\']+)["\']', body_html, re.I)
+                    if m:
+                        url = m.group(1)
+                if url:
+                    slug_to_cover[row["slug"]] = url
+        
+        # 序列化结果
         items = []
         for h in hits.get("hits", []):
             s = h.get("_source", {})
+            
+            # 提取封面图：优先 OpenSearch，其次从数据库正文提取
+            cover_url = s.get("cover_url") or s.get("image_url") or ""
+            if not cover_url:
+                cover_url = slug_to_cover.get(s.get("slug", ""), "")
+            # 最终兜底：返回站点内默认封面，避免前端显示占位符
+            if not cover_url:
+                cover_url = "/images/default-covers/default.svg"
+            
             item = {
                 "id": s.get("article_id") or h.get("_id"),
                 "title": s.get("title"),
                 "slug": s.get("slug"),
                 "excerpt": s.get("summary") or "",
-                "cover_url": "",  # 可后续扩展
+                "cover_url": cover_url,  # 🚀 从 OpenSearch 数据或正文中提取
                 "publish_at": s.get("first_published_at") or s.get("publish_time"),
                 "channel_slug": s.get("primary_channel_slug") or s.get("channel"),
                 "region": s.get("region"),

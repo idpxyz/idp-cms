@@ -104,7 +104,7 @@ export function generateSmartPlaceholderImage(
     width?: number;
     height?: number;
     quality?: number;
-    preferredSource?: 'svg' | 'unsplash' | 'picsum' | 'loremPicsum';
+    preferredSource?: 'local' | 'svg' | 'unsplash' | 'picsum' | 'loremPicsum';
     fallbackToSvg?: boolean;
   } = {}
 ): string {
@@ -112,7 +112,7 @@ export function generateSmartPlaceholderImage(
     width = 800,
     height = 450,
     quality = 80,
-    preferredSource = 'picsum',  // 恢复使用稳定的Picsum服务
+    preferredSource = 'local',  // 默认使用本地 SVG 图片
     fallbackToSvg = true
   } = options;
 
@@ -122,6 +122,10 @@ export function generateSmartPlaceholderImage(
 
   try {
     switch (preferredSource) {
+      case 'local':
+        // 使用本地存储的默认封面图片
+        return getLocalDefaultCover(theme);
+      
       case 'svg':
         return generateSvgPlaceholder(width, height, theme);
       
@@ -136,7 +140,7 @@ export function generateSmartPlaceholderImage(
         return generateLoremPicsumUrl(theme, width, height, seed);
       
       default:
-        return generatePicsumUrl(width, height, seed);  // 默认也使用稳定的Picsum
+        return getLocalDefaultCover(theme);  // 默认使用本地图片
     }
   } catch (error) {
     console.warn('生成占位图片失败，使用备用方案:', error);
@@ -145,8 +149,100 @@ export function generateSmartPlaceholderImage(
       return generateSvgPlaceholder(width, height, theme);
     }
     
-    return generatePicsumUrl(width, height, seed);
+    return getLocalDefaultCover(theme);
   }
+}
+
+/**
+ * 获取本地默认封面图片
+ */
+function getLocalDefaultCover(theme: string): string {
+  // 主题到分类的映射
+  const themeToCategory: { [key: string]: string } = {
+    'government': 'politics',
+    'parliament': 'politics',
+    'voting': 'politics',
+    'politics': 'politics',
+    'cityscape': 'default',
+    
+    'business': 'economy',
+    'finance': 'economy',
+    'economy': 'economy',
+    'stock-market': 'economy',
+    'money': 'economy',
+    
+    'technology': 'tech',
+    'computer': 'tech',
+    'innovation': 'tech',
+    'digital': 'tech',
+    'ai': 'tech',
+    
+    'culture': 'culture',
+    'art': 'culture',
+    'museum': 'culture',
+    'heritage': 'culture',
+    'traditional': 'culture',
+    
+    'sports': 'sports',
+    'football': 'sports',
+    'basketball': 'sports',
+    'olympics': 'sports',
+    'stadium': 'sports',
+    
+    'health': 'health',
+    'medical': 'health',
+    'hospital': 'health',
+    'medicine': 'health',
+    'healthcare': 'health',
+    
+    'education': 'education',
+    'school': 'education',
+    'university': 'education',
+    'learning': 'education',
+    'books': 'education',
+    
+    'nature': 'environment',
+    'environment': 'environment',
+    'green': 'environment',
+    'sustainability': 'environment',
+    'landscape': 'environment',
+    
+    'world': 'international',
+    'global': 'international',
+    'international': 'international',
+    'flags': 'international',
+    'earth': 'international',
+    
+    'people': 'society',
+    'community': 'society',
+    'social': 'society',
+    'city': 'society',
+    'crowd': 'society',
+    
+    'military': 'military',
+    'defense': 'military',
+    'security': 'military',
+    'army': 'military',
+    'navy': 'military',
+    
+    'travel': 'travel',
+    'tourism': 'travel',
+    'vacation': 'travel',
+    'destination': 'travel',
+    'adventure': 'travel',
+    
+    'news': 'default',
+    'newspaper': 'default',
+    'media': 'default',
+    'journalism': 'default',
+    'press': 'default'
+  };
+  
+  // 获取对应的分类，如果找不到则使用默认
+  const category = themeToCategory[theme.toLowerCase()] || 'default';
+  
+  // 返回本地 SVG 图片的路径
+  return `/images/default-covers/${category}.svg`;
 }
 
 /**
@@ -357,7 +453,7 @@ export function getTopStoryPlaceholderImage(item: {
     width: 800,
     height: 450,
     quality: 85,
-    preferredSource: 'picsum'  // 恢复使用稳定的Picsum，避免Unsplash连接问题
+    preferredSource: 'local'  // 使用本地 SVG 默认封面
   });
 }
 
@@ -374,6 +470,6 @@ export function getSideNewsPlaceholderImage(item: {
     width: 300,
     height: 200,
     quality: 80,
-    preferredSource: 'picsum'
+    preferredSource: 'local'  // 使用本地 SVG 默认封面
   });
 }

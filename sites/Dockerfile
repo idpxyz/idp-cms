@@ -49,6 +49,15 @@ RUN npm install
 # 复制源代码
 COPY . .
 
+# 设置构建时的环境变量（可以通过 --build-arg 覆盖）
+ARG NEXT_PUBLIC_API_URL=http://localhost:8000
+ARG NEXT_PUBLIC_SITE_URL=http://localhost:3000
+ARG NEXT_PUBLIC_PORTAL_SITE=localhost
+
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
+ENV NEXT_PUBLIC_PORTAL_SITE=$NEXT_PUBLIC_PORTAL_SITE
+
 # 构建应用
 RUN npm run build
 

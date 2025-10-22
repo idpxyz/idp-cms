@@ -47,8 +47,10 @@ const RecommendTemplate: React.FC<ChannelTemplateProps> = ({
   
   // 🚀 性能优化：使用 isMounted 避免 Hydration Mismatch
   const [isMounted, setIsMounted] = React.useState(false);
-  const [heroItems, setHeroItems] = React.useState<any[]>([]);
-  const [topStories, setTopStories] = React.useState<any[]>([]);
+  const [heroItems, setHeroItems] = React.useState<any[] | null>(null);
+  const [topStories, setTopStories] = React.useState<any[] | null>(null);
+  const [isLoadingHero, setIsLoadingHero] = React.useState(true);
+  const [isLoadingTopStories, setIsLoadingTopStories] = React.useState(true);
   
   // 获取要在首页显示的频道条带
   const channelStrips = React.useMemo(() => 
@@ -72,6 +74,7 @@ const RecommendTemplate: React.FC<ChannelTemplateProps> = ({
         const heroAge = Date.now() - heroData.timestamp;
         if (heroAge < 5 * 60 * 1000) {
           setHeroItems(heroData.items || []);
+          setIsLoadingHero(false);
         }
       }
       
@@ -81,6 +84,7 @@ const RecommendTemplate: React.FC<ChannelTemplateProps> = ({
         const topStoriesAge = Date.now() - topStoriesData.timestamp;
         if (topStoriesAge < 5 * 60 * 1000) {
           setTopStories(topStoriesData.items || []);
+          setIsLoadingTopStories(false);
         }
       }
     } catch (e) {
@@ -98,9 +102,10 @@ const RecommendTemplate: React.FC<ChannelTemplateProps> = ({
           }).catch(() => [])
         ]);
         
-        // 更新状态和缓存
+        // 更新Hero状态和缓存（即使为空也要更新，以便区分"加载中"和"无数据"）
+        setHeroItems(heroData || []);
+        setIsLoadingHero(false);
         if (heroData && heroData.length > 0) {
-          setHeroItems(heroData);
           try {
             localStorage.setItem('hero_cache', JSON.stringify({
               items: heroData,
@@ -111,8 +116,10 @@ const RecommendTemplate: React.FC<ChannelTemplateProps> = ({
           }
         }
         
+        // 更新TopStories状态和缓存（即使为空也要更新）
+        setTopStories(topStoriesData || []);
+        setIsLoadingTopStories(false);
         if (topStoriesData && topStoriesData.length > 0) {
-          setTopStories(topStoriesData);
           try {
             localStorage.setItem('topstories_cache', JSON.stringify({
               items: topStoriesData,
@@ -124,6 +131,11 @@ const RecommendTemplate: React.FC<ChannelTemplateProps> = ({
         }
       } catch (error) {
         console.error('Failed to load latest data:', error);
+        // 即使出错也要标记为加载完成
+        setIsLoadingHero(false);
+        setIsLoadingTopStories(false);
+        setHeroItems([]);
+        setTopStories([]);
       }
     };
     
@@ -153,60 +165,74 @@ const RecommendTemplate: React.FC<ChannelTemplateProps> = ({
   return (
     <>
       {/* Hero 区域 - 客户端渲染，避免 Hydration Mismatch */}
-      <PageContainer padding="none">
-        {isMounted && heroItems && heroItems.length > 0 ? (
-          <HeroCarousel 
-            items={heroItems}
-            autoPlay={true}
-            autoPlayInterval={6000}
-            showDots={true}
-            showArrows={true}
-            heightMode="standard"
-            hasRightRail={false}
-            maxHeightVh={60}
-          />
-        ) : (
-          // 🎯 占位符：服务器端渲染 + 客户端加载前显示
-          <div className="relative w-full h-[50vh] md:h-[55vh] lg:h-[60vh] min-h-[300px] max-h-[600px] bg-gradient-to-r from-gray-100 to-gray-50 animate-pulse">
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="text-center text-gray-400">
-                <div className="w-16 h-16 border-4 border-gray-200 border-t-gray-400 rounded-full animate-spin mx-auto mb-3"></div>
-                <p className="text-sm">加载精彩内容...</p>
+      {isMounted && (
+        <>
+          {isLoadingHero ? (
+            // 🎯 加载中：显示loading动画
+            <PageContainer padding="none">
+              <div className="relative w-full h-[50vh] md:h-[55vh] lg:h-[60vh] min-h-[300px] max-h-[600px] bg-gradient-to-r from-gray-100 to-gray-50 animate-pulse">
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="text-center text-gray-400">
+                    <div className="w-16 h-16 border-4 border-gray-200 border-t-gray-400 rounded-full animate-spin mx-auto mb-3"></div>
+                    <p className="text-sm">加载精彩内容...</p>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
-        )}
-      </PageContainer>
+            </PageContainer>
+          ) : heroItems && heroItems.length > 0 ? (
+            // ✅ 有数据：显示Hero轮播
+            <PageContainer padding="none">
+              <HeroCarousel 
+                items={heroItems}
+                autoPlay={true}
+                autoPlayInterval={6000}
+                showDots={true}
+                showArrows={true}
+                heightMode="standard"
+                hasRightRail={false}
+                maxHeightVh={60}
+              />
+            </PageContainer>
+          ) : null}
+          {/* 🎯 无数据：不显示任何内容 */}
+        </>
+      )}
 
       <PageContainer padding="adaptive">
         {/* Top Stories 头条网格 - 客户端渲染，避免 Hydration Mismatch */}
-        {isMounted && topStories && topStories.length > 0 ? (
-          <Section space="md">
-            <TopStoriesGrid 
-              items={topStories}
-              autoFetch={false}
-              title="头条新闻"
-              showViewMore={true}
-              viewMoreLink="/portal/news"
-            />
-          </Section>
-        ) : (
-          // 🎯 占位符：服务器端渲染 + 客户端加载前显示
-          <Section space="md">
-            <div className="mb-6 h-8 w-32 bg-gray-200 animate-pulse rounded"></div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {[...Array(9)].map((_, i) => (
-                <div key={i} className="bg-white rounded-lg overflow-hidden shadow-sm border border-gray-100 animate-pulse">
-                  <div className="aspect-video bg-gradient-to-r from-gray-100 to-gray-50"></div>
-                  <div className="p-4 space-y-3">
-                    <div className="h-4 bg-gray-200 rounded w-full"></div>
-                    <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                    <div className="h-3 bg-gray-100 rounded w-1/2"></div>
-                  </div>
+        {isMounted && (
+          <>
+            {isLoadingTopStories ? (
+              // 🎯 加载中：显示骨架屏
+              <Section space="md">
+                <div className="mb-6 h-8 w-32 bg-gray-200 animate-pulse rounded"></div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {[...Array(9)].map((_, i) => (
+                    <div key={i} className="bg-white rounded-lg overflow-hidden shadow-sm border border-gray-100 animate-pulse">
+                      <div className="aspect-video bg-gradient-to-r from-gray-100 to-gray-50"></div>
+                      <div className="p-4 space-y-3">
+                        <div className="h-4 bg-gray-200 rounded w-full"></div>
+                        <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                        <div className="h-3 bg-gray-100 rounded w-1/2"></div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </Section>
+              </Section>
+            ) : topStories && topStories.length > 0 ? (
+              // ✅ 有数据：显示头条网格
+              <Section space="md">
+                <TopStoriesGrid 
+                  items={topStories}
+                  autoFetch={false}
+                  title="头条新闻"
+                  showViewMore={true}
+                  viewMoreLink="/portal/news"
+                />
+              </Section>
+            ) : null}
+            {/* 🎯 无数据：不显示任何内容 */}
+          </>
         )}
 
         {/* 频道条带区域 - 使用 isMounted 避免 Hydration Mismatch */}

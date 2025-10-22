@@ -13,6 +13,9 @@ export async function GET(req: NextRequest) {
   const channel = url.searchParams.get("channel") || "recommend"; 
   const page = url.searchParams.get("page") || "1";
   const limit = url.searchParams.get("limit") || "20";
+  
+  // 使用统一的 getMainSite() 获取主站点（会根据环境变量动态返回）
+  const siteHostname = getMainSite().hostname;
 
   try {
     // 特殊处理：Hero轮播数据
@@ -20,7 +23,7 @@ export async function GET(req: NextRequest) {
       const heroUrl = endpoints.buildUrl(
         endpoints.getCmsEndpoint('/api/articles/'),
         {
-          site: getMainSite().hostname,
+          site: siteHostname,
           page,
           size: limit,
           is_hero: "true",
@@ -33,7 +36,7 @@ export async function GET(req: NextRequest) {
         timeout: 5000,
         next: {
           revalidate: 30, // Hero内容缓存30秒，便于快速更新
-          tags: [`hero:${getMainSite().hostname}`, "articles:hero"],
+          tags: [`hero:${siteHostname}`, "articles:hero"],
         },
       }));
 
@@ -59,7 +62,7 @@ export async function GET(req: NextRequest) {
     const portalUrl = endpoints.buildUrl(
       endpoints.getCmsEndpoint('/api/portal/articles/'),
       {
-        site: getMainSite().hostname,
+        site: siteHostname,
         page,
         size: limit,
         ...(channel && channel !== "recommend" && channel !== "hero" ? { channel: channel } : {})  
@@ -69,7 +72,7 @@ export async function GET(req: NextRequest) {
     const fallbackUrl = endpoints.buildUrl(
       endpoints.getCmsEndpoint('/api/articles/'),
       {
-        site: getMainSite().hostname,
+        site: siteHostname,
         page,
         size: limit,
         ...(channel && channel !== "recommend" && channel !== "hero" ? { channel: channel } : {})  
@@ -113,12 +116,25 @@ export async function GET(req: NextRequest) {
     // 数据适配 - 将基于 OpenSearch 的聚合结果转换为 news 格式
     const list = (data.items || data.data || []) as any[];
     const adaptedData = {
-      data: list.map((item: any) => ({
+      data: list.map((item: any) => {
+        // 🚀 提取封面图：优先使用 cover_url，否则从 content/html_content 中提取第一张图片
+        let imageUrl = item.cover_url || item.image_url || item.cover || null;
+        if (!imageUrl) {
+          const contentHtml = item.content || item.html_content || item.body || '';
+          if (typeof contentHtml === 'string') {
+            const imgMatch = contentHtml.match(/<img[^>]*src=["']([^"']+)["']/i);
+            if (imgMatch) {
+              imageUrl = imgMatch[1];
+            }
+          }
+        }
+        
+        return {
         id: item.id,
         title: item.title,
         slug: item.slug,
         excerpt: item.excerpt || "",
-        image_url: item.cover_url || item.image_url || null,
+        image_url: imageUrl,
         cover: null,
         channel: item.channel_slug ? { slug: item.channel_slug, name: item.channel_slug } : undefined,
         region: item.region,
@@ -137,7 +153,8 @@ export async function GET(req: NextRequest) {
         like_count: item.like_count || 0,
         favorite_count: item.favorite_count || 0,
         reading_time: item.reading_time || 1,
-      })),
+      };
+      }),
       pagination: data.pagination || {
         page: Number(page),
         size: Number(limit),
@@ -146,7 +163,7 @@ export async function GET(req: NextRequest) {
         has_prev: Number(page) > 1,
       },
       meta: {
-        site: getMainSite().hostname,
+        site: siteHostname,
         channel,
         timestamp: new Date().toISOString(),
       },
@@ -159,7 +176,7 @@ export async function GET(req: NextRequest) {
       status: response.status,
       headers: {
         "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
-        "Surrogate-Key": `news:${safeChannel} news:all site:localhost`,  
+        "Surrogate-Key": `news:${safeChannel} news:all site:${siteHostname}`,  
       },
     });
   } catch (error) {

@@ -13,7 +13,7 @@ export async function getHeroItems(limit: number = 5): Promise<HeroItem[]> {
       size: limit.toString(),
       // 🎯 Hero无时间限制 - 移除hours参数
       // hours: '168', // 已移除，Hero内容不受时间限制
-      site: 'aivoya.com'
+      site: process.env.NEXT_PUBLIC_PORTAL_SITE || 'aivoya.com'
     });
     
     // 🎯 使用专用的Hero API端点

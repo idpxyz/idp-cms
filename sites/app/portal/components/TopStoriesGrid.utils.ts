@@ -144,7 +144,7 @@ export async function getTopStories(
       size: limit.toString(),
       hours: String(options?.hours ?? getTopStoriesDefaultHours()), // 🎯 使用集中化配置
       diversity: String(options?.diversity ?? 'high'),
-      site: 'aivoya.com'
+      site: process.env.NEXT_PUBLIC_PORTAL_SITE || 'aivoya.com'
     });
     
     // 添加排除的聚类ID（如果提供）
@@ -200,7 +200,7 @@ export async function getTopStories(
       size: limit.toString(),
       hours: String(getTopStoriesRetryHours(options?.hours)), // 🎯 使用集中化重试配置
       diversity: String(options?.diversity ?? 'med'), // 放宽多样性
-      site: 'aivoya.com'
+      site: process.env.NEXT_PUBLIC_PORTAL_SITE || 'aivoya.com'
     });
     
     // 重试时也包含排除ID（如果有）

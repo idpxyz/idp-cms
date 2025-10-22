@@ -28,6 +28,8 @@ SITE_MAPPINGS = {
     # Docker内部服务名（通过代理访问时）
     'authoring': 'localhost',
     'authoring:8000': 'localhost',
+    '172.28.1.30': 'localhost',
+    '172.28.1.30:8000': 'localhost',
     
     # 生产站点
     'aivoya.com': 'aivoya.com',

@@ -12,7 +12,7 @@ export async function getBreakingNews(limit: number = 8): Promise<BreakingNewsIt
   try {
     
     // 首先尝试获取 breaking news (最近6小时内的紧急新闻) - 注意尾部斜杠
-    const headlinesPath = `/api/headlines/?size=${limit * 2}&hours=6&diversity=high&site=aivoya.com`;
+    const headlinesPath = `/api/headlines/?size=${limit * 2}&hours=6&diversity=high&site=${process.env.NEXT_PUBLIC_PORTAL_SITE || 'aivoya.com'}`;
     const headlinesUrl = endpoints.getCmsEndpoint(headlinesPath);
     
     const response = await fetch(headlinesUrl, {

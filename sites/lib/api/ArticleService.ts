@@ -193,13 +193,26 @@ export class ArticleService {
    * 转换后端文章数据为标准格式
    */
   private transformArticleData(data: any, includeContent: boolean = true): Article {
+    // 🚀 提取封面图：优先使用 cover.url，否则从正文中提取第一张图片
+    let imageUrl = data.cover?.url || null;
+    if (!imageUrl) {
+      // 从 body 或 content 中提取第一张图片
+      const contentHtml = data.body || data.content || '';
+      if (typeof contentHtml === 'string') {
+        const imgMatch = contentHtml.match(/<img[^>]*src=["']([^"']+)["']/i);
+        if (imgMatch) {
+          imageUrl = imgMatch[1];
+        }
+      }
+    }
+    
     return {
       id: data.id,
       title: data.title,
       slug: data.slug,
       content: includeContent ? this.transformContent(data.body || data.content) : '',
       excerpt: data.excerpt || data.introduction || '',
-      image_url: data.cover?.url || null,
+      image_url: imageUrl,
       cover: data.cover ? {
         url: data.cover.url,
         alt: data.cover.alt || data.title,

@@ -1,3 +1,4 @@
+
 #!/bin/bash
 
 ################################################################################
@@ -21,7 +22,7 @@ BLUE='\033[0;34m'
 NC='\033[0m'
 
 # 配置变量
-NODE1_IP="121.40.167.71"
+NODE1_IP="8.133.22.7"
 SSH_USER="root"  # 根据实际情况修改
 REMOTE_DIR="/opt/idp-cms"
 LOCAL_DIR=$(pwd)
@@ -77,13 +78,15 @@ fi
 
 echo ""
 echo "检查 Docker Compose..."
-if ! ssh $SSH_USER@$NODE1_IP "docker-compose --version" > /dev/null 2>&1; then
+if ssh $SSH_USER@$NODE1_IP "docker compose version" > /dev/null 2>&1; then
+    print_success "Docker Compose 已安装（插件版本）"
+elif ssh $SSH_USER@$NODE1_IP "docker-compose --version" > /dev/null 2>&1; then
+    print_success "Docker Compose 已安装（独立版本）"
+else
     print_warning "Docker Compose 未安装，将自动安装..."
     ssh $SSH_USER@$NODE1_IP 'curl -L "https://github.com/docker/compose/releases/download/v2.20.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose'
     ssh $SSH_USER@$NODE1_IP "chmod +x /usr/local/bin/docker-compose"
     print_success "Docker Compose 安装完成"
-else
-    print_success "Docker Compose 已安装"
 fi
 
 # 2. 安装 rsync

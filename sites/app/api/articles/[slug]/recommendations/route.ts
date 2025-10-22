@@ -22,7 +22,7 @@ export async function GET(
     
     // 设置默认站点参数
     if (!djangoUrlObj.searchParams.has('site')) {
-      djangoUrlObj.searchParams.set('site', 'aivoya.com'); // 临时硬编码测试
+      djangoUrlObj.searchParams.set('site', process.env.NEXT_PUBLIC_PORTAL_SITE || 'aivoya.com');
     }
 
     const djangoUrl = djangoUrlObj.toString();

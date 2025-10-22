@@ -92,6 +92,32 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'lf9-static.bytednsdoc.com',
       },
+      // 🚀 允许湖北新闻网的图片
+      {
+        protocol: 'http',
+        hostname: 'news.cnhubei.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'news.cnhubei.com',
+      },
+      // 🔓 允许所有 .com 域名的图片（临时方案，方便采集外部图片）
+      {
+        protocol: 'http',
+        hostname: '**.com',
+      },
+      {
+        protocol: 'https',
+        hostname: '**.com',
+      },
+      {
+        protocol: 'http',
+        hostname: '**.cn',
+      },
+      {
+        protocol: 'https',
+        hostname: '**.cn',
+      },
       // 移除 images.unsplash.com，使用稳定的 Picsum
     ],
     // 🎯 Next.js 16 兼容：配置允许的图片质量值

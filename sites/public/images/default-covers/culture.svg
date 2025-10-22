@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="800" height="450" viewBox="0 0 800 450" xmlns="http://www.w3.org/2000/svg">
+  <!-- 渐变背景 -->
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#db2777;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#db2777;stop-opacity:0.7" />
+    </linearGradient>
+  </defs>
+  
+  <!-- 背景 -->
+  <rect width="100%" height="100%" fill="url(#grad)"/>
+  
+  <!-- 装饰性网格线 -->
+  <path d="M 0 0 L 800 450" stroke="white" stroke-width="0.5" opacity="0.1"/>
+  <path d="M 800 0 L 0 450" stroke="white" stroke-width="0.5" opacity="0.1"/>
+  
+  <!-- 图标 -->
+  <text x="50%" y="40%" font-family="Arial, sans-serif" font-size="120" fill="white" text-anchor="middle" dominant-baseline="middle" opacity="0.9">
+    🎨
+  </text>
+  
+  <!-- 文字 -->
+  <text x="50%" y="65%" font-family="Arial, sans-serif" font-size="42" font-weight="bold" fill="white" text-anchor="middle" dominant-baseline="middle">
+    文化
+  </text>
+</svg>

@@ -25,6 +25,7 @@ import json
 import requests
 import os
 from datetime import datetime
+from datetime import timezone as dt_timezone  # 使用标准库的timezone
 from pathlib import Path
 import re
 from bs4 import BeautifulSoup
@@ -162,7 +163,31 @@ class Command(BaseCommand):
         # 获取站点和父页面
         try:
             self.site = Site.objects.get(is_default_site=True)
-            self.parent_page = self.site.root_page
+            # 查找"今日湖北"页面作为文章的父页面
+            # "今日湖北"页面的slug通常是"home"或者title包含"今日湖北"
+            parent_candidates = Page.objects.filter(
+                depth=2,  # 通常在根页面下一级
+                title__contains='今日湖北'
+            ).first()
+            
+            if not parent_candidates:
+                # 如果找不到"今日湖北"，尝试查找slug为home的页面
+                parent_candidates = Page.objects.filter(
+                    depth=2,
+                    slug='home'
+                ).first()
+            
+            if parent_candidates:
+                self.parent_page = parent_candidates
+                self.stdout.write(self.style.SUCCESS(
+                    f'✓ 找到父页面: {self.parent_page.title} (ID: {self.parent_page.id})'
+                ))
+            else:
+                # 如果都找不到，使用站点根页面
+                self.parent_page = self.site.root_page
+                self.stdout.write(self.style.WARNING(
+                    f'⚠ 未找到"今日湖北"页面，使用根页面: {self.parent_page.title}'
+                ))
         except Site.DoesNotExist:
             raise CommandError('找不到默认站点')
 
@@ -254,26 +279,33 @@ class Command(BaseCommand):
                 body_html = old_article.get('info', '') or old_article.get('content', '')
                 body_richtext = self.convert_html_to_richtext(body_html)
 
-                # 创建文章页面
-                article = ArticlePage(
-                    title=self.clean_text(old_article.get('title', 'Untitled')),
-                    slug=slug,
-                    excerpt=self.clean_text(old_article.get('seo_desc', ''))[:500],
-                    body=body_richtext,
-                    cover=cover_image,
-                    channel=target_channel,  # 使用映射后的频道
-                    author_name=self.clean_text(old_article.get('author', ''))[:64],
-                    has_video=bool(old_article.get('video')),
-                    meta_keywords=self.clean_text(old_article.get('seo_keys', ''))[:255],
-                    seo_title=self.clean_text(
+                # 准备文章字段数据
+                article_data = {
+                    'title': self.clean_text(old_article.get('title', 'Untitled')),
+                    'slug': slug,
+                    'excerpt': self.clean_text(old_article.get('seo_desc', ''))[:500],
+                    'body': body_richtext,
+                    'cover': cover_image,
+                    'channel': target_channel,
+                    'author_name': self.clean_text(old_article.get('author', ''))[:64],
+                    'has_video': bool(old_article.get('video')),
+                    'meta_keywords': self.clean_text(old_article.get('seo_keys', ''))[:255],
+                    'seo_title': self.clean_text(
                         old_article.get('seo_title') or old_article.get('title', '')
                     ),
-                    search_description=self.clean_text(old_article.get('seo_desc', ''))[:300],
-                    external_url=old_article.get('fromurl', ''),
-                    first_published_at=self.parse_timestamp(old_article.get('add_time')),
-                    last_published_at=self.parse_timestamp(old_article.get('last_time')),
-                    live=(old_article.get('status') == 1 or old_article.get('status') == '1'),
-                )
+                    'search_description': self.clean_text(old_article.get('seo_desc', ''))[:300],
+                    'first_published_at': self.parse_timestamp(old_article.get('add_time')),
+                    'last_published_at': self.parse_timestamp(old_article.get('last_time')),
+                    'live': (old_article.get('status') == 1 or old_article.get('status') == '1'),
+                }
+                
+                # 只在有值时添加external_article_url
+                fromurl = old_article.get('fromurl')
+                if fromurl and fromurl.strip():
+                    article_data['external_article_url'] = fromurl.strip()
+                
+                # 创建文章页面
+                article = ArticlePage(**article_data)
 
                 # 添加到页面树
                 self.parent_page.add_child(instance=article)
@@ -301,28 +333,25 @@ class Command(BaseCommand):
                 f.write(f'  数据: {json.dumps(old_article, ensure_ascii=False)}\n\n')
 
     def generate_slug(self, article):
-        """生成唯一的slug"""
-        # 优先使用URL中的slug
-        if article.get('url'):
-            url = article['url'].strip('/')
-            slug = url.split('/')[-1]
-            slug = slug.split('.')[0]  # 移除扩展名
-            # 清理slug
-            slug = re.sub(r'[^\w\s-]', '', slug).strip().lower()
-            slug = re.sub(r'[-\s]+', '-', slug)
-        else:
-            # 从标题生成
-            slug = slugify(article.get('title', 'article'))
-
-        # 使用ID作为后缀确保唯一性
-        if article.get('id'):
-            slug = f"{slug}-{article['id']}"
-
-        # 确保唯一性
+        """生成唯一的slug（使用拼音）"""
+        from apps.news.utils import generate_slug as generate_pinyin_slug
+        
+        # 使用标题生成拼音slug，带ID确保唯一性
+        title = article.get('title', 'article')
+        article_id = article.get('id')
+        
+        # 使用系统的拼音slug生成器
+        slug = generate_pinyin_slug(title, article_id)
+        
+        # 确保唯一性（理论上有ID后缀应该不会重复，但保险起见）
         base_slug = slug
         counter = 1
         while ArticlePage.objects.filter(slug=slug).exists():
-            slug = f'{base_slug}-{counter}'
+            # 如果有ID，替换ID后缀；否则添加计数器
+            if article_id:
+                slug = f"{base_slug.rsplit('-', 1)[0]}-{article_id}-{counter}"
+            else:
+                slug = f'{base_slug}-{counter}'
             counter += 1
 
         return slug[:255]  # Django slug字段通常限制255字符
@@ -337,6 +366,9 @@ class Command(BaseCommand):
         """
         if not image_url:
             return None
+
+        # 清理URL：去除末尾的反斜杠、空格等特殊字符
+        image_url = image_url.strip().rstrip('\\').rstrip()
 
         # 跳过占位图
         if 'placeholder' in image_url.lower():
@@ -524,7 +556,7 @@ class Command(BaseCommand):
             # 检查是否是毫秒时间戳
             if ts > 10000000000:
                 ts = ts / 1000
-            return datetime.fromtimestamp(ts, tz=timezone.utc)
+            return datetime.fromtimestamp(ts, tz=dt_timezone.utc)
         except (ValueError, TypeError, OSError):
             return timezone.now()
 

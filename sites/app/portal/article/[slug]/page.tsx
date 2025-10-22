@@ -78,7 +78,7 @@ interface Article {
 async function getArticle(slug: string, site?: string): Promise<Article | null> {
   try {
     const decodedSlug = decodeURIComponent(slug);
-    // 🚀 关键修复：服务端使用内部地址，避免网络回环
+    // 🚀 关键修复：服务端使用容器内部地址，客户端使用公共地址
     const baseUrl = typeof window === 'undefined' 
       ? "http://localhost:3000"  // 服务端：使用容器内部地址
       : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"); // 客户端：使用公共地址

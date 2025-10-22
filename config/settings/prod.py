@@ -155,8 +155,21 @@ AXES_COOLOFF_TIME = 1  # 1小时
 AXES_LOCK_OUT_BY_USER_OR_IP = True
 
 # 日志配置（生产环境）
-LOGGING["handlers"]["file"]["filename"] = "/var/log/django/django.log"
+# 添加文件 handler
+LOGGING["handlers"]["file"] = {
+    "level": "INFO",
+    "class": "logging.handlers.RotatingFileHandler",
+    "filename": "/var/log/django/django.log",
+    "maxBytes": 10485760,  # 10MB
+    "backupCount": 5,
+    "formatter": "verbose",
+    "filters": ["request_context"],
+}
+
+# 更新 loggers 使用 file handler
+LOGGING["loggers"]["django"]["handlers"] = ["console", "file"]
 LOGGING["loggers"]["django"]["level"] = "WARNING"
+LOGGING["loggers"]["apps"]["handlers"] = ["console", "file"]
 LOGGING["loggers"]["apps"]["level"] = "INFO"
 
 # 性能配置
@@ -171,3 +184,18 @@ OPENSEARCH = {
     "PASSWORD": os.getenv("OPENSEARCH_PASSWORD", "OpenSearch2024!@#$%"),
     "SECURITY_DISABLED": os.getenv("OPENSEARCH_SECURITY_DISABLED", "false").lower() == "true",
 }
+
+# ClickHouse配置（生产环境）
+CLICKHOUSE_URL = os.getenv("CLICKHOUSE_URL", "clickhouse://default:thends@clickhouse:9000/default")
+
+# 速率限制配置（生产环境）
+# 可以通过环境变量 DISABLE_RATE_LIMIT=1 来禁用
+DISABLE_RATE_LIMIT = os.getenv("DISABLE_RATE_LIMIT", "0") == "1"
+
+# 如果禁用速率限制，覆盖 REST_FRAMEWORK 配置
+if DISABLE_RATE_LIMIT:
+    REST_FRAMEWORK = {
+        **REST_FRAMEWORK,
+        "DEFAULT_THROTTLE_CLASSES": [],
+        "DEFAULT_THROTTLE_RATES": {}
+    }

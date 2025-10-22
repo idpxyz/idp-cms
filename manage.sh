@@ -1,0 +1,1 @@
+/opt/idp-cms/deploy/scripts/manage-node1.sh

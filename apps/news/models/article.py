@@ -18,7 +18,7 @@ from wagtail.admin.forms import WagtailAdminPageForm
 # 使用 Wagtail 的管理表单基类
 class ArticlePageForm(WagtailAdminPageForm):
     """
-    自定义表单类，用于改进图片选择器的用户体验
+    自定义表单类，用于改进图片选择器的用户体验和slug自动生成
     """
     
     class Meta:
@@ -30,6 +30,25 @@ class ArticlePageForm(WagtailAdminPageForm):
         # 在初始化时替换 cover 字段的小组件
         if 'cover' in self.fields:
             self.fields['cover'].widget = AdminImageChooser()
+        
+        # 🚀 让slug字段变为可选（因为会在保存时自动生成）
+        if 'slug' in self.fields:
+            self.fields['slug'].required = False
+            self.fields['slug'].help_text = '🔗 文章URL标识符（网址中显示的部分）。留空则根据标题自动生成拼音。'
+    
+    def clean(self):
+        """清理数据，自动生成slug"""
+        cleaned_data = super().clean()
+        
+        # 如果slug为空，从标题生成
+        if not cleaned_data.get('slug'):
+            from apps.news.utils import generate_slug
+            title = cleaned_data.get('title', '')
+            if title:
+                # 新建文章时没有ID，先生成临时slug
+                cleaned_data['slug'] = generate_slug(title, article_id=None)
+        
+        return cleaned_data
 
 
 class ArticlePageTag(TaggedItemBase):
@@ -50,8 +69,8 @@ class ArticlePage(Page):
     符合专业新闻网站标准，支持多站点聚合策略
     """
     
-    # 使用默认表单（与 ParentalManyToManyField 更兼容）
-    # base_form_class = ArticlePageForm
+    # 使用自定义表单（支持slug自动生成）
+    base_form_class = ArticlePageForm
     
     # === 基础内容 ===
     excerpt = models.TextField(blank=True, verbose_name="文章摘要", 
@@ -235,6 +254,17 @@ class ArticlePage(Page):
                 """
             ),
             FieldPanel('excerpt', help_text="📋 文章摘要，50-100字，用于列表展示和SEO"),
+            HelpPanel(
+                content="""
+                <div style="background: #fff3cd; padding: 12px; border-radius: 6px; margin: 10px 0; border-left: 4px solid #ffc107;">
+                    <strong>💡 封面图片提示</strong><br/>
+                    • 建议为文章上传封面图片，提升首页展示效果<br/>
+                    • 如果不上传封面，系统会自动尝试从正文中提取第一张图片<br/>
+                    • 如果正文也没有图片，系统会根据文章分类显示默认封面图片<br/>
+                    • 推荐尺寸：1200x675 (16:9) 或 800x450
+                </div>
+                """
+            ),
             FieldPanel('cover'),
             FieldPanel('body', help_text="✍️ 文章正文内容"),
         ], 
@@ -648,6 +678,64 @@ class ArticlePage(Page):
             return self.structured_data
         return self.generate_structured_data()
     
+    def extract_first_image_from_body(self):
+        """
+        从文章正文中提取第一张图片作为封面
+        如果正文中包含图片，返回第一个图片对象
+        """
+        if not self.body:
+            return None
+        
+        try:
+            from bs4 import BeautifulSoup
+            from wagtail.images import get_image_model
+            
+            Image = get_image_model()
+            
+            # 解析 HTML 内容
+            soup = BeautifulSoup(str(self.body), 'html.parser')
+            
+            # 查找 embed 标签（Wagtail 富文本编辑器使用 embed 标签嵌入图片）
+            embed = soup.find('embed', {'embedtype': 'image'})
+            if embed and embed.get('id'):
+                try:
+                    image_id = int(embed.get('id'))
+                    return Image.objects.get(pk=image_id)
+                except (ValueError, Image.DoesNotExist):
+                    pass
+            
+            # 查找普通的 img 标签
+            img = soup.find('img')
+            if img and img.get('src'):
+                # 尝试从 src 中提取图片 ID（如果是内部图片）
+                src = img.get('src')
+                if '/images/' in src:
+                    try:
+                        # 从 URL 中提取图片 ID
+                        parts = src.split('/images/')
+                        if len(parts) > 1:
+                            image_id = int(parts[1].split('/')[0])
+                            return Image.objects.get(pk=image_id)
+                    except (ValueError, Image.DoesNotExist, IndexError):
+                        pass
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"提取文章 {self.id} 正文图片时出错: {e}")
+        
+        return None
+    
+    def auto_set_cover_from_body(self):
+        """
+        如果文章没有封面图片，自动从正文中提取第一张图片设置为封面
+        """
+        if not self.cover and self.body:
+            first_image = self.extract_first_image_from_body()
+            if first_image:
+                self.cover = first_image
+                return True
+        return False
+    
     def save(self, *args, **kwargs):
         """保存时自动更新阅读时长、动态权重和 slug"""
         # 自动生成拼音 slug（如果是中文）
@@ -670,6 +758,11 @@ class ArticlePage(Page):
         force_dynamic_weight = kwargs.pop('update_dynamic_weight', False)
         if force_dynamic_weight:
             self.update_dynamic_weight()
+        
+        # 自动从正文提取封面图片（如果启用）
+        auto_cover = kwargs.pop('auto_cover_from_body', True)
+        if auto_cover:
+            self.auto_set_cover_from_body()
         
         super().save(*args, **kwargs)
 

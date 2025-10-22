@@ -438,19 +438,14 @@ export default function HeroCarousel({
                     />
                   </>
                 
-                {/* 渐变遮罩 - 更轻柔的颜色 */}
-                <div className={`absolute inset-0 ${
-                  actualHeightMode === 'takeover' 
-                    ? 'bg-gradient-to-t from-gray-900/80 via-gray-900/40 to-transparent'
-                    : 'bg-gradient-to-t from-gray-900/60 via-gray-900/20 to-transparent'
-                }`}></div>
+                {/* 渐变遮罩已移除 - 保持图片原始效果 */}
               </div>
 
               {/* 内容层 - 根据高度模式调整排版 */}
               <div className="absolute inset-0 flex items-end">
                 <div className={`w-full ${
                   actualHeightMode === 'takeover' ? 'p-8 md:p-12 lg:p-16' : 'p-6 md:p-8'
-                }`}>
+                }`} style={{ textShadow: '0 2px 8px rgba(0,0,0,0.8), 0 0 2px rgba(0,0,0,0.5)' }}>
                   {/* 标签区域 */}
                   <div className="flex flex-wrap items-center gap-2 mb-4">
                     {item.is_breaking && (
