@@ -309,9 +309,9 @@ const ChannelStrip: React.FC<ChannelStripProps> = ({
                     {article.title}
                   </h3>
 
-                  {/* 简介 - 在移动端隐藏以节省空间 */}
+                  {/* 简介 - 响应式行数限制 */}
                   {article.excerpt && (
-                    <p className="news-excerpt line-clamp-2 mb-1 md:mb-2 hidden sm:block">
+                    <p className="news-excerpt line-clamp-2 md:line-clamp-3 mb-1 md:mb-2 hidden sm:block">
                       {article.excerpt}
                     </p>
                   )}

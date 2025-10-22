@@ -68,9 +68,9 @@ const ModernNewsItem: React.FC<ModernNewsItemProps> = React.memo(({
             </Link>
           </h3>
 
-          {/* 摘要 - 仅在较大屏幕显示 */}
+          {/* 摘要 - 响应式行数限制 */}
           {news.excerpt && (
-            <p className="hidden sm:block news-excerpt line-clamp-2 mb-3">
+            <p className="hidden sm:block news-excerpt line-clamp-2 md:line-clamp-3 mb-3">
               {news.excerpt}
             </p>
           )}

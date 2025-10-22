@@ -344,7 +344,7 @@ const TopicStrip: React.FC<TopicStripProps> = ({
 
                   {/* 简介 */}
                   {article.excerpt && (
-                    <p className="news-excerpt line-clamp-2 mb-2 hidden sm:block">
+                    <p className="news-excerpt line-clamp-2 md:line-clamp-3 mb-2 hidden sm:block">
                       {article.excerpt}
                     </p>
                   )}
