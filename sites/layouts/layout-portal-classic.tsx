@@ -216,38 +216,40 @@ export default function PortalClassicLayout({
       {isSearchOpen && (
         <div
           ref={searchRef}
-          className="md:hidden sticky left-0 right-0 bg-white border-b border-gray-200 px-3 py-3 z-40 shadow-sm top-24 sm:top-[6.5rem]"
+          className="md:hidden sticky top-24 sm:top-[6.5rem] left-0 w-full bg-white border-b border-gray-200 z-40 shadow-sm"
         >
-          <div className="relative max-w-full">
-            <SmartSearchBox
-              placeholder="搜索新闻、话题、用户..."
-              className="w-full"
-              autoFocus
-              onSearch={(query) => {
-                handleSearch(query);
-                setIsSearchOpen(false);
-              }}
-            />
-            <button
-              type="button"
-              onClick={() => setIsSearchOpen(false)}
-              className="absolute top-2 right-3 text-gray-400 hover:text-gray-600 z-10"
-              aria-label="关闭搜索"
-            >
-              <svg
-                className="h-5 w-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+          <div className="px-3 py-3 max-w-7xl mx-auto">
+            <div className="relative">
+              <SmartSearchBox
+                placeholder="搜索新闻、话题、用户..."
+                className="w-full"
+                autoFocus
+                onSearch={(query) => {
+                  handleSearch(query);
+                  setIsSearchOpen(false);
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => setIsSearchOpen(false)}
+                className="absolute top-2 right-3 text-gray-400 hover:text-gray-600 z-10"
+                aria-label="关闭搜索"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
+                <svg
+                  className="h-5 w-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
       )}

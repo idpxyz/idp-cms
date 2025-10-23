@@ -32,7 +32,7 @@ ARTICLE_MAPPING = {
                     "chinese_search_analyzer": {
                         "tokenizer": "standard", 
                         "char_filter": ["html_strip"],
-                        "filter": ["lowercase", "cjk_width", "stop_chinese"]
+                        "filter": ["lowercase", "cjk_width", "cjk_bigram", "stop_chinese"]  # ✅ 添加 cjk_bigram 保持一致
                     },
                     "chinese_keyword_analyzer": {
                         "tokenizer": "keyword",
