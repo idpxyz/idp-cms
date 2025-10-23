@@ -19,12 +19,14 @@ interface PortalClassicLayoutProps {
   children: React.ReactNode;
   siteSettings: SiteSettings;
   initialBreakingNews?: any[]; // 预获取的快讯数据
+  channelNavigation?: React.ReactNode; // 频道导航组件
 }
 
 export default function PortalClassicLayout({
   children,
   siteSettings,
   initialBreakingNews = [],
+  channelNavigation,
 }: PortalClassicLayoutProps) {
   // 移动端搜索状态
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -126,7 +128,7 @@ export default function PortalClassicLayout({
       }
     >
       {/* Breaking Ticker + Header 组合 - sticky定位避免间隙 */}
-      <div className="sticky top-0 z-50">
+      <div className="sticky top-0 z-50 bg-white">
         {/* Breaking Ticker 快讯滚动条 - 暂时隐藏 */}
         {/* <BreakingTicker 
           items={breakingNews}
@@ -137,14 +139,19 @@ export default function PortalClassicLayout({
           className=""
         /> */}
         
-        {/* 横幅广告图片 */}
+        {/* 横幅广告图片 - 响应式显示 */}
         <div className="bg-white">
           <div className="max-w-7xl mx-auto">
-            <img 
-              src="/images/topBar.jpg" 
-              alt="今日湖北横幅" 
-              className="w-full h-auto"
-            />
+            <picture>
+              {/* 移动端：使用专门制作的移动端横幅 */}
+              <source media="(max-width: 767px)" srcSet="/images/topBar-mobile.jpg" />
+              {/* 桌面端：使用完整横幅 */}
+              <img 
+                src="/images/topBar.jpg" 
+                alt="今日湖北横幅" 
+                className="w-full h-auto"
+              />
+            </picture>
           </div>
         </div>
         
@@ -221,6 +228,9 @@ export default function PortalClassicLayout({
           </div>
         </div>
         </header>
+        
+        {/* 频道导航栏 - 放在 sticky 容器内，紧跟 header */}
+        {channelNavigation}
       </div>
 
       {/* 移动端展开的搜索框 - 固定在sticky header组合下方 */}

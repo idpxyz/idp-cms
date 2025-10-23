@@ -65,9 +65,8 @@ export default async function PortalLayout({ children }: PortalLayoutProps) {
         <PortalClassicLayout 
           siteSettings={siteSettings}
           initialBreakingNews={[]}
+          channelNavigation={<ChannelNavigation />}
         >
-          {/* 频道导航栏 - 客户端加载个性化数据 */}
-          <ChannelNavigation />
           {children}
         </PortalClassicLayout>
       </CategoryProvider>

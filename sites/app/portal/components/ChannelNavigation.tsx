@@ -255,7 +255,7 @@ export default function ChannelNavigation({
   // ✅ 无频道数据检查（简化版，无SSR等待逻辑）
   if (channels.length === 0) {
     return (
-      <section className="bg-white border-b border-gray-200 sticky z-30" style={{ top: "var(--sticky-offset)" }}>
+      <section className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex items-center justify-center py-3 md:py-3.5">
             <div className="text-gray-500 text-sm">暂无频道数据</div>
@@ -269,7 +269,7 @@ export default function ChannelNavigation({
 
   return (
     <>
-      <section className="bg-white border-b border-gray-200 sticky z-30 relative top-24 sm:top-[6.5rem]">
+      <section className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex items-center py-3 md:py-3.5">
             {/* 🔒 固定"推荐"频道 - 移动端和桌面端都显示 */}
