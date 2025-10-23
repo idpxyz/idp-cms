@@ -47,10 +47,10 @@ export default function SearchFilters({
 
   // 时间筛选选项
   const timeOptions = [
-    { value: '', label: '全部时间' },
-    { value: '24h', label: '今天' },
-    { value: '7d', label: '本周' },
-    { value: '30d', label: '本月' },
+    { value: '', label: '不限', icon: '📅' },
+    { value: '24h', label: '今天', icon: '☀️' },
+    { value: '7d', label: '本周', icon: '📆' },
+    { value: '30d', label: '本月', icon: '📊' },
   ];
 
   return (
@@ -89,6 +89,7 @@ export default function SearchFilters({
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
+                <span className="mr-1">{option.icon}</span>
                 {option.label}
               </button>
             ))}
@@ -128,6 +129,7 @@ export default function SearchFilters({
                           : 'text-gray-600 hover:bg-gray-100'
                       }`}
                     >
+                      <span className="mr-1">{option.icon}</span>
                       {option.label}
                     </button>
                   ))}
@@ -148,6 +150,7 @@ export default function SearchFilters({
                           : 'text-gray-600 hover:bg-gray-100'
                       }`}
                     >
+                      <span className="mr-1">{option.icon}</span>
                       {option.label}
                     </button>
                   ))}
