@@ -179,7 +179,7 @@ export default function SmartSearchBox({
     setTimeout(() => {
       setShowSuggestions(false);
       setSelectedIndex(-1);
-    }, 300);
+    }, 800); // 增加到 800ms 以确保移动端触摸事件能够完成
   };
 
   // 获取建议项的样式类名
@@ -239,7 +239,8 @@ export default function SmartSearchBox({
           onFocus={handleFocus}
           onBlur={handleBlur}
           autoFocus={autoFocus}
-          className="w-full px-4 py-2 pl-10 pr-10 bg-gray-100 border border-gray-200 rounded-full text-base focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+          style={{ fontSize: '16px' }}
+          className="w-full px-4 py-2 pl-10 pr-10 bg-gray-100 border border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
         />
         
         {/* 搜索图标 */}
@@ -297,7 +298,8 @@ export default function SmartSearchBox({
       {showSuggestions && (query.length > 0 || history.length > 0) && (
         <div
           ref={suggestionsRef}
-          className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-80 overflow-y-auto"
+          className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-[9999] max-h-80 overflow-y-auto"
+          style={{ position: 'absolute' }}
         >
           {allSuggestions.length > 0 ? (
             <>
@@ -311,14 +313,10 @@ export default function SmartSearchBox({
                 <div
                   key={`${suggestion.text}-${index}`}
                   className={getSuggestionClassName(index)}
-                  onMouseDown={(e) => {
-                    // 阻止默认行为，防止输入框失焦
+                  onPointerDown={(e) => {
+                    // 使用 Pointer Events API 统一处理鼠标和触摸
                     e.preventDefault();
-                    handleSuggestionClick(suggestion.text);
-                  }}
-                  onTouchStart={(e) => {
-                    // 移动端触摸事件处理
-                    e.preventDefault();
+                    e.stopPropagation();
                     handleSuggestionClick(suggestion.text);
                   }}
                 >
@@ -343,13 +341,7 @@ export default function SmartSearchBox({
               {query.length === 0 && history.length > 0 && (
                 <div className="border-t border-gray-100">
                   <button
-                    onMouseDown={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      // 这里可以添加清除历史的功能
-                      setShowSuggestions(false);
-                    }}
-                    onTouchStart={(e) => {
+                    onPointerDown={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
                       // 这里可以添加清除历史的功能

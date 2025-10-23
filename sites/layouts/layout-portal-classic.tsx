@@ -227,7 +227,7 @@ export default function PortalClassicLayout({
       {isSearchOpen && (
         <div
           ref={searchRef}
-          className="md:hidden sticky top-24 sm:top-[6.5rem] left-0 right-0 w-full bg-white border-b border-gray-200 z-40 shadow-sm overflow-hidden"
+          className="md:hidden sticky top-24 sm:top-[6.5rem] left-0 right-0 w-full bg-white border-b border-gray-200 z-40 shadow-sm overflow-visible"
         >
           <div className="px-3 py-3 w-full">
             <div className="relative w-full max-w-full">
