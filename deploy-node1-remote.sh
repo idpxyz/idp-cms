@@ -108,7 +108,7 @@ echo "创建远程目录..."
 ssh $SSH_USER@$NODE1_IP "mkdir -p $REMOTE_DIR"
 
 echo "同步代码（排除不必要的文件）..."
-rsync -avz --progress --delete \
+rsync -avz --progress \
     --exclude='.git' \
     --exclude='node_modules' \
     --exclude='__pycache__' \
@@ -223,4 +223,3 @@ echo ""
 echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo -e "${GREEN}✅ 单节点部署成功完成！${NC}"
 echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-
