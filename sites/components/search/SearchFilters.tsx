@@ -42,11 +42,11 @@ export default function SearchFilters({
     <div className={`bg-white border-b border-gray-200 ${className}`}>
       <div className="max-w-7xl mx-auto px-4 py-3">
         {/* 简化的筛选条件 */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6">
             {/* 排序 */}
-            <div className="flex items-center space-x-2">
-              <span className="text-sm text-gray-500">排序:</span>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-500 whitespace-nowrap">排序:</span>
               <select
                 value={filters.orderBy || 'relevance'}
                 onChange={(e) => handleFilterChange('orderBy', e.target.value)}
@@ -59,12 +59,12 @@ export default function SearchFilters({
             </div>
 
             {/* 时间筛选 */}
-            <div className="flex items-center space-x-2">
-              <span className="text-sm text-gray-500">时间:</span>
-              <div className="flex items-center space-x-1">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-500 whitespace-nowrap">时间:</span>
+              <div className="flex items-center gap-1 flex-wrap">
                 <button
                   onClick={() => handleFilterChange('since', '')}
-                  className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                  className={`px-3 py-1 text-sm rounded-md transition-colors whitespace-nowrap ${
                     !filters.since
                       ? 'bg-blue-500 text-white'
                       : 'text-gray-600 hover:bg-gray-100'
@@ -76,7 +76,7 @@ export default function SearchFilters({
                   <button
                     key={period}
                     onClick={() => handleFilterChange('since', period)}
-                    className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                    className={`px-3 py-1 text-sm rounded-md transition-colors whitespace-nowrap ${
                       filters.since === period
                         ? 'bg-blue-500 text-white'
                         : 'text-gray-600 hover:bg-gray-100'
@@ -93,7 +93,7 @@ export default function SearchFilters({
           {hasActiveFilters && (
             <button
               onClick={clearAllFilters}
-              className="text-sm text-gray-500 hover:text-gray-700 underline"
+              className="text-sm text-gray-500 hover:text-gray-700 underline whitespace-nowrap self-start sm:self-auto"
             >
               清空筛选
             </button>
