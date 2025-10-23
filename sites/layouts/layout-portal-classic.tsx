@@ -216,13 +216,13 @@ export default function PortalClassicLayout({
       {isSearchOpen && (
         <div
           ref={searchRef}
-          className="md:hidden sticky top-24 sm:top-[6.5rem] left-0 w-full bg-white border-b border-gray-200 z-40 shadow-sm"
+          className="md:hidden sticky top-24 sm:top-[6.5rem] left-0 right-0 w-full bg-white border-b border-gray-200 z-40 shadow-sm overflow-hidden"
         >
-          <div className="px-3 py-3 max-w-7xl mx-auto">
-            <div className="relative">
+          <div className="px-3 py-3 w-full">
+            <div className="relative w-full max-w-full">
               <SmartSearchBox
                 placeholder="搜索新闻、话题、用户..."
-                className="w-full"
+                className="w-full max-w-full"
                 autoFocus
                 onSearch={(query) => {
                   handleSearch(query);
@@ -232,7 +232,7 @@ export default function PortalClassicLayout({
               <button
                 type="button"
                 onClick={() => setIsSearchOpen(false)}
-                className="absolute top-2 right-3 text-gray-400 hover:text-gray-600 z-10"
+                className="absolute top-1/2 -translate-y-1/2 right-3 text-gray-400 hover:text-gray-600 z-10"
                 aria-label="关闭搜索"
               >
                 <svg

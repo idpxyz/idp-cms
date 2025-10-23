@@ -298,25 +298,47 @@ export default function HeroCarousel({
     setImageLoaded(prev => ({ ...prev, [index]: true }));
   }, []);
 
-  // 🎯 移动端触摸滑动支持 - 优化版
+  // 🎯 移动端触摸滑动支持 - 优化版（阻止页面滚动）
   useEffect(() => {
     const carousel = carouselRef.current;
     if (!carousel) return;
 
     let startX = 0;
+    let startY = 0;
+    let startTime = 0;
     let endX = 0;
     let isDragging = false;
+    let isHorizontalSwipe = false;
 
     const handleTouchStartNative = (e: TouchEvent) => {
       startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+      startTime = Date.now();
       endX = startX;
       isDragging = true;
+      isHorizontalSwipe = false;
       setIsPaused(true);
     };
 
     const handleTouchMoveNative = (e: TouchEvent) => {
       if (!isDragging) return;
-      endX = e.touches[0].clientX;
+      
+      const currentX = e.touches[0].clientX;
+      const currentY = e.touches[0].clientY;
+      const diffX = Math.abs(currentX - startX);
+      const diffY = Math.abs(currentY - startY);
+      
+      // 判断是否为水平滑动（降低阈值，更敏感）
+      if (!isHorizontalSwipe && (diffX > 5 || diffY > 5)) {
+        isHorizontalSwipe = diffX > diffY;
+      }
+      
+      // 如果是水平滑动，阻止页面滚动
+      if (isHorizontalSwipe) {
+        e.preventDefault();
+      }
+      
+      endX = currentX;
     };
 
     const handleTouchEndNative = () => {
@@ -327,9 +349,18 @@ export default function HeroCarousel({
       
       isDragging = false;
       const distance = startX - endX;
-      const threshold = 50; // 滑动阈值
+      const timeElapsed = Date.now() - startTime;
       
-      if (Math.abs(distance) > threshold) {
+      // 计算滑动速度 (像素/毫秒)
+      const velocity = Math.abs(distance) / Math.max(timeElapsed, 1);
+      
+      // 动态阈值：快速滑动降低阈值，提升响应速度
+      // 速度 > 0.5 px/ms (相当于500px/s) 只需要25px
+      // 速度 > 0.3 px/ms 需要30px
+      // 慢速滑动需要40px
+      const threshold = velocity > 0.5 ? 25 : velocity > 0.3 ? 30 : 40;
+      
+      if (isHorizontalSwipe && Math.abs(distance) > threshold) {
         if (distance > 0 && totalItems > 1) {
           // 向左滑动，显示下一张
           goToNext();
@@ -342,9 +373,9 @@ export default function HeroCarousel({
       setTimeout(() => setIsPaused(false), 2000);
     };
 
-    // 添加事件监听器
+    // 添加事件监听器 - touchmove 使用 passive: false 以允许 preventDefault
     carousel.addEventListener('touchstart', handleTouchStartNative, { passive: true });
-    carousel.addEventListener('touchmove', handleTouchMoveNative, { passive: true });
+    carousel.addEventListener('touchmove', handleTouchMoveNative, { passive: false });
     carousel.addEventListener('touchend', handleTouchEndNative, { passive: true });
 
     return () => {

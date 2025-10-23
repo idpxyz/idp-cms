@@ -239,7 +239,7 @@ export default function SmartSearchBox({
           onFocus={handleFocus}
           onBlur={handleBlur}
           autoFocus={autoFocus}
-          className="w-full px-4 py-2 pl-10 pr-10 bg-gray-100 border border-gray-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+          className="w-full px-4 py-2 pl-10 pr-10 bg-gray-100 border border-gray-200 rounded-full text-base focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
         />
         
         {/* 搜索图标 */}
