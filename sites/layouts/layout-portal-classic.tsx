@@ -28,7 +28,6 @@ export default function PortalClassicLayout({
 }: PortalClassicLayoutProps) {
   // 移动端搜索状态
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
   const searchRef = useRef<HTMLDivElement>(null);
   
   // 快讯数据状态 - 使用预获取的数据作为初始值
@@ -80,26 +79,6 @@ export default function PortalClassicLayout({
     if (query.trim()) {
       // 跳转到搜索结果页面
       window.location.href = `/portal/search?q=${encodeURIComponent(query)}`;
-    }
-  };
-
-  // 处理搜索提交
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    handleSearch(searchQuery);
-    setIsSearchOpen(false);
-  };
-
-  // 处理搜索输入变化
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchQuery(e.target.value);
-  };
-
-  // 处理键盘快捷键
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Escape") {
-      setIsSearchOpen(false);
-      setSearchQuery("");
     }
   };
 
@@ -239,54 +218,37 @@ export default function PortalClassicLayout({
           ref={searchRef}
           className="md:hidden sticky left-0 right-0 bg-white border-b border-gray-200 px-3 py-3 z-40 shadow-sm top-24 sm:top-[6.5rem]"
         >
-          <form onSubmit={handleSearchSubmit}>
-            <div className="relative max-w-full">
-              <input
-                type="text"
-                placeholder="搜索新闻、话题、用户..."
-                value={searchQuery}
-                onChange={handleSearchChange}
-                onKeyDown={handleKeyDown}
-                className="w-full px-4 py-2.5 pl-10 pr-10 bg-gray-100 border border-gray-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                autoFocus
-              />
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <svg
-                  className="h-4 w-4 text-gray-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                  />
-                </svg>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsSearchOpen(false)}
-                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
-                aria-label="关闭搜索"
+          <div className="relative max-w-full">
+            <SmartSearchBox
+              placeholder="搜索新闻、话题、用户..."
+              className="w-full"
+              autoFocus
+              onSearch={(query) => {
+                handleSearch(query);
+                setIsSearchOpen(false);
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => setIsSearchOpen(false)}
+              className="absolute top-2 right-3 text-gray-400 hover:text-gray-600 z-10"
+              aria-label="关闭搜索"
+            >
+              <svg
+                className="h-5 w-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
               >
-                <svg
-                  className="h-5 w-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
-            </div>
-          </form>
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+          </div>
         </div>
       )}
 

@@ -175,10 +175,11 @@ export default function SmartSearchBox({
 
   const handleBlur = () => {
     // 延迟隐藏，允许点击建议
+    // 移动端需要更长的延迟以确保触摸事件能够完成
     setTimeout(() => {
       setShowSuggestions(false);
       setSelectedIndex(-1);
-    }, 200);
+    }, 300);
   };
 
   // 获取建议项的样式类名
@@ -310,7 +311,16 @@ export default function SmartSearchBox({
                 <div
                   key={`${suggestion.text}-${index}`}
                   className={getSuggestionClassName(index)}
-                  onClick={() => handleSuggestionClick(suggestion.text)}
+                  onMouseDown={(e) => {
+                    // 阻止默认行为，防止输入框失焦
+                    e.preventDefault();
+                    handleSuggestionClick(suggestion.text);
+                  }}
+                  onTouchStart={(e) => {
+                    // 移动端触摸事件处理
+                    e.preventDefault();
+                    handleSuggestionClick(suggestion.text);
+                  }}
                 >
                   <div className="flex items-center space-x-3 flex-1 min-w-0">
                     {getSuggestionIcon(suggestion.type)}
@@ -333,7 +343,14 @@ export default function SmartSearchBox({
               {query.length === 0 && history.length > 0 && (
                 <div className="border-t border-gray-100">
                   <button
-                    onClick={(e) => {
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      // 这里可以添加清除历史的功能
+                      setShowSuggestions(false);
+                    }}
+                    onTouchStart={(e) => {
+                      e.preventDefault();
                       e.stopPropagation();
                       // 这里可以添加清除历史的功能
                       setShowSuggestions(false);
