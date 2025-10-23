@@ -180,16 +180,6 @@ USE_TZ = True
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
-# WhiteNoise configuration for serving static files in production
-STORAGES = {
-    "default": {
-        "BACKEND": "django.core.files.storage.FileSystemStorage",
-    },
-    "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
-    },
-}
-
 # 抑制Django默认404页面的URLResolver模板错误
 # 这是Django 5.2.6在DEBUG模式下的已知问题
 # 在LOGGING配置中处理
@@ -228,7 +218,7 @@ if EnvValidator.get_str("MINIO_ENDPOINT"):
             "BACKEND": "apps.core.storages.PrivateMediaStorage",
         },
         "staticfiles": {
-            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
         },
     }
     
@@ -297,7 +287,7 @@ else:
     # 本地存储配置（开发环境备用）
     STORAGES = {
         'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
-        'staticfiles': {'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage'}
+        'staticfiles': {'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage'}
     }
 
 # 站点配置

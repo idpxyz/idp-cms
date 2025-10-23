@@ -39,7 +39,7 @@ for arg in "$@"; do
       echo "  $0                    # 标准部署"
       echo "  $0 --no-cache         # 强制重新构建所有镜像（忽略缓存）"
       echo "  $0 --rebuild-backend  # 强制重建后端镜像"
-      echo "  $0 --rebuild-frontend # 强制重建前端镜像（快速模式，不影响其他服务）"
+      echo "  $0 --rebuild-frontend # 强制重建前端镜像"
       echo "  $0 --help             # 显示此帮助信息"
       exit 0
       ;;
@@ -50,104 +50,6 @@ for arg in "$@"; do
       ;;
   esac
 done
-
-# 快速重建后端模式
-if [ "$REBUILD_BACKEND" = true ] && [ "$NO_CACHE" = false ] && [ "$REBUILD_FRONTEND" = false ]; then
-    echo "🚀 快速重建后端模式"
-    echo "只重建后端容器（authoring, celery, celery-beat），不影响基础设施和前端"
-    
-    cd /opt/idp-cms
-    
-    # 加载环境变量
-    ENV_FILE=".env.node1"
-    if [ ! -f "$ENV_FILE" ]; then
-        echo "❌ 错误: 找不到环境变量文件 $ENV_FILE"
-        exit 1
-    fi
-    
-    echo "✅ 使用环境变量文件: $ENV_FILE"
-    
-    # 只停止后端容器
-    echo "⏸️  停止后端容器..."
-    docker compose -f infra/production/docker-compose-ha-node1.yml stop authoring celery celery-beat 2>/dev/null || true
-    docker compose -f infra/production/docker-compose-ha-node1.yml rm -f authoring celery celery-beat 2>/dev/null || true
-    
-    # 清理可能的冲突容器
-    echo "🧹 清理冲突容器..."
-    docker ps -a | grep -E 'node1-authoring|node1-celery' | awk '{print $1}' | xargs -r docker rm -f 2>/dev/null || true
-    
-    # 重建后端镜像
-    echo "🔨 重建后端镜像..."
-    docker compose -f infra/production/docker-compose-ha-node1.yml --env-file "$ENV_FILE" build --no-cache authoring celery celery-beat
-    
-    # 启动后端容器
-    echo "🚀 启动后端容器..."
-    docker compose -f infra/production/docker-compose-ha-node1.yml --env-file "$ENV_FILE" up -d authoring celery celery-beat
-    
-    # 等待健康检查
-    echo "⏳ 等待后端容器健康检查..."
-    sleep 30
-    
-    # 检查状态
-    echo ""
-    echo "📊 后端容器状态:"
-    docker ps --filter "name=node1" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
-    
-    echo ""
-    echo "✅ 后端重建完成！"
-    echo "🔍 查看日志: docker logs -f node1-authoring"
-    
-    exit 0
-fi
-
-# 快速重建前端模式
-if [ "$REBUILD_FRONTEND" = true ] && [ "$NO_CACHE" = false ] && [ "$REBUILD_BACKEND" = false ]; then
-    echo "🚀 快速重建前端模式"
-    echo "只重建前端容器，不影响基础设施和后端服务"
-    
-    cd /opt/idp-cms
-    
-    # 加载环境变量
-    ENV_FILE=".env.node1"
-    if [ ! -f "$ENV_FILE" ]; then
-        echo "❌ 错误: 找不到环境变量文件 $ENV_FILE"
-        exit 1
-    fi
-    
-    echo "✅ 使用环境变量文件: $ENV_FILE"
-    
-    # 只停止前端容器
-    echo "⏸️  停止前端容器..."
-    docker compose -f infra/production/docker-compose-ha-node1.yml stop frontend 2>/dev/null || true
-    docker compose -f infra/production/docker-compose-ha-node1.yml rm -f frontend 2>/dev/null || true
-    
-    # 清理可能的冲突容器
-    echo "🧹 清理冲突容器..."
-    docker ps -a | grep 'node1-frontend' | awk '{print $1}' | xargs -r docker rm -f 2>/dev/null || true
-    
-    # 重建前端镜像
-    echo "🔨 重建前端镜像..."
-    docker compose -f infra/production/docker-compose-ha-node1.yml --env-file "$ENV_FILE" build --no-cache frontend
-    
-    # 启动前端容器
-    echo "🚀 启动前端容器..."
-    docker compose -f infra/production/docker-compose-ha-node1.yml --env-file "$ENV_FILE" up -d frontend
-    
-    # 等待健康检查
-    echo "⏳ 等待前端容器健康检查..."
-    sleep 30
-    
-    # 检查状态
-    echo ""
-    echo "📊 前端容器状态:"
-    docker ps --filter "name=node1-frontend" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
-    
-    echo ""
-    echo "✅ 前端重建完成！"
-    echo "🔍 查看日志: docker logs -f node1-frontend"
-    
-    exit 0
-fi
 
 # 颜色定义
 RED='\033[0;31m'
@@ -185,12 +87,7 @@ print_step "步骤 1/8: 环境检查"
 
 echo "检查必要的命令..."
 check_command docker
-
-echo "检查 Docker Compose..."
-if ! docker compose version &> /dev/null; then
-    echo -e "${RED}❌ 错误: Docker Compose 未安装${NC}"
-    exit 1
-fi
+check_command docker-compose
 
 echo "检查 Docker 服务状态..."
 if ! systemctl is-active --quiet docker; then
@@ -228,8 +125,8 @@ echo -e "${GREEN}✅ 环境变量准备完成${NC}"
 print_step "步骤 3/8: 停止现有服务（如果存在）"
 
 echo "停止可能运行中的服务..."
-jindocker compose -f infra/production/docker-compose.yml down 2>/dev/null || true
-docker compose -f infra/production/docker-compose-ha-node1.yml down 2>/dev/null || true
+docker-compose -f infra/production/docker-compose.yml down 2>/dev/null || true
+docker-compose -f infra/production/docker-compose-ha-node1.yml down 2>/dev/null || true
 
 echo -e "${GREEN}✅ 现有服务已停止${NC}"
 
@@ -264,19 +161,24 @@ echo -e "${GREEN}✅ 数据目录和日志目录创建完成${NC}"
 print_step "步骤 5/8: 拉取 Docker 镜像"
 
 echo "拉取最新镜像（这可能需要几分钟）..."
-docker compose -f infra/production/docker-compose-ha-node1.yml pull
+docker-compose -f infra/production/docker-compose-ha-node1.yml pull
 
 echo -e "${GREEN}✅ 镜像拉取完成${NC}"
 
 # 6. 启动服务
 print_step "步骤 6/8: 启动服务"
 
+echo "创建 Docker 网络（如果不存在）..."
+docker network create --driver bridge --subnet=172.28.0.0/16 idp-ha-network 2>/dev/null || \
+    echo -e "${GREEN}✅ 网络已存在${NC}"
+
+echo ""
 echo -e "${BLUE}━━━ 第一阶段：启动基础设施服务 ━━━${NC}"
 echo "停止并删除现有基础设施容器..."
-docker compose -f infra/production/docker-compose-ha-infra.yml down --remove-orphans 2>/dev/null || true
+docker-compose -f infra/production/docker-compose-ha-infra.yml down --remove-orphans 2>/dev/null || true
 
 echo "启动共享基础设施（PostgreSQL, Redis, ClickHouse, OpenSearch, MinIO）..."
-docker compose -f infra/production/docker-compose-ha-infra.yml --env-file "$ENV_FILE" up -d
+docker-compose -f infra/production/docker-compose-ha-infra.yml --env-file "$ENV_FILE" up -d
 
 echo "等待基础设施服务启动..."
 sleep 20
@@ -287,24 +189,24 @@ echo ""
 echo -e "${BLUE}━━━ 第二阶段：启动应用服务 ━━━${NC}"
 echo "停止现有应用容器..."
 # 注意：不使用 --remove-orphans，避免删除基础设施容器（ha-postgres, ha-redis 等）
-docker compose -f infra/production/docker-compose-ha-node1.yml stop
-docker compose -f infra/production/docker-compose-ha-node1.yml rm -f
+docker-compose -f infra/production/docker-compose-ha-node1.yml stop
+docker-compose -f infra/production/docker-compose-ha-node1.yml rm -f
 
 # 根据参数决定构建策略
 BUILD_ARGS=""
 if [ "$NO_CACHE" = true ]; then
     echo "🔨 强制重新构建所有镜像（无缓存）..."
-    docker compose -f infra/production/docker-compose-ha-node1.yml build --no-cache
+    docker-compose -f infra/production/docker-compose-ha-node1.yml build --no-cache
 elif [ "$REBUILD_BACKEND" = true ]; then
     echo "🔨 强制重建后端镜像..."
-    docker compose -f infra/production/docker-compose-ha-node1.yml build --no-cache authoring celery celery-beat
+    docker-compose -f infra/production/docker-compose-ha-node1.yml build --no-cache authoring celery celery-beat
 elif [ "$REBUILD_FRONTEND" = true ]; then
     echo "🔨 强制重建前端镜像..."
-    docker compose -f infra/production/docker-compose-ha-node1.yml build --no-cache frontend
+    docker-compose -f infra/production/docker-compose-ha-node1.yml build --no-cache frontend
 fi
 
 echo "启动应用服务（Django, Next.js, Celery）..."
-docker compose -f infra/production/docker-compose-ha-node1.yml --env-file "$ENV_FILE" up -d
+docker-compose -f infra/production/docker-compose-ha-node1.yml --env-file "$ENV_FILE" up -d
 
 echo "等待应用服务启动..."
 sleep 15
@@ -315,11 +217,11 @@ echo -e "${GREEN}✅ 应用服务启动完成${NC}"
 print_step "步骤 7/8: 健康检查"
 
 echo "检查基础设施服务状态..."
-docker compose -f infra/production/docker-compose-ha-infra.yml ps
+docker-compose -f infra/production/docker-compose-ha-infra.yml ps
 
 echo ""
 echo "检查应用服务状态..."
-docker compose -f infra/production/docker-compose-ha-node1.yml ps
+docker-compose -f infra/production/docker-compose-ha-node1.yml ps
 
 echo ""
 echo "检查数据库连接..."
@@ -379,10 +281,10 @@ echo -e "   📦 MinIO: http://$NODE1_IP:9001"
 
 echo ""
 echo -e "${GREEN}🔍 常用命令:${NC}"
-echo -e "   查看日志: docker compose -f infra/production/docker-compose-ha-node1.yml logs -f"
-echo -e "   重启服务: docker compose -f infra/production/docker-compose-ha-node1.yml restart"
-echo -e "   停止服务: docker compose -f infra/production/docker-compose-ha-node1.yml down"
-echo -e "   查看状态: docker compose -f infra/production/docker-compose-ha-node1.yml ps"
+echo -e "   查看日志: docker-compose -f infra/production/docker-compose-ha-node1.yml logs -f"
+echo -e "   重启服务: docker-compose -f infra/production/docker-compose-ha-node1.yml restart"
+echo -e "   停止服务: docker-compose -f infra/production/docker-compose-ha-node1.yml down"
+echo -e "   查看状态: docker-compose -f infra/production/docker-compose-ha-node1.yml ps"
 
 echo ""
 echo -e "${YELLOW}📝 下一步操作:${NC}"
