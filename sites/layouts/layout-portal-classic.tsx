@@ -127,15 +127,26 @@ export default function PortalClassicLayout({
     >
       {/* Breaking Ticker + Header 组合 - sticky定位避免间隙 */}
       <div className="sticky top-0 z-50">
-        {/* Breaking Ticker 快讯滚动条 */}
-        <BreakingTicker 
+        {/* Breaking Ticker 快讯滚动条 - 暂时隐藏 */}
+        {/* <BreakingTicker 
           items={breakingNews}
           autoPlay={true}
           scrollSpeed={60}
           pauseOnHover={true}
           showTimestamp={true}
           className=""
-        />
+        /> */}
+        
+        {/* 横幅广告图片 */}
+        <div className="bg-white">
+          <div className="max-w-7xl mx-auto">
+            <img 
+              src="/images/topBar.jpg" 
+              alt="今日湖北横幅" 
+              className="w-full h-auto"
+            />
+          </div>
+        </div>
         
         {/* 今日头条风格的顶部导航栏 */}
         <header className="bg-white shadow-sm border-b border-gray-200">
