@@ -278,4 +278,14 @@
     width: 100%;
     height: auto;
   }
+
+  /* 隐藏滚动条但保持滚动功能 - 用于横向滚动的筛选标签 */
+  .scrollbar-hide {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;  /* Chrome, Safari and Opera */
+  }
 }

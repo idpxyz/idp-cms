@@ -38,68 +38,134 @@ export default function SearchFilters({
 
   const hasActiveFilters = Object.keys(filters).length > 0;
 
+  // 排序选项配置
+  const sortOptions = [
+    { value: 'relevance', label: '综合', icon: '⭐' },
+    { value: 'date', label: '最新', icon: '🕒' },
+    { value: 'popularity', label: '热门', icon: '🔥' },
+  ];
+
+  // 时间筛选选项
+  const timeOptions = [
+    { value: '', label: '全部时间' },
+    { value: '24h', label: '今天' },
+    { value: '7d', label: '本周' },
+    { value: '30d', label: '本月' },
+  ];
+
   return (
     <div className={`bg-white border-b border-gray-200 ${className}`}>
-      <div className="max-w-7xl mx-auto px-4 py-3">
-        {/* 简化的筛选条件 */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6">
-            {/* 排序 */}
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-500 whitespace-nowrap">排序:</span>
-              <select
-                value={filters.orderBy || 'relevance'}
-                onChange={(e) => handleFilterChange('orderBy', e.target.value)}
-                className="text-sm border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+      {/* 移动端：横向滚动筛选标签 */}
+      <div className="md:hidden">
+        <div className="overflow-x-auto scrollbar-hide">
+          <div className="flex items-center gap-2 px-4 py-3 min-w-max">
+            {/* 排序选项 */}
+            {sortOptions.map((option) => (
+              <button
+                key={option.value}
+                onClick={() => handleFilterChange('orderBy', option.value)}
+                className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
+                  (filters.orderBy || 'relevance') === option.value
+                    ? 'bg-red-500 text-white shadow-sm'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
               >
-                <option value="relevance">相关度</option>
-                <option value="date">时间</option>
-                <option value="popularity">热度</option>
-              </select>
-            </div>
-
+                <span className="mr-1">{option.icon}</span>
+                {option.label}
+              </button>
+            ))}
+            
+            {/* 分隔线 */}
+            <div className="w-px h-6 bg-gray-300 mx-1"></div>
+            
             {/* 时间筛选 */}
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-500 whitespace-nowrap">时间:</span>
-              <div className="flex items-center gap-1 flex-wrap">
+            {timeOptions.map((option) => (
+              <button
+                key={option.value}
+                onClick={() => handleFilterChange('since', option.value)}
+                className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
+                  (filters.since || '') === option.value
+                    ? 'bg-red-500 text-white shadow-sm'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+            
+            {/* 清空筛选按钮 */}
+            {hasActiveFilters && (
+              <>
+                <div className="w-px h-6 bg-gray-300 mx-1"></div>
                 <button
-                  onClick={() => handleFilterChange('since', '')}
-                  className={`px-3 py-1 text-sm rounded-md transition-colors whitespace-nowrap ${
-                    !filters.since
-                      ? 'bg-blue-500 text-white'
-                      : 'text-gray-600 hover:bg-gray-100'
-                  }`}
+                  onClick={clearAllFilters}
+                  className="px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap bg-gray-100 text-gray-500 hover:bg-gray-200"
                 >
-                  全部
+                  重置
                 </button>
-                {['24h', '7d', '30d'].map((period) => (
-                  <button
-                    key={period}
-                    onClick={() => handleFilterChange('since', period)}
-                    className={`px-3 py-1 text-sm rounded-md transition-colors whitespace-nowrap ${
-                      filters.since === period
-                        ? 'bg-blue-500 text-white'
-                        : 'text-gray-600 hover:bg-gray-100'
-                    }`}
-                  >
-                    {period === '24h' ? '今天' : period === '7d' ? '本周' : '本月'}
-                  </button>
-                ))}
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* 桌面端：传统布局 */}
+      <div className="hidden md:block">
+        <div className="max-w-7xl mx-auto px-4 py-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-6">
+              {/* 排序 */}
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-500">排序:</span>
+                <div className="flex items-center gap-2">
+                  {sortOptions.map((option) => (
+                    <button
+                      key={option.value}
+                      onClick={() => handleFilterChange('orderBy', option.value)}
+                      className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
+                        (filters.orderBy || 'relevance') === option.value
+                          ? 'bg-red-500 text-white'
+                          : 'text-gray-600 hover:bg-gray-100'
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 时间筛选 */}
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-500">时间:</span>
+                <div className="flex items-center gap-2">
+                  {timeOptions.map((option) => (
+                    <button
+                      key={option.value}
+                      onClick={() => handleFilterChange('since', option.value)}
+                      className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
+                        (filters.since || '') === option.value
+                          ? 'bg-red-500 text-white'
+                          : 'text-gray-600 hover:bg-gray-100'
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
+
+            {/* 清空筛选 */}
+            {hasActiveFilters && (
+              <button
+                onClick={clearAllFilters}
+                className="text-sm text-gray-500 hover:text-gray-700 underline"
+              >
+                清空筛选
+              </button>
+            )}
           </div>
-
-          {/* 清空筛选 */}
-          {hasActiveFilters && (
-            <button
-              onClick={clearAllFilters}
-              className="text-sm text-gray-500 hover:text-gray-700 underline whitespace-nowrap self-start sm:self-auto"
-            >
-              清空筛选
-            </button>
-          )}
         </div>
-
       </div>
     </div>
   );
