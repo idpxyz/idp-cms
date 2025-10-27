@@ -106,9 +106,9 @@ class URLConfig:
             str: 前端基础URL
         """
         return (
+            os.getenv('FRONTEND_PUBLIC_URL') or
             os.getenv('FRONTEND_BASE_URL') or
             'http://localhost:3000'
-            'http://localhost:3001'
         )
     
     @classmethod

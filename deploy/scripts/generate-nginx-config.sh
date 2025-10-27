@@ -146,7 +146,15 @@ cat >> "$CONFIG_FILE" << EOF
         proxy_send_timeout 60s;
         proxy_read_timeout 60s;
         
-        # 缓存配置
+        # 🔥 智能缓存策略 - 解决移动端缓存问题
+        # 允许浏览器缓存但强制验证（利用304响应节省流量）
+        add_header Cache-Control "no-cache, must-revalidate, max-age=0" always;
+        add_header Pragma "no-cache" always;
+        
+        # 注：保留ETag，允许浏览器使用304 Not Modified响应
+        # 这样既能保证内容新鲜，又能节省流量
+        
+        # 缓冲配置
         proxy_buffering on;
         proxy_buffer_size 4k;
         proxy_buffers 8 4k;
