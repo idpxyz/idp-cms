@@ -134,14 +134,14 @@ class SiteManager {
                          process.env.SITE_HOSTNAME || 
                          process.env.NEXT_PUBLIC_PORTAL_SITE ||
                          process.env.PORTAL_SITE || 
-                         'aivoya.com';
+                         'localhost';
     
     // 尝试通过hostname或id查找站点
     const site = this.getSiteByHostname(siteHostname) || 
                  this.getSiteById(siteHostname);
     
-    // 如果找不到，返回aivoya作为默认主站点
-    return site || this.getSiteById('aivoya')!;
+    // 如果找不到，返回localhost作为默认主站点
+    return site || this.getSiteById('localhost')!;
   }
 
   // 获取地方站点
@@ -194,11 +194,11 @@ export const getThemeConfigMap = () => siteManager.getThemeConfigMap();
 /**
  * 获取 Portal 使用的站点标识
  * 可以通过环境变量 PORTAL_SITE 来配置
- * 默认: 'aivoya.com'
- * 开发环境可以设置为: 'localhost'
+ * 默认: 'localhost'
+ * 生产环境可以保持为: 'localhost'（这是站点内部标识，不是访问地址）
  */
 export const getPortalSiteIdentifier = (): string => {
-  return process.env.PORTAL_SITE || process.env.NEXT_PUBLIC_PORTAL_SITE || 'aivoya.com';
+  return process.env.PORTAL_SITE || process.env.NEXT_PUBLIC_PORTAL_SITE || 'localhost';
 };
 
 // 导出类型已在上面定义
