@@ -1,0 +1,227 @@
+/* 仅保留登录页面的自定义样式，管理后台使用默认样式 */
+
+/* 登录页面背景样式 - 仅在登录页面生效 */
+body.login {
+  background:
+    radial-gradient(1200px 600px at 10% 0%, rgba(0,124,186,0.06), transparent 70%),
+    radial-gradient(900px 500px at 90% 100%, rgba(74,158,255,0.08), transparent 70%);
+  background-color: #1a1d23; /* darker fallback */
+}
+body.login .content-wrapper {
+  min-height: auto !important; /* 高度由内容决定，不强制100vh */
+  max-height: none !important;
+  padding: 2rem 2rem !important;
+}
+/* 浅色主题下的登录页面背景 */
+.w-theme-light body.login { 
+  background-color: #2c2f36;
+  background:
+    radial-gradient(1200px 600px at 10% 0%, rgba(0,124,186,0.05), transparent 80%),
+    radial-gradient(900px 500px at 90% 100%, rgba(74,158,255,0.06), transparent 80%);
+}
+
+/* 登录卡片样式 - 仅在登录页面生效 */
+body.login .login-content__wrapper, 
+body.login .content .login .content-inner {
+  max-width: 420px !important; /* 限制最大宽度 */
+  width: 100% !important;
+  margin: 0 auto !important; /* 居中对齐 */
+  padding: 1.5rem 2rem !important; /* 减小上下内边距 */
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.25), 0 2px 8px rgba(0,0,0,0.15);
+  backdrop-filter: blur(10px);
+  background: rgba(40, 44, 52, 0.85) !important;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+/* 压缩登录表单高度 */
+body.login .login-form {
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+/* 减少标题和表单之间的间距 */
+body.login h1,
+body.login .login-form h1 {
+  margin-top: 0 !important;
+  margin-bottom: 1rem !important;
+  font-size: 1.5rem !important;
+  line-height: 1.2 !important;
+}
+
+/* 减少表单字段之间的间距 */
+body.login .login-form ul,
+body.login .login-form .fields {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+body.login .login-form li,
+body.login .login-form .field {
+  margin-bottom: 0.8rem !important;
+}
+
+/* 压缩输入框高度 */
+body.login .login-form input[type="text"],
+body.login .login-form input[type="password"] {
+  padding: 0.6rem 0.8rem !important;
+  font-size: 0.95rem !important;
+}
+
+/* 压缩标签高度 */
+body.login .login-form label {
+  margin-bottom: 0.3rem !important;
+  display: block;
+  font-size: 0.9rem !important;
+}
+
+/* 压缩按钮区域 */
+body.login .login-form .submit-wrapper,
+body.login .login-form .actions {
+  margin-top: 1rem !important;
+  margin-bottom: 0 !important;
+}
+
+/* 移除登录按钮下方的空白 */
+body.login .login-form button[type="submit"],
+body.login .login-form input[type="submit"] {
+  margin-bottom: 0 !important;
+}
+
+/* 移除表单底部的空白 */
+body.login form {
+  margin-bottom: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+/* 移除登录卡片底部的多余空白 */
+body.login .login-content__wrapper > *:last-child,
+body.login .content .login .content-inner > *:last-child {
+  margin-bottom: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+/* "忘记密码"链接压缩间距 */
+body.login .password-reset {
+  margin-top: 0.5rem !important;
+  margin-bottom: 0 !important;
+}
+
+/* 彻底移除所有可能的底部空白 */
+body.login .login-content__wrapper,
+body.login .content .login .content-inner {
+  padding-bottom: 1.5rem !important; /* 与顶部对称 */
+}
+
+body.login .login-form *:last-child,
+body.login form *:last-child {
+  margin-bottom: 0 !important;
+}
+
+/* 移除可能存在的额外容器空白 */
+body.login .login-form__container,
+body.login .login-form-wrapper,
+body.login .login-content {
+  margin-bottom: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+/* 🎯 关键：移除 footer.form-actions 的空白（登录按钮容器） */
+body.login footer.form-actions,
+body.login .form-actions {
+  margin: 0 !important;
+  padding: 0 !important;
+  margin-top: 1rem !important; /* 只保留顶部间距 */
+}
+
+/* 移除 form 元素底部的空白 */
+body.login form.login-form {
+  margin-bottom: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+/* 登录表单字段样式优化 */
+body.login .login-form input[type="text"],
+body.login .login-form input[type="password"] {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+/* 登录按钮样式优化 */
+body.login .login-form button[type="submit"],
+body.login .login-form input[type="submit"] {
+  width: 100% !important;
+}
+
+body.login .cms-login-note {
+  margin-bottom: 12px;
+  font-size: 0.95rem;
+  opacity: .9;
+  text-align: center;
+  padding: 8px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 8px;
+  color: inherit;
+}
+
+/* 登录页面logo样式 */
+body.login .wagtail-branding img {
+  display: block;
+  height: 40px;
+  width: auto;
+}
+
+/* 登录页面记住我复选框样式 */
+body.login .field.checkbox label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+}
+
+/* 登录页面SSO按钮样式 */
+body.login .button.button-secondary {
+  margin-top: 10px;
+  width: 100%;
+}
+
+/* ============================================
+   管理后台定制样式
+   ============================================ */
+
+/* 隐藏左侧帮助菜单 */
+[data-wagtail-help-menu],
+.sidebar-help-menu,
+[href*="/admin/help/"],
+.w-sidebar-item[href*="help"] {
+  display: none !important;
+}
+
+/* 隐藏右侧用户菜单中的"Wagtail editor guide"链接 - 多重选择器 */
+a[href*="docs.wagtail.org"],
+a[href*="editor-guide"],
+a[href*="wagtail.org/editor-guide"],
+[data-action="wagtail-editor-guide"],
+.wagtail-userbar-items a[href*="guide"],
+.w-dropdown__content a[href*="docs.wagtail"],
+.w-dropdown__content a[href*="wagtail.org"],
+nav[aria-label*="user"] a[href*="guide"],
+.w-userbar-nav a[href*="docs.wagtail"],
+[data-wagtail-action*="editor-guide"] {
+  display: none !important;
+}
+
+/* 隐藏包含"editor guide"或"Wagtail"文本的菜单项 */
+.w-dropdown__content li:has(a[href*="docs.wagtail"]),
+.w-dropdown__content li:has(a[href*="guide"]),
+.w-dropdown__content li:has(a[href*="wagtail.org"]) {
+  display: none !important;
+}
+
+/* 通过文本内容隐藏（兼容性方案） */
+a[href]:not([href^="/"]):not([href^="#"]):not([href*="8.133.22.7"]):not([href*="localhost"]) {
+  /* 隐藏所有外部链接中包含wagtail相关的 */
+}
+a[href*="wagtail"] {
+  display: none !important;
+}
