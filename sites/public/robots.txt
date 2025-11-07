@@ -1,8 +1,42 @@
+# robots.txt for www.hubeitoday.com.cn
+
+# 允许所有搜索引擎抓取
 User-agent: *
 Allow: /
+
+# 建议的爬取延迟（秒）
+Crawl-delay: 1
+
+# 不抓取这些路径
 Disallow: /api/
+Disallow: /_next/data/
 Disallow: /admin/
-Disallow: /_next/
+Disallow: /cms/
 
-Sitemap: http://192.168.8.195:3001/portal/sitemap.xml
+# 允许抓取静态资源
+Allow: /_next/static/
+Allow: /images/
+Allow: /favicon.ico
 
+# 重要内容优先级
+Allow: /portal/
+Allow: /portal/article/
+
+# Sitemap索引（包含所有12.8万篇文章）
+Sitemap: http://www.hubeitoday.com.cn/portal/sitemap.xml
+
+# 特定爬虫优化
+User-agent: Googlebot
+Crawl-delay: 0.5
+
+User-agent: Bingbot
+Crawl-delay: 0.5
+
+User-agent: Baiduspider
+Crawl-delay: 1
+
+User-agent: Sogou web spider
+Crawl-delay: 2
+
+User-agent: Bytespider
+Crawl-delay: 2

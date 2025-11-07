@@ -23,7 +23,7 @@ app.config_from_object("django.conf:settings", namespace="CELERY")
 app.autodiscover_tasks()
 
 # Explicitly register task modules
-app.autodiscover_tasks(['apps.searchapp', 'apps.core'])
+app.autodiscover_tasks(['apps.searchapp', 'apps.core', 'apps.news'])
 
 # 确保所有任务都绑定到正确的应用
 from celery import current_app
@@ -65,6 +65,18 @@ app.conf.beat_schedule = {
         'task': 'apps.core.tasks.social_sync.sync_social_metrics_task',
         'schedule': 3600.0,  # 1小时
         'kwargs': {'site': os.environ.get('SITE_HOSTNAME', 'localhost'), 'hours_back': 2}
+    },
+    
+    # ⏰ 定时发布文章 - 每分钟检查一次
+    'publish-scheduled-articles': {
+        'task': 'news.publish_scheduled_articles',
+        'schedule': 60.0,  # 每1分钟执行一次
+    },
+    
+    # 🧹 清理过期的定时发布文章 - 每小时检查一次
+    'clean-expired-scheduled-articles': {
+        'task': 'news.clean_expired_scheduled_articles',
+        'schedule': 3600.0,  # 每1小时执行一次
     },
     
     # 原有的任务保持不变...

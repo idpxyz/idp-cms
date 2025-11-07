@@ -18,12 +18,13 @@ interface RecommendationArticle {
 interface Props {
   articleSlug: string;
   currentChannel?: string;
+  excludeChannel?: string; // ✅ 新增：排除指定频道的文章
   limit?: number;
   articles?: any[]; // ✅ 新增：可选的服务器端数据
   layout?: 'default' | 'sidebar'; // ✅ 新增：布局模式
 }
 
-export default function RecommendedArticles({ articleSlug, currentChannel, limit = 6, articles, layout = 'default' }: Props) {
+export default function RecommendedArticles({ articleSlug, currentChannel, excludeChannel, limit = 6, articles, layout = 'default' }: Props) {
   // ✅ 优化：如果有服务器端数据，直接用作初始值
   const [recommendations, setRecommendations] = useState<RecommendationArticle[]>(
     articles && articles.length > 0 ? (articles as RecommendationArticle[]) : []
@@ -46,6 +47,11 @@ export default function RecommendedArticles({ articleSlug, currentChannel, limit
         const params = new URLSearchParams({
           limit: limit.toString(),
         });
+        
+        // 添加排除频道参数
+        if (excludeChannel) {
+          params.set('exclude_channel', excludeChannel);
+        }
         
         // 🚀 性能优化：添加3秒客户端超时（服务端已有2秒超时）
         const controller = new AbortController();

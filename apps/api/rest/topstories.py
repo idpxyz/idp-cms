@@ -90,6 +90,93 @@ def _compute_topstory_score(item: dict) -> float:
     return max(0.0, score)
 
 
+def _enrich_with_images(items: list, site) -> list:
+    """
+    为文章列表补充图片URL
+    优先使用封面图片，如果没有则从正文提取第一张图片
+    """
+    if not items:
+        return items
+    
+    # 收集需要补充图片的文章 slug
+    slugs_need_cover = []
+    for item in items:
+        if not item.get("image_url") and item.get("slug"):
+            slugs_need_cover.append(item.get("slug"))
+    
+    # 如果所有文章都已有图片，直接返回
+    if not slugs_need_cover:
+        return items
+    
+    # 批量查询数据库补充图片
+    from apps.news.models import ArticlePage
+    from wagtail.images import get_image_model
+    import re
+    
+    slug_to_cover = {}
+    try:
+        Image = get_image_model()
+        
+        # 查询文章的封面 ID 和正文
+        qs = ArticlePage.objects.filter(
+            slug__in=slugs_need_cover
+        ).values('slug', 'cover_id', 'body')
+        
+        # 获取所有封面图片 ID
+        cover_ids = [row.get('cover_id') for row in qs if row.get('cover_id')]
+        
+        # 批量获取图片 URL
+        id_to_url = {}
+        if cover_ids:
+            for img in Image.objects.filter(id__in=cover_ids).only("id", "file"):
+                try:
+                    # 使用媒体代理URL
+                    from apps.core.url_config import URLConfig
+                    file_path = str(img.file.name)
+                    id_to_url[img.id] = URLConfig.build_media_proxy_url(file_path, for_internal=False)
+                except Exception:
+                    pass
+        
+        # 构建 slug -> image_url 映射
+        for row in qs:
+            url = id_to_url.get(row.get("cover_id"), "")
+            if not url:
+                # 从正文提取第一张图片
+                body_html = str(row.get("body") or "")
+                m = re.search(r'embedtype="image"[^>]*id="(\d+)"', body_html, re.I)
+                if m:
+                    # 从 Wagtail embed 标签提取图片 ID
+                    try:
+                        img_id = int(m.group(1))
+                        img = Image.objects.filter(id=img_id).only("id", "file").first()
+                        if img:
+                            file_path = str(img.file.name)
+                            url = URLConfig.build_media_proxy_url(file_path, for_internal=False)
+                    except Exception:
+                        pass
+                
+                if not url:
+                    # 尝试提取普通 img 标签
+                    m = re.search(r'<img[^>]*src=["\']([^"\']+)["\']', body_html, re.I)
+                    if m:
+                        url = m.group(1)
+            
+            if url:
+                slug_to_cover[row["slug"]] = url
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning(f"补充图片URL失败: {e}")
+    
+    # 将图片URL添加到文章项中
+    for item in items:
+        if not item.get("image_url"):
+            slug = item.get("slug", "")
+            cover_url = slug_to_cover.get(slug, "")
+            item["image_url"] = cover_url if cover_url else "/images/default-covers/default.svg"
+    
+    return items
+
+
 def _cluster_items(items: list, similarity: float = 0.92) -> list:
     """聚类去重算法"""
     clusters = []  # 每项：{"rep": item, "items": [item,...], "key": str}
@@ -336,6 +423,9 @@ def topstories(request):
             final_items = clustered[:size]
         
         t2 = _t.time()
+        
+        # 🖼️ 补充图片URL（类似 Portal API 的逻辑）
+        final_items = _enrich_with_images(final_items, site)
         
         # 构建响应数据
         response_data = {

@@ -223,8 +223,8 @@ class EnvManager {
       // 服务端环境 - 使用内部 Docker 网络
       return this.config.CMS_ORIGIN;
     } else {
-      // 客户端环境 - 使用外部访问地址
-      return this.config.CMS_PUBLIC_URL;
+      // 客户端环境 - 使用外部访问地址（优先使用NEXT_PUBLIC变量）
+      return process.env.NEXT_PUBLIC_CMS_URL || this.config.CMS_PUBLIC_URL;
     }
   }
 
@@ -234,8 +234,8 @@ class EnvManager {
       // 服务端环境 - 使用内部访问
       return this.config.MEDIA_INTERNAL_URL;
     } else {
-      // 客户端环境 - 使用外部访问
-      return this.config.MEDIA_BASE_URL;
+      // 客户端环境 - 使用外部访问（优先使用NEXT_PUBLIC变量）
+      return process.env.NEXT_PUBLIC_CMS_URL || this.config.MEDIA_BASE_URL;
     }
   }
 

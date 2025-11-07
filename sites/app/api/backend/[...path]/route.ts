@@ -129,75 +129,36 @@ async function handleRequest(
     }
 
     // 代理请求到后端
-    const response = await fetch(finalUrl, {
-      method,
-      headers,
-      body,
-      // 根据API类型设置缓存策略
-      next: getCacheStrategy(apiPath)
-    });
-
-    if (!response.ok) {
-      console.error('后端API请求失败:', {
-        status: response.status,
-        statusText: response.statusText,
-        url: finalUrl,
-        method,
-        apiPath
-      });
-      
-      return NextResponse.json(
-        { 
-          error: `后端API请求失败: ${response.status}`,
-          success: false,
-          path: apiPath
-        },
-        { status: response.status }
-      );
-    }
-
-    // 解析响应
-    const responseData = await response.text();
-    let parsedData;
+    // 设置30秒超时避免 HeadersTimeoutError
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30000);
     
     try {
-      parsedData = JSON.parse(responseData);
-    } catch {
-      // 如果不是JSON，直接返回文本
-      const hdrs: Record<string, string> = {
-        'Content-Type': response.headers.get('Content-Type') || 'text/plain',
-        'Cache-Control': hasAuth ? 'private, no-store, max-age=0' : getCacheControl(apiPath),
-      };
-      if (hasAuth) {
-        hdrs['Vary'] = 'Authorization';
-      }
-      return new NextResponse(responseData, {
-        status: response.status,
-        headers: hdrs,
+      const response = await fetch(finalUrl, {
+        method,
+        headers,
+        body,
+        signal: controller.signal,
+        // 根据API类型设置缓存策略
+        next: getCacheStrategy(apiPath)
       });
+      clearTimeout(timeout);
+      return await processResponse(response, apiPath, method, hasAuth);
+    } catch (fetchError) {
+      clearTimeout(timeout);
+      if (fetchError instanceof Error && fetchError.name === 'AbortError') {
+        console.error('后端API请求超时:', { url: finalUrl, method, apiPath });
+        return NextResponse.json(
+          { 
+            error: "后端API请求超时（30秒）",
+            success: false,
+            path: apiPath
+          },
+          { status: 504 }
+        );
+      }
+      throw fetchError;
     }
-    
-    console.log('后端API代理成功:', {
-      method,
-      apiPath,
-      status: response.status,
-      hasData: !!parsedData
-    });
-
-    // 返回JSON响应
-    const jsonHeaders: Record<string, string> = {
-      'Cache-Control': hasAuth ? 'private, no-store, max-age=0' : getCacheControl(apiPath),
-      'Surrogate-Key': getSurrogateKey(apiPath),
-    };
-    if (hasAuth) {
-      jsonHeaders['Vary'] = 'Authorization';
-    }
-
-    return NextResponse.json(parsedData, {
-      status: response.status,
-      headers: jsonHeaders,
-    });
-
   } catch (error) {
     console.error('后端API代理错误:', error);
     
@@ -210,6 +171,74 @@ async function handleRequest(
       { status: 500 }
     );
   }
+}
+
+// 处理响应的辅助函数
+async function processResponse(
+  response: Response,
+  apiPath: string,
+  method: string,
+  hasAuth: boolean
+) {
+  if (!response.ok) {
+    console.error('后端API请求失败:', {
+      status: response.status,
+      statusText: response.statusText,
+      apiPath,
+      method
+    });
+    
+    return NextResponse.json(
+      { 
+        error: `后端API请求失败: ${response.status}`,
+        success: false,
+        path: apiPath
+      },
+      { status: response.status }
+    );
+  }
+
+  // 解析响应
+  const responseData = await response.text();
+  let parsedData;
+  
+  try {
+    parsedData = JSON.parse(responseData);
+  } catch {
+    // 如果不是JSON，直接返回文本
+    const hdrs: Record<string, string> = {
+      'Content-Type': response.headers.get('Content-Type') || 'text/plain',
+      'Cache-Control': hasAuth ? 'private, no-store, max-age=0' : getCacheControl(apiPath),
+    };
+    if (hasAuth) {
+      hdrs['Vary'] = 'Authorization';
+    }
+    return new NextResponse(responseData, {
+      status: response.status,
+      headers: hdrs,
+    });
+  }
+  
+  console.log('后端API代理成功:', {
+    method,
+    apiPath,
+    status: response.status,
+    hasData: !!parsedData
+  });
+
+  // 返回JSON响应
+  const jsonHeaders: Record<string, string> = {
+    'Cache-Control': hasAuth ? 'private, no-store, max-age=0' : getCacheControl(apiPath),
+    'Surrogate-Key': getSurrogateKey(apiPath),
+  };
+  if (hasAuth) {
+    jsonHeaders['Vary'] = 'Authorization';
+  }
+
+  return NextResponse.json(parsedData, {
+    status: response.status,
+    headers: jsonHeaders,
+  });
 }
 
 // 根据API路径获取缓存策略

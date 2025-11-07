@@ -27,6 +27,7 @@ class ArticlePageForm(WagtailAdminPageForm):
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        
         # 在初始化时替换 cover 字段的小组件
         if 'cover' in self.fields:
             self.fields['cover'].widget = AdminImageChooser()
@@ -35,6 +36,59 @@ class ArticlePageForm(WagtailAdminPageForm):
         if 'slug' in self.fields:
             self.fields['slug'].required = False
             self.fields['slug'].help_text = '🔗 文章URL标识符（网址中显示的部分）。留空则根据标题自动生成拼音。'
+        
+        # 🔐 根据用户权限过滤频道选择器
+        if 'channel' in self.fields:
+            # 获取当前用户
+            user = None
+            parent_page = kwargs.get('parent_page')
+            
+            # 尝试多种方式获取用户
+            if hasattr(self, 'for_user'):
+                user = self.for_user
+            elif parent_page and hasattr(parent_page, '_current_user'):
+                user = parent_page._current_user
+            
+            # 从线程本地存储获取
+            if not user:
+                import threading
+                user = getattr(threading.current_thread(), 'wagtail_user', None)
+            
+            # 如果获取到用户且不是超级管理员，应用频道过滤
+            if user and not user.is_superuser:
+                from apps.core.models import ChannelGroupPermission
+                from django.utils.html import format_html
+                
+                accessible_channels = ChannelGroupPermission.get_accessible_channels(user)
+                
+                if accessible_channels is not None:
+                    # 🔥 关键：限制频道下拉列表的选项
+                    self.fields['channel'].queryset = accessible_channels
+                    
+                    # 更新帮助文本
+                    channel_count = accessible_channels.count()
+                    if channel_count > 0:
+                        channel_names = ', '.join([c.name for c in accessible_channels[:5]])
+                        if channel_count > 5:
+                            channel_names += f' 等 {channel_count - 5} 个'
+                        
+                        self.fields['channel'].help_text = format_html(
+                            '<div style="padding: 8px; background: #e8f4f8; border-left: 4px solid #0074a2; margin-top: 8px; border-radius: 3px;">'
+                            '🔐 <strong>权限限制</strong>：您只能在以下 <strong>{}</strong> 个频道中发布文章<br/>'
+                            '<span style="color: #0074a2; font-weight: 500;">{}</span>'
+                            '</div>',
+                            channel_count,
+                            channel_names
+                        )
+                    else:
+                        # 没有任何频道权限
+                        self.fields['channel'].queryset = accessible_channels
+                        self.fields['channel'].help_text = format_html(
+                            '<div style="padding: 8px; background: #ffebee; border-left: 4px solid #f44336; margin-top: 8px; border-radius: 3px;">'
+                            '⚠️ <strong>无权限</strong>：您没有任何频道的发布权限，请联系管理员授权'
+                            '</div>'
+                        )
+                        self.fields['channel'].disabled = True
     
     def clean(self):
         """清理数据，自动生成slug"""
@@ -284,9 +338,6 @@ class ArticlePage(Page):
             FieldPanel('author_name', help_text="👤 记者或作者姓名"),
             FieldPanel('language', help_text="🌐 文章语言"),
             FieldPanel('has_video', help_text="📹 标记是否包含视频内容"),
-            FieldPanel('publish_at', 
-                      widget=AdminDateTimeInput,
-                      help_text="⏰ 留空立即发布，设置时间可定时发布"),
         ], 
         heading="⚡ 文章属性", 
         classname="collapsed"),
@@ -317,12 +368,36 @@ class ArticlePage(Page):
         
         # 发布设置
         MultiFieldPanel([
+            HelpPanel(
+                content="""
+                <div style="background: #fff3e0; padding: 12px; border-radius: 6px; margin-bottom: 10px; border-left: 4px solid #ff9800;">
+                    <strong>⏰ 定时发布功能使用说明</strong><br/>
+                    <br/>
+                    <strong>📅 发布时间字段：</strong><br/>
+                    • <strong>留空</strong>：点击"发布"按钮可立即发布<br/>
+                    • <strong>设置未来时间</strong>：点击"保存草稿"后，到时间自动处理<br/>
+                    <br/>
+                    <strong>🔄 自动处理规则（到达设定时间时）：</strong><br/>
+                    • 📝 <strong>有发布权限</strong>：自动发布文章上线<br/>
+                    • 🔐 <strong>无发布权限</strong>：自动提交到工作流审批<br/>
+                    <br/>
+                    <strong>⚠️ 重要提示：</strong><br/>
+                    • 点击"发布"或"提交工作流"按钮会<strong>忽略定时设置</strong>，立即处理<br/>
+                    • 只有点击"保存草稿"后，定时发布才会生效<br/>
+                    <br/>
+                    💡 <em>适用场景：提前准备内容，按计划自动发布</em>
+                </div>
+                """
+            ),
+            FieldPanel('publish_at', 
+                      widget=AdminDateTimeInput,
+                      help_text="⏰ 设置自动发布的时间（留空或设置当前时间则可立即发布）"),
             FieldPanel('is_featured', help_text="⭐ 是否在首页或频道页置顶显示"),
             FieldPanel('is_hero', help_text="🎬 是否在首页Hero轮播显示（建议选择有吸引力封面图的文章）"),
             FieldPanel('weight', help_text="📊 权重数值，越大越靠前（0为不置顶）"),
         ], 
         heading="📢 发布设置", 
-        classname="collapsed"),
+        classname=""),  # 默认展开，让用户能看到定时发布说明
     ]
     
     # 高级设置面板 - 技术配置

@@ -56,9 +56,6 @@ def get_optimized_content_panels():
             ),
             FieldPanel('author_name', help_text="👤 记者或作者姓名"),
             FieldPanel('has_video', help_text="📹 标记是否包含视频内容"),
-            FieldPanel('publish_at', 
-                      widget=AdminDateTimeInput,
-                      help_text="⏰ 留空立即发布，设置时间可定时发布"),
         ], 
         heading="⚡ 文章属性", 
         classname="collapsed"),
@@ -88,12 +85,36 @@ def get_optimized_content_panels():
         
         # 发布设置
         MultiFieldPanel([
+            HelpPanel(
+                content="""
+                <div style="background: #fff3e0; padding: 12px; border-radius: 6px; margin-bottom: 10px; border-left: 4px solid #ff9800;">
+                    <strong>⏰ 定时发布功能使用说明</strong><br/>
+                    <br/>
+                    <strong>📅 发布时间字段：</strong><br/>
+                    • <strong>留空</strong>：点击"发布"按钮可立即发布<br/>
+                    • <strong>设置未来时间</strong>：点击"保存草稿"后，到时间自动处理<br/>
+                    <br/>
+                    <strong>🔄 自动处理规则（到达设定时间时）：</strong><br/>
+                    • 📝 <strong>有发布权限</strong>：自动发布文章上线<br/>
+                    • 🔐 <strong>无发布权限</strong>：自动提交到工作流审批<br/>
+                    <br/>
+                    <strong>⚠️ 重要提示：</strong><br/>
+                    • 点击"发布"或"提交工作流"按钮会<strong>忽略定时设置</strong>，立即处理<br/>
+                    • 只有点击"保存草稿"后，定时发布才会生效<br/>
+                    <br/>
+                    💡 <em>适用场景：提前准备内容，按计划自动发布</em>
+                </div>
+                """
+            ),
+            FieldPanel('publish_at', 
+                      widget=AdminDateTimeInput,
+                      help_text="⏰ 设置自动发布的时间（留空或设置当前时间则可立即发布）"),
             FieldPanel('is_featured', help_text="⭐ 是否在首页或频道页置顶显示"),
             FieldPanel('is_hero', help_text="🎬 是否在首页Hero轮播显示（建议选择有吸引力封面图的文章）"),
             FieldPanel('weight', help_text="📊 权重数值，越大越靠前（0为不置顶）"),
         ], 
         heading="📢 发布设置", 
-        classname="collapsed"),
+        classname=""),  # 默认展开，让用户能看到定时发布说明
     ]
     
     return content_panels
@@ -385,26 +406,52 @@ def _get_tag_suggestions_panel():
         var container = document.getElementById("tag-suggestions-container");
         if (!container) return;
         
-        var html = '<div style="margin-bottom: 8px;"><small style="color: #666;">点击标签添加到标签字段：</small></div>';
+        var html = '' +
+        '<div style="display:flex; align-items:center; gap:8px; margin:6px 0 8px 0;">' +
+            '<button type="button" id="select-all-tags" class="button button-small" style="padding:4px 8px;">全选</button>' +
+            '<button type="button" id="add-selected-tags" class="button button-small" style="padding:4px 8px; background:#28a745; color:#fff; border:none;">添加所选</button>' +
+            '<small style="color:#666;">可勾选多项后一次加入</small>' +
+        '</div>' +
+        '<div id="tag-suggestion-list" style="display:flex; flex-wrap:wrap; gap:6px;">';
         
-        suggestions.forEach(function(suggestion) {
-            var confidence = Math.round(suggestion.confidence * 100);
-            var isNew = suggestion.is_new;
-            var buttonStyle = isNew 
-                ? "background: #f39c12; color: white;" 
-                : "background: #28a745; color: white;";
-            var badge = isNew ? "新" : "✓";
-            
-            html += '<button type="button" class="tag-suggestion-btn" ' +
-                    'style="' + buttonStyle + ' border: none; padding: 4px 8px; margin: 2px; ' +
-                    'border-radius: 12px; font-size: 11px; cursor: pointer;" ' +
-                    'onclick="addSuggestedTag(\\'' + suggestion.text + '\\', this)" ' +
-                    'title="置信度: ' + confidence + '%">' +
-                    suggestion.text + ' <small>(' + confidence + '% ' + badge + ')</small>' +
-                    '</button>';
-               });
-               
-               container.innerHTML = html;
+        suggestions.forEach(function(suggestion, idx) {
+            var confidence = Math.round((suggestion.confidence || 0) * 100);
+            var isNew = !!suggestion.is_new;
+            var badge = isNew ? '新' : '✓';
+            var color = isNew ? '#f39c12' : '#01579b';
+            var id = 'tag_sugg_' + idx;
+            html += '' +
+            '<label for="' + id + '" style="display:inline-flex; align-items:center; gap:6px; ' +
+                'padding:4px 8px; border:1px solid ' + color + '; border-radius:12px; ' +
+                'background:#f5faff; cursor:pointer; font-size:12px;">' +
+                '<input type="checkbox" id="' + id + '" data-tag="' + suggestion.text.replace(/"/g,'&quot;') + '">' +
+                '<span>' + suggestion.text + ' <small>(' + confidence + '% ' + badge + ')</small></span>' +
+            '</label>';
+        });
+        html += '</div>';
+        
+        container.innerHTML = html;
+        
+        var all = false;
+        var selectAllBtn = document.getElementById('select-all-tags');
+        var addSelectedBtn = document.getElementById('add-selected-tags');
+        var list = document.getElementById('tag-suggestion-list');
+        
+        if (selectAllBtn && list) {
+            selectAllBtn.addEventListener('click', function(){
+                all = !all;
+                list.querySelectorAll('input[type="checkbox"]').forEach(function(cb){ cb.checked = all; });
+                selectAllBtn.textContent = all ? '取消全选' : '全选';
+            });
+        }
+        
+        if (addSelectedBtn && list) {
+            addSelectedBtn.addEventListener('click', function(){
+                var chosen = Array.from(list.querySelectorAll('input[type="checkbox"]:checked'));
+                if (!chosen.length) { alert('请先选择要添加的标签'); return; }
+                chosen.forEach(function(cb){ addSuggestedTag(cb.getAttribute('data-tag')); });
+            });
+        }
     }
     
     function addSuggestedTag(tagText, buttonElement) {

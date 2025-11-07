@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { formatDateTime } from '@/lib/utils/date';
+import { getRelativeTime } from '@/lib/utils/date';
 import { getSideNewsPlaceholderImage } from '@/lib/utils/placeholderImages';
 
 interface ModernNewsItemProps {
@@ -43,17 +43,18 @@ const ModernNewsItem: React.FC<ModernNewsItemProps> = React.memo(({
       <div className="flex items-start space-x-4 p-4">
         {/* 左侧内容区域 */}
         <div className="flex-1 min-w-0">
-          {/* 新闻来源 */}
+          {/* 新闻来源和时间 */}
           <div className="flex items-center space-x-2 mb-2">
-            {news.channel?.name && (
+            {/* 优先显示频道名称，其次是作者 */}
+            {(news.channel?.name || news.author) && (
               <span className="inline-flex items-center news-meta">
                 <span className="w-2 h-2 bg-red-500 rounded-full mr-1.5"></span>
-                {news.channel.name}
+                {news.channel?.name || news.author}
               </span>
             )}
             <span className="news-meta-small text-gray-400">·</span>
             <time className="news-meta">
-              {formatDateTime(news.publish_time || news.publish_at)}
+              {getRelativeTime(news.publish_time || news.publish_at)}
             </time>
           </div>
 

@@ -33,6 +33,8 @@ export function getChannelTemplate(channel: any) {
     
     // 根据模板文件名动态选择
     switch (templateName) {
+      case 'DefaultTemplate':
+        return DefaultTemplate;
       case 'RecommendTemplate':
         return RecommendTemplate;
       case 'SocialTemplate':
@@ -44,6 +46,7 @@ export function getChannelTemplate(channel: any) {
       case 'FashionTemplate':
         return FashionTemplate;
       default:
+        console.warn(`Unknown template: ${templateName}, using DefaultTemplate`);
         return DefaultTemplate;
     }
   }

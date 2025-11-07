@@ -352,7 +352,7 @@ const TopicStrip: React.FC<TopicStripProps> = ({
                   {/* 元信息 */}
                   <div className="flex items-center justify-between news-meta-small">
                     <div className="flex items-center space-x-2">
-                      <span className="truncate">{article.source}</span>
+                      <span className="truncate">{article.channel?.name || article.author || '专题报道'}</span>
                       <span className="hidden md:inline">•</span>
                       <span className="hidden md:inline">{formatTimeAgo(article.publish_time)}</span>
                     </div>

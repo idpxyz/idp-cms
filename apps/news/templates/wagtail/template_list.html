@@ -1,0 +1,117 @@
+{% load wagtailadmin_tags i18n %}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文章模板 - CMS管理</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f5f7fa; color: #2c3e50; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 12px; margin-bottom: 30px; }
+        .header h1 { font-size: 32px; margin-bottom: 10px; }
+        .templates-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; margin-top: 20px; }
+        .template-card { background: white; border-radius: 12px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); transition: all 0.3s; }
+        .template-card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,0,0,0.15); }
+        .template-header { display: flex; justify-content: space-between; align-items: start; margin-bottom: 16px; }
+        .template-type { font-size: 28px; }
+        .template-usage { background: #e0e7ff; color: #3730a3; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+        .template-name { font-size: 20px; font-weight: 600; color: #1e293b; margin-bottom: 8px; }
+        .template-desc { color: #64748b; font-size: 14px; margin-bottom: 16px; line-height: 1.6; }
+        .template-meta { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+        .meta-badge { background: #f1f5f9; padding: 4px 10px; border-radius: 6px; font-size: 12px; color: #475569; }
+        .template-actions { display: flex; gap: 10px; }
+        .btn { padding: 10px 20px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.3s; text-decoration: none; display: inline-block; }
+        .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4); }
+        .btn-secondary { background: #e2e8f0; color: #475569; }
+        .btn-secondary:hover { background: #cbd5e1; }
+        .section-title { font-size: 24px; font-weight: 600; margin: 30px 0 20px 0; color: #1e293b; }
+        .empty-state { text-align: center; padding: 60px 20px; color: #64748b; }
+        .manage-link { display: inline-block; margin-top: 20px; padding: 12px 24px; background: white; color: #667eea; border-radius: 8px; text-decoration: none; font-weight: 600; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .manage-link:hover { background: #f8fafc; transform: translateY(-2px); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📄 文章模板</h1>
+            <p>选择模板快速创建文章，提升内容创作效率</p>
+        </div>
+
+        {% if popular_templates %}
+        <div class="section-title">🔥 热门模板（使用次数最多）</div>
+        <div class="templates-grid">
+            {% for template in popular_templates %}
+            <div class="template-card">
+                <div class="template-header">
+                    <span class="template-type">{{ template.get_template_type_display|first }}</span>
+                    <span class="template-usage">{{ template.usage_count }} 次使用</span>
+                </div>
+                <div class="template-name">{{ template.name }}</div>
+                {% if template.description %}
+                <div class="template-desc">{{ template.description|truncatewords:20 }}</div>
+                {% endif %}
+                <div class="template-meta">
+                    {% if template.default_channel %}
+                    <span class="meta-badge">📂 {{ template.default_channel.name }}</span>
+                    {% endif %}
+                    {% if template.default_tags %}
+                    <span class="meta-badge">🏷️ {{ template.default_tags|truncatewords:3 }}</span>
+                    {% endif %}
+                </div>
+                <div class="template-actions">
+                    <a href="{% url 'create_from_template' template.id %}" class="btn btn-primary">✨ 使用此模板</a>
+                    <a href="{% url 'wagtailsnippets_news_articletemplate:edit' template.id %}" class="btn btn-secondary">编辑</a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% for type_name, type_templates in templates_by_type.items %}
+        <div class="section-title">{{ type_name }}</div>
+        <div class="templates-grid">
+            {% for template in type_templates %}
+            <div class="template-card">
+                <div class="template-header">
+                    <span class="template-type">{{ template.get_template_type_display|first }}</span>
+                    <span class="template-usage">{{ template.usage_count }} 次</span>
+                </div>
+                <div class="template-name">{{ template.name }}</div>
+                {% if template.description %}
+                <div class="template-desc">{{ template.description|truncatewords:20 }}</div>
+                {% endif %}
+                <div class="template-meta">
+                    {% if template.default_channel %}
+                    <span class="meta-badge">📂 {{ template.default_channel.name }}</span>
+                    {% endif %}
+                    {% if template.default_tags %}
+                    <span class="meta-badge">🏷️ {{ template.default_tags|truncatewords:3 }}</span>
+                    {% endif %}
+                </div>
+                <div class="template-actions">
+                    <a href="{% url 'create_from_template' template.id %}" class="btn btn-primary">✨ 使用</a>
+                    <a href="{% url 'wagtailsnippets_news_articletemplate:edit' template.id %}" class="btn btn-secondary">编辑</a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endfor %}
+
+        {% if not templates %}
+        <div class="empty-state">
+            <h3>📄 还没有创建任何模板</h3>
+            <p>创建模板可以提高文章创作效率</p>
+            <a href="{% url 'wagtailsnippets_news_articletemplate:add' %}" class="manage-link">➕ 创建第一个模板</a>
+        </div>
+        {% else %}
+        <div style="text-align: center; margin-top: 40px;">
+            <a href="{% url 'wagtailsnippets_news_articletemplate:list' %}" class="manage-link">⚙️ 管理所有模板</a>
+        </div>
+        {% endif %}
+    </div>
+</body>
+</html>
+

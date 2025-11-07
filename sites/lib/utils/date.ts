@@ -76,13 +76,21 @@ export function formatDateTimeFull(date: string | Date): string {
 }
 
 /**
- * 获取相对时间（如"2小时前"）
+ * 获取相对时间（如"2小时前"）- 新闻网站专用版本
+ * 针对新闻场景优化显示逻辑
  */
 export function getRelativeTime(date: string | Date): string {
   const dateObj = typeof date === "string" ? new Date(date) : date;
+  
+  // 检查日期是否有效
+  if (isNaN(dateObj.getTime())) {
+    return "--";
+  }
+  
   const now = new Date();
   const diffInSeconds = Math.floor((now.getTime() - dateObj.getTime()) / 1000);
 
+  // 未来时间或刚刚发布
   if (diffInSeconds < 60) {
     return "刚刚";
   }
@@ -102,8 +110,26 @@ export function getRelativeTime(date: string | Date): string {
     return `${diffInDays}天前`;
   }
 
-  // 超过一周显示具体日期
-  return formatDateShort(dateObj);
+  // 7天以上，显示具体日期
+  const currentYear = now.getFullYear();
+  const dateYear = dateObj.getFullYear();
+  
+  // 今年的新闻：只显示月日
+  if (currentYear === dateYear) {
+    return dateObj.toLocaleDateString('zh-CN', { 
+      month: 'long', 
+      day: 'numeric',
+      timeZone: 'Asia/Shanghai'
+    });
+  }
+  
+  // 往年的新闻：显示年月日
+  return dateObj.toLocaleDateString('zh-CN', { 
+    year: 'numeric',
+    month: 'long', 
+    day: 'numeric',
+    timeZone: 'Asia/Shanghai'
+  });
 }
 
 /**

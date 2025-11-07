@@ -118,3 +118,10 @@ backup/
 # 生成的nginx配置文件
 deploy/scripts/nginx-*.conf
 deploy/scripts/install-nginx-*.sh
+
+# 数据库备份文件
+backups/database/*.dump
+
+# Next.js 构建缓存
+sites/.next-local/
+

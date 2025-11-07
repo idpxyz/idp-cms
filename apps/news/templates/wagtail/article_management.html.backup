@@ -1,0 +1,350 @@
+{% extends "wagtailadmin/base.html" %}
+{% load wagtailadmin_tags wagtailcore_tags %}
+
+{% block content %}
+<div class="nice-padding">
+    <h1 class="icon icon-doc-full-inverse">文章管理概览</h1>
+
+    <div class="help-block help-info">
+        <p>这里显示了文章的整体状态和分类管理。点击下方链接可以查看和管理不同类型的文章。</p>
+    </div>
+
+    <!-- 统计面板 -->
+    <div class="stats-panel">
+        <h3>📊 文章统计</h3>
+        <div class="row">
+            <div class="col3">
+                <div class="stat-item">
+                    <a href="/admin/articles/list/" class="stat-link">
+                        <div class="stat-number">{{ stats.total }}</div>
+                        <div class="stat-label">总文章数</div>
+                    </a>
+                </div>
+            </div>
+            <div class="col3">
+                <div class="stat-item">
+                    <a href="/admin/articles/list/hero/" class="stat-link">
+                        <div class="stat-number hero-count">{{ stats.hero }}</div>
+                        <div class="stat-label">Hero轮播</div>
+                    </a>
+                </div>
+            </div>
+            <div class="col3">
+                <div class="stat-item">
+                    <a href="/admin/articles/list/featured/" class="stat-link">
+                        <div class="stat-number featured-count">{{ stats.featured }}</div>
+                        <div class="stat-label">置顶推荐</div>
+                    </a>
+                </div>
+            </div>
+            <div class="col3">
+                <div class="stat-item">
+                    <a href="/admin/articles/drafts/" class="stat-link">
+                        <div class="stat-number draft-count">{{ stats.draft }}</div>
+                        <div class="stat-label">草稿</div>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 快速操作 -->
+    <div class="quick-actions">
+        <h3>🚀 快速操作</h3>
+        <div class="row">
+            <div class="col3">
+                <div class="action-card">
+                    <h4>🎬 Hero轮播文章</h4>
+                    <p>管理首页轮播展示的重要文章</p>
+                    <a href="/admin/articles/list/hero/" class="button button-primary">
+                        查看Hero文章 ({{ stats.hero }})
+                    </a>
+                </div>
+            </div>
+            <div class="col3">
+                <div class="action-card">
+                    <h4>📰 普通文章</h4>
+                    <p>管理常规发布的文章内容</p>
+                    <a href="/admin/articles/list/normal/" class="button button-secondary">
+                        查看普通文章
+                    </a>
+                </div>
+            </div>
+            <div class="col3">
+                <div class="action-card">
+                    <h4>📝 所有文章</h4>
+                    <p>查看和管理所有发布的文章</p>
+                    <a href="/admin/articles/list/" class="button button-secondary">
+                        查看所有文章 ({{ stats.total }})
+                    </a>
+                </div>
+            </div>
+            <div class="col3">
+                <div class="action-card">
+                    <h4>📄 草稿文章</h4>
+                    <p>管理尚未发布的文章草稿</p>
+                    <a href="/admin/articles/drafts/" class="button button-secondary">
+                        查看草稿 ({{ stats.draft }})
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 最近文章 -->
+    <div class="row">
+        <!-- Hero文章 -->
+        <div class="col6">
+            <div class="card">
+                <div class="card-header">
+                    <h3>🎬 最近Hero文章</h3>
+                </div>
+                <div class="card-body">
+                    {% if recent_hero %}
+                        {% for article in recent_hero %}
+                        <div class="article-item hero-item">
+                            <div class="article-info">
+                                <h4>
+                                    <a href="{% pageurl article %}">{{ article.title|truncatechars:40 }}</a>
+                                </h4>
+                                <small class="text-muted">
+                                    {{ article.first_published_at|date:"Y-m-d H:i" }}
+                                    {% if article.channel %} | {{ article.channel.name }}{% endif %}
+                                </small>
+                            </div>
+                            <div class="article-actions">
+                                <a href="{% url 'wagtailadmin_pages:edit' article.id %}" class="button button-small">编辑</a>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="help-text">暂无Hero文章</p>
+                    {% endif %}
+                    
+                    <div class="action-buttons">
+                        <a href="/admin/articles/list/hero/" class="button button-small button-primary">
+                            查看全部Hero文章
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 普通文章 -->
+        <div class="col6">
+            <div class="card">
+                <div class="card-header">
+                    <h3>📰 最近普通文章</h3>
+                </div>
+                <div class="card-body">
+                    {% if recent_normal %}
+                        {% for article in recent_normal %}
+                        <div class="article-item">
+                            <div class="article-info">
+                                <h4>
+                                    <a href="{% pageurl article %}">{{ article.title|truncatechars:40 }}</a>
+                                </h4>
+                                <small class="text-muted">
+                                    {{ article.first_published_at|date:"Y-m-d H:i" }}
+                                    {% if article.channel %} | {{ article.channel.name }}{% endif %}
+                                </small>
+                            </div>
+                            <div class="article-actions">
+                                <a href="{% url 'wagtailadmin_pages:edit' article.id %}" class="button button-small">编辑</a>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="help-text">暂无普通文章</p>
+                    {% endif %}
+                    
+                    <div class="action-buttons">
+                        <a href="/admin/articles/list/normal/" class="button button-small button-secondary">
+                            查看全部普通文章
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .stats-panel {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 4px;
+        margin-bottom: 30px;
+    }
+
+    .stat-item {
+        text-align: center;
+        padding: 20px;
+        border-radius: 4px;
+        transition: background-color 0.2s ease;
+    }
+
+    .stat-item:hover {
+        background-color: #ffffff;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .stat-link {
+        text-decoration: none;
+        color: inherit;
+        display: block;
+        width: 100%;
+        height: 100%;
+    }
+
+    .stat-link:hover {
+        text-decoration: none;
+        color: inherit;
+    }
+
+    .stat-link:hover .stat-number {
+        transform: scale(1.05);
+        transition: transform 0.2s ease;
+    }
+
+    .stat-number {
+        font-size: 32px;
+        font-weight: bold;
+        color: #007cba;
+        transition: transform 0.2s ease;
+    }
+
+    .hero-count {
+        color: #ff9800;
+    }
+
+    .featured-count {
+        color: #28a745;
+    }
+
+    .draft-count {
+        color: #6c757d;
+    }
+
+    .stat-label {
+        font-size: 14px;
+        color: #6c757d;
+        margin-top: 5px;
+    }
+
+    .quick-actions {
+        margin-bottom: 30px;
+    }
+
+    .action-card {
+        background: white;
+        border: 1px solid #e1e1e1;
+        border-radius: 4px;
+        padding: 20px;
+        text-align: center;
+        margin-bottom: 20px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .action-card h4 {
+        margin: 0 0 10px 0;
+        font-size: 16px;
+    }
+
+    .action-card p {
+        color: #6c757d;
+        margin-bottom: 15px;
+        font-size: 14px;
+    }
+
+    .card {
+        border: 1px solid #e1e1e1;
+        border-radius: 4px;
+        margin-bottom: 20px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .card-header {
+        background: #f8f9fa;
+        padding: 15px;
+        border-bottom: 1px solid #e1e1e1;
+    }
+
+    .card-header h3 {
+        margin: 0;
+        font-size: 16px;
+    }
+
+    .card-body {
+        padding: 15px;
+    }
+
+    .article-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 0;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    .article-item:last-child {
+        border-bottom: none;
+    }
+
+    .article-item.hero-item {
+        background: #fff8e1;
+        padding: 10px;
+        border-radius: 3px;
+        border: 1px solid #ffecb3;
+        margin-bottom: 8px;
+    }
+
+    .article-info h4 {
+        margin: 0;
+        font-size: 14px;
+    }
+
+    .article-info h4 a {
+        text-decoration: none;
+        color: #333;
+    }
+
+    .article-info h4 a:hover {
+        color: #007cba;
+    }
+
+    .article-info small {
+        color: #6c757d;
+        font-size: 12px;
+    }
+
+    .article-actions .button {
+        font-size: 12px;
+        padding: 4px 8px;
+    }
+
+    .action-buttons {
+        margin-top: 15px;
+        text-align: center;
+    }
+
+    .help-text {
+        color: #6c757d;
+        font-style: italic;
+        text-align: center;
+        padding: 20px;
+    }
+
+    .help-block {
+        padding: 10px;
+        border-radius: 3px;
+        margin: 10px 0 20px 0;
+    }
+
+    .help-info {
+        background: #d1ecf1;
+        border: 1px solid #bee5eb;
+        color: #0c5460;
+    }
+</style>
+{% endblock %}

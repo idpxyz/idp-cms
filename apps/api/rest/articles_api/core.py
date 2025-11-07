@@ -60,7 +60,8 @@ def articles_list(request):
         fields = request.query_params.get("fields", "").split(",") if request.query_params.get("fields") else []
         includes = request.query_params.get("include", "").split(",") if request.query_params.get("include") else []
         page = int(request.query_params.get("page", 1))
-        size = min(int(request.query_params.get("size", 20)), 100)  # 限制最大100条
+        # 支持 size 或 limit 参数（优先使用limit，因为这是REST标准）
+        size = min(int(request.query_params.get("limit", request.query_params.get("size", 20))), 1000)  # 限制最大1000条（用于sitemap）
         
         # 3. 构建基础查询 - 性能优化版本
         queryset = ArticlePage.objects.live().filter(path__startswith=site.root_page.path)
@@ -83,30 +84,19 @@ def articles_list(request):
         # 8. 序列化数据 - 批量处理，避免重复数据库查询
         serialized_articles = []
         for article in articles:
-            # 获取封面图URL：优先使用封面图，否则从正文提取第一张图片
-            cover_url = None
-            if article.cover:
-                try:
-                    cover_url = article.cover.file.url
-                except Exception:
-                    pass
-            elif article.body:
-                # 从正文提取第一张图片URL
-                import re
-                body_html = str(article.body)
-                img_match = re.search(r'<img[^>]*src=["\']([^"\']+)["\']', body_html)
-                if img_match:
-                    cover_url = img_match.group(1)
-            
             article_data = {
                 "id": article.id,
                 "title": article.title,
                 "slug": article.slug,
                 "excerpt": getattr(article, 'introduction', ''),
-                "cover": cover_url,  # 🚀 新增封面图字段
                 "publish_at": article.first_published_at.isoformat() if article.first_published_at else None,
                 "updated_at": article.last_published_at.isoformat() if article.last_published_at else None,
                 "channel_slug": getattr(article.channel, 'slug', '') if article.channel else '',
+                "channel": {
+                    "id": article.channel.id,
+                    "slug": article.channel.slug,
+                    "name": article.channel.name,
+                } if article.channel else None,
                 "region": getattr(article.region, 'name', '') if article.region else '',
                 "topics": [{"slug": topic.slug, "title": topic.title} for topic in article.topics.all()] if hasattr(article, 'topics') else [],
                 "category_names": article.get_category_names() if hasattr(article, 'get_category_names') else [],
@@ -240,33 +230,20 @@ def article_detail(request, slug):
             )
         
         # 4. 序列化数据 - 使用预取的关联数据
-        # 获取封面图URL：优先使用封面图，否则从正文提取第一张图片
-        cover_url = None
-        if article.cover:
-            try:
-                cover_url = article.cover.file.url
-            except Exception:
-                pass
-        
-        # 如果没有封面图，从正文提取第一张图片URL
-        if not cover_url and hasattr(article, 'body'):
-            import re
-            body_html = str(article.body)
-            if body_html:  # 确保body_html不为空
-                img_match = re.search(r'<img[^>]*src=["\']([^"\']+)["\']', body_html)
-                if img_match:
-                    cover_url = img_match.group(1)
-        
         article_data = {
             "id": article.id,
             "title": article.title,
             "slug": article.slug,
             "excerpt": getattr(article, 'excerpt', ''),
-            "cover": cover_url,  # 🚀 新增封面图字段
             "body": expand_db_html(article.body).replace('http://authoring:8000/api/media/proxy', '/api/media-proxy') if hasattr(article, 'body') else '',
             "publish_at": article.first_published_at.isoformat() if article.first_published_at else None,
             "updated_at": article.last_published_at.isoformat() if article.last_published_at else None,
             "channel_slug": getattr(article.channel, 'slug', '') if article.channel else '',
+            "channel": {
+                "id": article.channel.id,
+                "slug": article.channel.slug,
+                "name": article.channel.name,
+            } if article.channel else None,
             "region": getattr(article.region, 'name', '') if article.region else '',
             "is_featured": getattr(article, 'is_featured', False),
             "weight": getattr(article, 'weight', 0),

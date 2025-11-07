@@ -12,4 +12,3 @@ plugins.security.disabled: true
 
 # Memory settings
 bootstrap.memory_lock: true
-

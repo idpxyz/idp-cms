@@ -81,7 +81,7 @@ export default function SidebarRelatedArticles({
                 {related.title}
               </h4>
               <p className="text-xs text-gray-500 truncate">
-                {related.source || related.channel?.name || "本站"}
+                {related.channel?.name || related.author || "本站"}
               </p>
               <p className="text-xs text-gray-400">
                 {formatDateTime(related.publish_at)}

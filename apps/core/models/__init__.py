@@ -33,6 +33,7 @@ from .site import Site  # 导入扩展后的 Site 模型
 from .site_settings import SiteSettings
 from .channel import Channel, ChannelTaggedItem
 from .channel_template import ChannelTemplate
+from .channel_permission import ChannelGroupPermission
 from .region import Region, RegionTaggedItem
 from .language import Language
 from .config import CustomConfigItem
@@ -48,6 +49,7 @@ __all__ = [
     'Channel',
     'ChannelTaggedItem',
     'ChannelTemplate',
+    'ChannelGroupPermission',
     'Category',
     'CategoryTaggedItem',
     'Region', 

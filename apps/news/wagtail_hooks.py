@@ -8,6 +8,9 @@ from django.utils.safestring import mark_safe
 from django.dispatch import receiver
 from wagtail.signals import page_published, page_unpublished
 from .services.tag_suggestion import tag_suggestion_api
+from django.contrib import messages
+from django.shortcuts import redirect
+from django.urls import reverse
 
 
 def apply_site_filtering_to_form(form, site):
@@ -50,10 +53,25 @@ def apply_site_filtering_to_form(form, site):
 
 
 
+@hooks.register('before_edit_page')
+def filter_channel_choices_before_edit(request, page):
+    """在显示编辑表单前过滤频道选择"""
+    from apps.news.models.article import ArticlePage
+    
+    # 只处理文章页面
+    if not isinstance(page, ArticlePage):
+        return
+    
+    # 保存用户信息到线程本地存储，供后续表单使用
+    import threading
+    if not hasattr(threading.current_thread(), 'wagtail_user'):
+        threading.current_thread().wagtail_user = request.user
+
+
 @hooks.register('construct_page_editing_form')
 def enhance_article_editing_form(page, form_class, edit_handler):
     """
-    增强文章编辑表单：站点过滤 + 智能标签建议
+    增强文章编辑表单：站点过滤 + 智能标签建议 + 频道权限过滤
     """
     # 只处理ArticlePage
     from apps.news.models.article import ArticlePage
@@ -66,7 +84,72 @@ def enhance_article_editing_form(page, form_class, edit_handler):
     except Exception as e:
         pass
     
-    return form_class
+    # 创建自定义表单类，添加频道权限过滤
+    class FilteredChannelForm(form_class):
+        def __init__(self, *args, **kwargs):
+            # 先获取用户
+            user = kwargs.get('for_user')
+            
+            # 如果没有 for_user，尝试从线程本地存储获取
+            if not user:
+                import threading
+                user = getattr(threading.current_thread(), 'wagtail_user', None)
+            
+            # 调用父类初始化
+            super().__init__(*args, **kwargs)
+            
+            # 过滤频道选择器
+            if user and 'channel' in self.fields:
+                from apps.core.models import ChannelGroupPermission
+                from django.utils.html import format_html
+                
+                # 如果不是超级管理员，过滤频道选择器
+                if not user.is_superuser:
+                    accessible_channels = ChannelGroupPermission.get_accessible_channels(user)
+                    
+                    if accessible_channels is not None:
+                        # 🔥 关键：限制频道下拉列表的选项
+                        self.fields['channel'].queryset = accessible_channels
+                        
+                        # 更新帮助文本，让用户知道为什么只能看到这些频道
+                        channel_count = accessible_channels.count()
+                        if channel_count > 0:
+                            channel_names = ', '.join([c.name for c in accessible_channels[:5]])
+                            if channel_count > 5:
+                                remaining = channel_count - 5
+                                channel_names += f' 等 {remaining} 个'
+                            
+                            self.fields['channel'].help_text = format_html(
+                                '<div style="padding: 8px; background: #e8f4f8; border-left: 4px solid #0074a2; margin-top: 8px; border-radius: 3px;">'
+                                '🔐 <strong>权限限制</strong>：您只能在以下 <strong>{}</strong> 个频道中发布文章<br/>'
+                                '<span style="color: #0074a2; font-weight: 500;">{}</span>'
+                                '</div>',
+                                channel_count,
+                                channel_names
+                            )
+                            
+                            # 如果当前文章的频道不在允许列表中，给出警告
+                            if self.instance and self.instance.channel:
+                                if not accessible_channels.filter(id=self.instance.channel.id).exists():
+                                    self.fields['channel'].help_text = format_html(
+                                        '<div style="padding: 8px; background: #fff8e1; border-left: 4px solid #ff9800; margin-top: 8px; border-radius: 3px;">'
+                                        '⚠️ <strong>注意</strong>：当前文章所在的频道"{}"不在您的权限范围内。<br/>'
+                                        '您只能将其改为：<strong>{}</strong>'
+                                        '</div>',
+                                        self.instance.channel.name,
+                                        channel_names
+                                    )
+                        else:
+                            # 没有任何频道权限
+                            self.fields['channel'].queryset = accessible_channels  # 空查询集
+                            self.fields['channel'].help_text = format_html(
+                                '<div style="padding: 8px; background: #ffebee; border-left: 4px solid #f44336; margin-top: 8px; border-radius: 3px;">'
+                                '⚠️ <strong>无权限</strong>：您没有任何频道的发布权限，请联系管理员授权'
+                                '</div>'
+                            )
+                            self.fields['channel'].disabled = True
+    
+    return FilteredChannelForm
 
 
 def _inject_tag_suggestions_to_panels(page):
@@ -489,6 +572,254 @@ def article_list_view(request, filter_type='all'):
 
 
 @staff_member_required
+def my_articles_view(request):
+    """我的文章 - 显示当前用户创建的所有文章"""
+    from .models.article import ArticlePage
+    from apps.core.models import ChannelGroupPermission
+    from wagtail.models import WorkflowState
+    from django.db.models import Q, Subquery, OuterRef
+    
+    # 获取当前用户创建的文章
+    articles = ArticlePage.objects.filter(owner=request.user).select_related('cover', 'channel').prefetch_related('tags')
+    
+    # 如果用户不是超级管理员，还要应用频道权限过滤
+    if not request.user.is_superuser:
+        accessible_channels = ChannelGroupPermission.get_accessible_channels(request.user)
+        if accessible_channels is not None:
+            # 允许查看：1) 在授权频道内的文章  2) 还没有设置频道的草稿
+            articles = articles.filter(
+                Q(channel__in=accessible_channels) | Q(channel__isnull=True)
+            )
+    
+    # 获取所有文章的工作流状态（优化性能）
+    all_article_ids = list(articles.values_list('id', flat=True))
+    workflow_states = {}
+    if all_article_ids:
+        # 获取每篇文章的最新工作流状态
+        # 注意：WorkflowState 使用 object_id 字段关联页面（通用关系）
+        for state in WorkflowState.objects.filter(
+            object_id__in=all_article_ids,
+            status__in=[WorkflowState.STATUS_IN_PROGRESS, WorkflowState.STATUS_NEEDS_CHANGES]
+        ):
+            workflow_states[state.object_id] = state.status
+    
+    # 计算工作流相关统计
+    in_moderation_count = len([s for s in workflow_states.values() if s == WorkflowState.STATUS_IN_PROGRESS])
+    rejected_count = len([s for s in workflow_states.values() if s == WorkflowState.STATUS_NEEDS_CHANGES])
+    
+    # 统计数据
+    stats = {
+        'total': articles.count(),
+        'published': articles.filter(live=True).count(),
+        'draft': articles.filter(live=False).count(),
+        'in_moderation': in_moderation_count,
+        'rejected': rejected_count,
+        'hero': articles.filter(live=True, is_hero=True).count(),
+        'featured': articles.filter(live=True, is_featured=True).count(),
+    }
+    
+    # 搜索功能
+    search = request.GET.get('search', '')
+    if search:
+        articles = articles.filter(
+            Q(title__icontains=search) | 
+            Q(excerpt__icontains=search)
+        )
+    
+    # 状态过滤
+    status_filter = request.GET.get('status', 'all')
+    if status_filter == 'published':
+        articles = articles.filter(live=True)
+        filter_desc = '已发布的文章'
+    elif status_filter == 'draft':
+        articles = articles.filter(live=False)
+        filter_desc = '草稿文章'
+    elif status_filter == 'in_moderation':
+        # 筛选审核中的文章
+        in_moderation_ids = [page_id for page_id, status in workflow_states.items() 
+                            if status == WorkflowState.STATUS_IN_PROGRESS]
+        articles = articles.filter(id__in=in_moderation_ids)
+        filter_desc = '审核中的文章'
+    elif status_filter == 'rejected':
+        # 筛选被拒绝的文章
+        rejected_ids = [page_id for page_id, status in workflow_states.items() 
+                       if status == WorkflowState.STATUS_NEEDS_CHANGES]
+        articles = articles.filter(id__in=rejected_ids)
+        filter_desc = '已拒绝的文章'
+    else:
+        filter_desc = '所有文章'
+    
+    # 分页 - 使用多字段排序，草稿文章按修订时间排序
+    from django.db.models import Case, When, Value, IntegerField, F
+    
+    # 先按是否发布排序，然后按时间排序
+    articles = articles.annotate(
+        sort_order=Case(
+            When(live=True, then=Value(0)),  # 已发布的排在前面
+            When(live=False, then=Value(1)),  # 草稿排在后面
+            output_field=IntegerField(),
+        )
+    ).order_by('sort_order', '-latest_revision_created_at')
+    
+    paginator = Paginator(articles, 20)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    # 生成智能分页范围
+    def get_smart_page_range(current_page, total_pages):
+        """生成智能分页范围，避免页码过多"""
+        if total_pages <= 7:
+            return list(range(1, total_pages + 1))
+        
+        if current_page <= 4:
+            return list(range(1, 6)) + ['...', total_pages]
+        elif current_page >= total_pages - 3:
+            return [1, '...'] + list(range(total_pages - 4, total_pages + 1))
+        else:
+            return [1, '...'] + list(range(current_page - 2, current_page + 3)) + ['...', total_pages]
+    
+    smart_page_range = get_smart_page_range(page_obj.number, paginator.num_pages) if paginator.num_pages > 1 else []
+    
+    context = {
+        'articles': page_obj,
+        'stats': stats,
+        'page_title': '我的文章',
+        'filter_desc': filter_desc,
+        'search': search,
+        'status_filter': status_filter,
+        'total_count': articles.count(),
+        'smart_page_range': smart_page_range,
+        'current_user': request.user,
+    }
+    
+    return render(request, 'wagtail/my_articles.html', context)
+
+
+@staff_member_required
+def statistics_dashboard(request):
+    """统计看板 - 数据可视化"""
+    from .models.article import ArticlePage
+    from apps.core.models import Channel
+    from wagtail.models import WorkflowState
+    from django.contrib.auth import get_user_model
+    from django.db.models import Count, Q
+    from django.utils import timezone
+    from datetime import timedelta
+    import json
+    
+    User = get_user_model()
+    now = timezone.now()
+    today = now.date()
+    week_ago = now - timedelta(days=7)
+    month_ago = now - timedelta(days=30)
+    
+    # 1. 基础统计
+    total_articles = ArticlePage.objects.filter(live=True).count()
+    total_drafts = ArticlePage.objects.filter(live=False).count()
+    total_hero = ArticlePage.objects.filter(live=True, is_hero=True).count()
+    total_featured = ArticlePage.objects.filter(live=True, is_featured=True).count()
+    
+    # 2. 时间维度统计
+    today_published = ArticlePage.objects.filter(
+        live=True,
+        first_published_at__date=today
+    ).count()
+    
+    week_published = ArticlePage.objects.filter(
+        live=True,
+        first_published_at__gte=week_ago
+    ).count()
+    
+    month_published = ArticlePage.objects.filter(
+        live=True,
+        first_published_at__gte=month_ago
+    ).count()
+    
+    # 3. 频道分布统计
+    channel_stats = ArticlePage.objects.filter(
+        live=True
+    ).values('channel__name').annotate(
+        count=Count('id')
+    ).order_by('-count')[:10]
+    
+    channel_labels = [stat['channel__name'] or '未分类' for stat in channel_stats]
+    channel_data = [stat['count'] for stat in channel_stats]
+    
+    # 4. 用户发文统计（Top 10）
+    user_stats = ArticlePage.objects.filter(
+        live=True
+    ).values('owner__username').annotate(
+        count=Count('id')
+    ).order_by('-count')[:10]
+    
+    user_labels = [stat['owner__username'] for stat in user_stats]
+    user_data = [stat['count'] for stat in user_stats]
+    
+    # 5. 工作流统计
+    in_moderation = WorkflowState.objects.filter(
+        status=WorkflowState.STATUS_IN_PROGRESS
+    ).count()
+    
+    rejected = WorkflowState.objects.filter(
+        status=WorkflowState.STATUS_NEEDS_CHANGES
+    ).count()
+    
+    approved_week = WorkflowState.objects.filter(
+        status=WorkflowState.STATUS_APPROVED,
+        created_at__gte=week_ago
+    ).count()
+    
+    # 6. 最近7天发布趋势
+    trend_data = []
+    trend_labels = []
+    for i in range(6, -1, -1):
+        date = today - timedelta(days=i)
+        count = ArticlePage.objects.filter(
+            live=True,
+            first_published_at__date=date
+        ).count()
+        trend_data.append(count)
+        trend_labels.append(date.strftime('%m-%d'))
+    
+    # 7. Hero文章最近更新
+    recent_hero = ArticlePage.objects.filter(
+        live=True,
+        is_hero=True
+    ).select_related('cover', 'channel').order_by('-first_published_at')[:5]
+    
+    context = {
+        # 基础统计
+        'total_articles': total_articles,
+        'total_drafts': total_drafts,
+        'total_hero': total_hero,
+        'total_featured': total_featured,
+        
+        # 时间统计
+        'today_published': today_published,
+        'week_published': week_published,
+        'month_published': month_published,
+        
+        # 工作流统计
+        'in_moderation': in_moderation,
+        'rejected': rejected,
+        'approved_week': approved_week,
+        
+        # 图表数据（JSON）
+        'channel_labels': json.dumps(channel_labels),
+        'channel_data': json.dumps(channel_data),
+        'user_labels': json.dumps(user_labels),
+        'user_data': json.dumps(user_data),
+        'trend_labels': json.dumps(trend_labels),
+        'trend_data': json.dumps(trend_data),
+        
+        # 最近Hero文章
+        'recent_hero': recent_hero,
+    }
+    
+    return render(request, 'wagtail/statistics_dashboard.html', context)
+
+
+@staff_member_required
 @require_http_methods(["POST"])
 def toggle_hero_status(request, article_id):
     """切换文章的Hero状态"""
@@ -542,6 +873,8 @@ def register_article_management_urls():
         path('articles/list/<str:filter_type>/', article_list_view, name='article-list'),
         path('articles/list/', article_list_view, {'filter_type': 'all'}, name='article-list-all'),
         path('articles/drafts/', article_list_view, {'filter_type': 'draft'}, name='article-list-drafts'),
+        path('articles/my/', my_articles_view, name='my-articles'),
+        path('articles/statistics/', statistics_dashboard, name='statistics-dashboard'),
         path('articles/toggle-hero/<int:article_id>/', toggle_hero_status, name='toggle-hero'),
         path('articles/toggle-featured/<int:article_id>/', toggle_featured_status, name='toggle-featured'),
     ]
@@ -557,6 +890,26 @@ def add_article_management_menu(request, menu_items, **kwargs):
             '/admin/articles/',
             icon_name='doc-full-inverse',
             order=150
+        )
+    )
+    
+    # 添加"我的文章"菜单
+    menu_items.append(
+        MenuItem(
+            '我的文章',
+            '/admin/articles/my/',
+            icon_name='user',
+            order=155
+        )
+    )
+    
+    # 添加"统计看板"菜单
+    menu_items.append(
+        MenuItem(
+            '统计看板',
+            '/admin/articles/statistics/',
+            icon_name='snippet',
+            order=160
         )
     )
 
@@ -712,4 +1065,123 @@ def underline_rich_text_css():
     }}
     </style>
     """)
+
+
+# ========== 频道权限检查 ==========
+
+@hooks.register('before_edit_page')
+def check_channel_permission_before_edit(request, page):
+    """在编辑文章前检查频道权限"""
+    from .models.article import ArticlePage
+    from apps.core.models import ChannelGroupPermission
+    
+    # 只处理文章页面
+    if not isinstance(page, ArticlePage):
+        return
+    
+    # 超级管理员跳过检查
+    if request.user.is_superuser:
+        return
+    
+    # 检查频道权限
+    if page.channel:
+        accessible_channels = ChannelGroupPermission.get_accessible_channels(request.user)
+        
+        if accessible_channels is not None:
+            # 用户有频道限制
+            if not accessible_channels.filter(id=page.channel.id).exists():
+                # 没有权限访问该频道
+                channel_list = ', '.join([c.name for c in accessible_channels[:5]])
+                messages.error(
+                    request,
+                    f'⚠️ 您没有权限编辑"{page.channel.name}"频道的文章。您只能编辑：{channel_list}'
+                )
+                return redirect(reverse('wagtailadmin_explore_root'))
+
+
+@hooks.register('after_create_page')
+def check_channel_permission_after_create(request, page):
+    """创建文章后检查频道权限（防止绕过前端验证）"""
+    from .models.article import ArticlePage
+    from apps.core.models import ChannelGroupPermission
+    
+    # 只处理文章页面
+    if not isinstance(page, ArticlePage):
+        return
+    
+    # 超级管理员跳过检查
+    if request.user.is_superuser:
+        return
+    
+    # 检查频道权限
+    if page.channel:
+        accessible_channels = ChannelGroupPermission.get_accessible_channels(request.user)
+        
+        if accessible_channels is not None:
+            # 用户有频道限制
+            if not accessible_channels.filter(id=page.channel.id).exists():
+                # 没有权限 - 删除刚创建的页面
+                page.delete()
+                
+                channel_list = ', '.join([c.name for c in accessible_channels[:5]])
+                messages.error(
+                    request,
+                    f'⚠️ 创建失败：您没有权限在"{page.channel.name}"频道创建文章。您只能在以下频道创建：{channel_list}'
+                )
+                return redirect(reverse('wagtailadmin_explore_root'))
+
+
+# ============================================================================
+# 批量操作功能
+# ============================================================================
+
+@hooks.register('register_admin_urls')
+def register_bulk_actions_urls():
+    """注册批量操作的URL"""
+    from django.urls import path
+    from apps.news.views import bulk_actions, template_actions
+    
+    return [
+        # 批量操作
+        path('articles/bulk/', bulk_actions.bulk_actions_page, name='bulk_actions'),
+        path('articles/bulk/publish/', bulk_actions.bulk_publish, name='bulk_publish'),
+        path('articles/bulk/unpublish/', bulk_actions.bulk_unpublish, name='bulk_unpublish'),
+        path('articles/bulk/change-channel/', bulk_actions.bulk_change_channel, name='bulk_change_channel'),
+        path('articles/bulk/add-tags/', bulk_actions.bulk_add_tags, name='bulk_add_tags'),
+        path('articles/bulk/delete/', bulk_actions.bulk_delete, name='bulk_delete'),
+        path('articles/bulk/set-publish-time/', bulk_actions.bulk_set_publish_time, name='bulk_set_publish_time'),
+        path('articles/bulk/export/', bulk_actions.bulk_export, name='bulk_export'),
+        
+        # 文章模板
+        path('articles/templates/', template_actions.template_list_view, name='template_list'),
+        path('articles/templates/<int:template_id>/create/', template_actions.create_from_template, name='create_from_template'),
+    ]
+
+
+@hooks.register('construct_main_menu')
+def add_bulk_actions_menu_item(request, menu_items):
+    """添加批量操作菜单项"""
+    from wagtail.admin.menu import MenuItem
+    
+    menu_items.append(
+        MenuItem(
+            '📦 批量操作',
+            reverse('bulk_actions'),
+            order=205,  # 在"我的文章"后面
+        )
+    )
+
+
+@hooks.register('construct_main_menu')
+def add_article_template_menu_item(request, menu_items):
+    """添加文章模板菜单项"""
+    from wagtail.admin.menu import MenuItem
+    
+    menu_items.append(
+        MenuItem(
+            '📄 文章模板',
+            reverse('wagtailsnippets_news_articletemplate:list'),
+            order=206,  # 在"批量操作"后面
+        )
+    )
   

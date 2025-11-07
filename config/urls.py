@@ -167,6 +167,8 @@ urlpatterns = [
     path("api/channels/", channels_list, name="api-channels-list"),
     path("api/regions/", regions_list, name="api-regions-list"),
     path("api/portal/articles/", portal_articles, name="api-portal-articles"),
+    # 🆕 添加门户文章详情API（与/api/articles/<slug>/功能相同，提供别名支持）
+    path("api/portal/articles/<str:slug>/", article_detail, name="api-portal-article-detail"),
     path("api/site-settings/", site_settings, name="api-site-settings"),
     # 🆕 文章推荐API
     path("api/articles/<str:article_slug>/recommendations/", article_recommendations, name="api-article-recommendations"),

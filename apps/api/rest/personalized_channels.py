@@ -38,13 +38,33 @@ def personalized_channels(request):
         strategy = rec_config.get("strategy", {})
         profile = rec_config.get("profile", {})
         
-        # 获取所有可用频道
+        # 获取所有可用频道（包含template信息）
         try:
-            # 通过hostname查找
-            all_channels = list(Channel.objects.filter(
+            # 通过hostname查找，使用select_related预加载template
+            channels_qs = Channel.objects.filter(
                 sites__hostname=site,
                 is_active=True
-            ).values('id', 'name', 'slug', 'order', 'show_in_homepage', 'homepage_order').order_by('order'))
+            ).select_related('template').order_by('order')
+            
+            # 手动序列化，包含template信息
+            all_channels = [
+                {
+                    'id': channel.id,
+                    'name': channel.name,
+                    'slug': channel.slug,
+                    'order': channel.order,
+                    'show_in_homepage': channel.show_in_homepage,
+                    'homepage_order': channel.homepage_order,
+                    # 🎨 添加模板信息
+                    'template': {
+                        'id': channel.template.id if channel.template else None,
+                        'name': channel.template.name if channel.template else None,
+                        'slug': channel.template.slug if channel.template else None,
+                        'file_name': channel.template.file_name if channel.template else None,
+                    } if channel.template else None,
+                }
+                for channel in channels_qs
+            ]
             
             # 🚫 移除降级到默认站点的逻辑，避免显示不属于当前站点的频道
             if not all_channels:

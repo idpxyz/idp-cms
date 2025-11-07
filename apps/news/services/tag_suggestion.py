@@ -17,6 +17,7 @@ import logging
 # 使用统一的jieba配置
 from apps.core.jieba_config import get_jieba_instance
 jieba = get_jieba_instance()
+import jieba.posseg as pseg
 import jieba.analyse
 
 logger = logging.getLogger(__name__)
@@ -33,7 +34,8 @@ class TagSuggestionService:
         self.entity_patterns = {
             'person': [
                 r'([\u4e00-\u9fa5]{2,3})(主席|总统|部长|市长|董事长|总裁|教授|博士|书记|省长|市长|县长|区长|镇长|村长|街道长)',
-                r'([\u4e00-\u9fa5]{2,4})(先生|女士|同志|)',
+                # 严格要求后缀存在，避免匹配任意2-4字片段
+                r'([\u4e00-\u9fa5]{2,4})(先生|女士|同志)',
             ],
             'location': [
                 r'([\u4e00-\u9fa5]{2,6})(省|市|县|区|镇|村|街道)',
@@ -165,13 +167,21 @@ class TagSuggestionService:
         return out[:20]
 
     def filter_candidates_improved(self, candidates_with_weights: Dict[str, float], text: str) -> List[Dict]:
-        """改进的候选词过滤：权重评分+低门槛高召回"""
+        """改进的候选词过滤：权重评分+POS约束+低门槛高召回"""
         if not candidates_with_weights:
             return []
         
         results = []
         bad_chars = set(list("的了是在于与及或但而就把被为向等着过及其以及并且还是则却而且亦仍亦已不再已又更都都将曾并已各每那些这些这种那种所谓相比例如以及其中因为所以由于因此按照通过对于关于等等"))
         pronouns = set(list("我你他她它我们你们他们她们其彼此谁某啥什么哪儿哪里这里那里此人本人"))
+        allowed_pos = {"nr", "ns", "nt", "nz", "n", "i", "l"}
+        nounish_tokens = set()
+        try:
+            for w in pseg.cut(text):
+                if w.flag in allowed_pos and len(w.word) >= 2:
+                    nounish_tokens.add(w.word)
+        except Exception:
+            pass
         
         for candidate, weight in candidates_with_weights.items():
             # 基本格式检查
@@ -190,6 +200,13 @@ class TagSuggestionService:
                 
             # 计算在文本中的频次（用于最终评分）
             freq = len(re.findall(re.escape(candidate), text))
+
+            # POS约束：必须与名词/专名类分词有重合或为典型后缀实体
+            has_nounish_overlap = any(
+                (candidate in t or t in candidate) for t in nounish_tokens
+            )
+            if not has_nounish_overlap and not re.search(r"(山|寺|禅林|学院|医院|寺院|庙|公社|集团|公司|委员会|政府|省|市|区|县)$", candidate):
+                continue
             
             # 最终评分：权重 + 频次加成
             final_score = weight + (freq * 0.1)
@@ -470,7 +487,8 @@ class TagSuggestionAPI:
     def get_suggestions_for_article(self, article_data: Dict) -> Dict:
         """为文章获取标签建议"""
         title = article_data.get('title', '')
-        content = article_data.get('body', '')
+        # 同时兼容 body 与 content
+        content = article_data.get('body') or article_data.get('content') or ''
         site_id = article_data.get('site_id')
         
         suggestions = self.service.suggest_tags(title, content, site_id)

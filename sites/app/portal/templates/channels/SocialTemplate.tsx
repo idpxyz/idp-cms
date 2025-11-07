@@ -32,17 +32,17 @@ const SocialTemplate: React.FC<ChannelTemplateProps> = ({
   return (
     <PageContainer padding="adaptive">
       {/* 🎯 频道标题栏和统计信息 */}
-      <Section space="sm">
+      {/* <Section space="sm">
         <SocialChannelStats 
           channelSlug={channel.slug} 
           channelName={channel.name}
         />
-      </Section>
+      </Section> */}
 
       {/* 📺 头条新闻区域 (Hero Section) */}
-      <Section space="md">
+      {/* <Section space="md">
         <SocialHeadlines channelSlug={channel.slug} limit={5} />
-      </Section>
+      </Section> */}
 
       {/* 📰 最新报道 + 热门文章 */}
       <Section space="lg">

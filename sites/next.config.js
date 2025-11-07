@@ -129,6 +129,8 @@ const nextConfig = {
     formats: ['image/webp', 'image/avif'],
     // 🚀 最小化缓存TTL以适应hero图片变化
     minimumCacheTTL: 86400,
+    // 对外部图片禁用优化，直接返回原图（避免防盗链问题）
+    unoptimized: true,
     // 🚀 允许危险使用SVG
     dangerouslyAllowSVG: true,
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",

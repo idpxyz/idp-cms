@@ -94,7 +94,7 @@ function transformToHeroItem(item: any): HeroItem {
     image_url: convertImageUrl(item.image_url || ''),
     publish_time: item.publish_time || '',
     author: item.author || '',
-    source: item.source || '本站',
+    source: channelData?.name || item.author || '本站',
     channel: channelData ? {
       id: channelData.slug || channelData.id?.toString() || '',
       name: channelData.name || '',

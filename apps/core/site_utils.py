@@ -28,8 +28,6 @@ SITE_MAPPINGS = {
     # Docker内部服务名（通过代理访问时）
     'authoring': 'localhost',
     'authoring:8000': 'localhost',
-    '172.28.1.30': 'localhost',
-    '172.28.1.30:8000': 'localhost',
     
     # 生产站点
     'aivoya.com': 'aivoya.com',
@@ -41,12 +39,6 @@ SITE_MAPPINGS = {
     # 可能的其他域名
     '192.168.8.195': 'localhost',
     '192.168.8.195:8000': 'localhost',
-    
-    # 今日湖北生产服务器IP
-    '8.133.22.7': 'localhost',
-    '8.133.22.7:8000': 'localhost',
-    '121.40.167.71': 'localhost',
-    '121.40.167.71:8000': 'localhost',
 }
 
 def get_site_identifier_from_host(host: str) -> str:

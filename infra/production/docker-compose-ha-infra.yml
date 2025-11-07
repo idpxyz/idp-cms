@@ -256,4 +256,3 @@ volumes:
     name: ha-opensearch-logs
   minio_data:
     name: ha-minio-data
-

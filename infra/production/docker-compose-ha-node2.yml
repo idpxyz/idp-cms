@@ -1,23 +1,16 @@
 # =============================================================================
-# 高可用模式 - 应用节点2
+# 高可用模式 - 服务器2 (从节点)
 # =============================================================================
-# 包含无状态应用服务，连接到共享基础设施
+# 应用服务：Django + Next.js + Redis Replica + OpenSearch
 # 
 # 前置条件：
-# 1. 共享基础设施已启动 (docker-compose-ha-infra.yml)
-# 2. 节点1已启动 (docker-compose-ha-node1.yml)
-# 3. 网络 idp-ha-network 已创建
+# 1. 服务器1已启动并运行正常
+# 2. 共享基础设施可访问
+# 3. 网络已配置 (ha-network)
 # 4. 环境变量已设置 (.env.node2)
 # 
-# 服务列表：
-# - Django (authoring) - 后端API服务
-# - Next.js (frontend) - 前端Web服务
-# - Celery Worker - 异步任务处理
-# 
-# 注意: Node2 不运行 Celery Beat，避免重复调度
-# 
 # 启动命令：
-# docker-compose -f docker-compose-ha-node2.yml up -d
+# docker compose -f infra/production/docker-compose-ha-node2.yml up -d
 # =============================================================================
 
 networks:
@@ -26,6 +19,76 @@ networks:
     external: true
 
 services:
+  # =========================================================================
+  # Redis 从节点
+  # =========================================================================
+  redis-replica:
+    image: redis:7-alpine
+    container_name: node2-redis-replica
+    hostname: redis-replica
+    volumes:
+      - ../configs/redis/redis-replica.conf:/etc/redis/redis.conf:ro
+      - redis_replica_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      ha-network:
+        ipv4_address: 172.28.2.10
+    command: redis-server /etc/redis/redis.conf
+    healthcheck:
+      test: ["CMD", "redis-cli", "--no-auth-warning", "-a", "${REDIS_PASSWORD:-SecureRedisPass123!}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    labels:
+      - "app=idp-cms"
+      - "role=cache"
+      - "type=replica"
+      - "node=2"
+
+  # =========================================================================
+  # OpenSearch (搜索引擎 - 可选，用于读取负载分担)
+  # =========================================================================
+  opensearch:
+    image: opensearchproject/opensearch:2.11.0
+    container_name: node2-opensearch
+    hostname: opensearch-node2
+    environment:
+      - cluster.name=idp-cluster
+      - node.name=opensearch-node2
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - "OPENSEARCH_JAVA_OPTS=-Xms2g -Xmx2g"
+      - OPENSEARCH_INITIAL_ADMIN_PASSWORD=${OPENSEARCH_PASSWORD:-OpenSearchPass123!}
+      - plugins.security.disabled=false
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    volumes:
+      - opensearch_data:/usr/share/opensearch/data
+      - opensearch_logs:/usr/share/opensearch/logs
+    ports:
+      - "9200:9200"
+      - "9600:9600"
+    networks:
+      ha-network:
+        ipv4_address: 172.28.2.20
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f -k -u admin:${OPENSEARCH_PASSWORD:-OpenSearchPass123!} https://localhost:9200/_cluster/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    labels:
+      - "app=idp-cms"
+      - "role=search"
+      - "node=2"
+
   # =========================================================================
   # Django/Wagtail 后端应用
   # =========================================================================
@@ -41,33 +104,91 @@ services:
       - ../../.env.features
       - ../../.env.node2
     environment:
-      # 连接到共享基础设施
-      POSTGRES_HOST: 172.28.0.10
-      REDIS_URL: redis://:${REDIS_PASSWORD:-SecureRedisPass123!}@172.28.0.20:6379/0
+      # 数据库配置（可选择读写分离）
+      POSTGRES_HOST: 172.28.0.10  # 主库用于写
+      POSTGRES_REPLICA_HOST: 172.28.0.11  # 从库用于读（如果配置了）
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-news_ha}
+      POSTGRES_USER: ${POSTGRES_USER:-news}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-SecurePassword123!}
+      
+      # Redis 配置（本地从节点，通过 Sentinel 自动发现主节点）
+      REDIS_URL: redis://:${REDIS_PASSWORD:-SecureRedisPass123!}@redis-replica:6379/0
+      REDIS_HOST: redis-replica
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-SecureRedisPass123!}
+      # Sentinel 配置
+      REDIS_SENTINEL_HOSTS: 172.28.0.40:26379,172.28.1.41:26379,172.28.2.41:26379
+      REDIS_SENTINEL_MASTER: mymaster
+      
+      # MinIO 配置（分布式）
+      MINIO_ENDPOINT: http://172.28.0.20:9000  # 任意 MinIO 节点
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-MinioSecurePass123!}
+      MINIO_BUCKET: idp-media-prod-public
+      MINIO_USE_SSL: "false"
+      
+      # ClickHouse 配置
       CLICKHOUSE_URL: clickhouse://default:${CLICKHOUSE_PASSWORD:-ClickHousePass123!}@172.28.0.30:9000/analytics
-      OPENSEARCH_URL: https://172.28.0.40:9200
-      MINIO_ENDPOINT: http://172.28.0.50:9000
       
-      # Django设置
-      DJANGO_SETTINGS_MODULE: config.settings.prod
-      NODE_NAME: node2
-      
-      # OpenSearch认证
+      # OpenSearch 配置（本地）
+      OPENSEARCH_URL: https://opensearch:9200
       OPENSEARCH_USER: admin
-      OPENSEARCH_PASSWORD: ${OPENSEARCH_PASSWORD:-admin}
+      OPENSEARCH_PASSWORD: ${OPENSEARCH_PASSWORD:-OpenSearchPass123!}
+      OPENSEARCH_VERIFY_CERTS: "false"
+      
+      # Django 配置
+      DJANGO_SETTINGS_MODULE: config.settings.prod
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY}
+      DJANGO_DEBUG: "0"
+      DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-*}
+      
+      # 会话配置（使用 Redis）
+      SESSION_ENGINE: django.contrib.sessions.backends.cache
+      SESSION_CACHE_ALIAS: default
+      
+      # 应用 URL
+      CMS_PUBLIC_URL: ${CMS_PUBLIC_URL:-https://yourdomain.com}
+      FRONTEND_PUBLIC_URL: ${FRONTEND_PUBLIC_URL:-https://yourdomain.com}
+      
+      # 节点标识
+      NODE_NAME: node2
+      NODE_ROLE: replica
     volumes:
       - ../../:/app
-      - ../../logs:/app/logs
+      - /app/sites/node_modules
       - django_static:/app/staticfiles
       - django_media:/app/media
+      - ../../logs:/app/logs
     ports:
       - "8000:8000"
     networks:
       ha-network:
         ipv4_address: 172.28.2.30
-    # 注意：依赖的服务在 docker-compose-ha-infra.yml 中
-    # 确保在启动此文件前，infra 已经启动
-    command: sh -c "python manage.py migrate --noinput && python manage.py collectstatic --noinput && gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 4 --threads 2 --worker-class gthread --worker-tmp-dir /dev/shm --max-requests 1000 --max-requests-jitter 100 --timeout 120 --graceful-timeout 30 --keep-alive 5 --access-logfile /app/logs/gunicorn-access.log --error-logfile /app/logs/gunicorn-error.log --log-level info"
+    depends_on:
+      redis-replica:
+        condition: service_healthy
+      opensearch:
+        condition: service_healthy
+    command: >
+      sh -c "
+        python manage.py migrate --noinput &&
+        python manage.py collectstatic --noinput &&
+        gunicorn config.wsgi:application 
+          --bind 0.0.0.0:8000 
+          --workers 4 
+          --threads 2 
+          --worker-class gthread 
+          --worker-tmp-dir /dev/shm 
+          --max-requests 1000 
+          --max-requests-jitter 100 
+          --timeout 120 
+          --graceful-timeout 30 
+          --keep-alive 5 
+          --access-logfile /app/logs/gunicorn-access.log 
+          --error-logfile /app/logs/gunicorn-error.log 
+          --log-level info
+      "
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health/readiness/"]
       interval: 30s
@@ -81,7 +202,7 @@ services:
       - "node=2"
 
   # =========================================================================
-  # Celery Worker
+  # Celery Worker (从节点也运行 worker 分担负载)
   # =========================================================================
   celery:
     build:
@@ -95,13 +216,13 @@ services:
       - ../../.env.features
       - ../../.env.node2
     environment:
-      # 连接到共享基础设施
       POSTGRES_HOST: 172.28.0.10
-      REDIS_URL: redis://:${REDIS_PASSWORD:-SecureRedisPass123!}@172.28.0.20:6379/0
+      REDIS_URL: redis://:${REDIS_PASSWORD:-SecureRedisPass123!}@redis-replica:6379/0
+      REDIS_SENTINEL_HOSTS: 172.28.0.40:26379,172.28.1.41:26379,172.28.2.41:26379
+      REDIS_SENTINEL_MASTER: mymaster
+      MINIO_ENDPOINT: http://172.28.0.20:9000
       CLICKHOUSE_URL: clickhouse://default:${CLICKHOUSE_PASSWORD:-ClickHousePass123!}@172.28.0.30:9000/analytics
-      OPENSEARCH_URL: https://172.28.0.40:9200
-      MINIO_ENDPOINT: http://172.28.0.50:9000
-      
+      OPENSEARCH_URL: https://opensearch:9200
       DJANGO_SETTINGS_MODULE: config.settings.prod
       NODE_NAME: node2
     volumes:
@@ -111,6 +232,7 @@ services:
       - ha-network
     depends_on:
       - authoring
+      - redis-replica
     command: celery -A config worker -l info -c 4 --max-tasks-per-child=1000
     restart: unless-stopped
     labels:
@@ -130,9 +252,9 @@ services:
     hostname: frontend-node2
     environment:
       - NODE_ENV=production
-      - NEXT_PUBLIC_API_URL=${BACKEND_PUBLIC_URL:-http://121.40.167.72:8000}
+      - NEXT_PUBLIC_API_URL=${CMS_PUBLIC_URL:-https://yourdomain.com}
       - NEXT_PUBLIC_SITE_URL=${FRONTEND_PUBLIC_URL:-https://yourdomain.com}
-      - DJANGO_API_URL=http://172.28.2.30:8000
+      - DJANGO_API_URL=http://authoring:8000
       - NODE_NAME=node2
     ports:
       - "3000:3000"
@@ -154,8 +276,107 @@ services:
       - "role=frontend"
       - "node=2"
 
+  # =========================================================================
+  # Redis Sentinel 2 (节点2的 Sentinel)
+  # =========================================================================
+  redis-sentinel-2:
+    image: redis:7-alpine
+    container_name: node2-redis-sentinel-2
+    hostname: redis-sentinel-2
+    volumes:
+      - ../configs/redis/sentinel.conf:/etc/redis/sentinel.conf:ro
+      - redis_sentinel2_data:/data
+    ports:
+      - "26379:26379"
+    networks:
+      ha-network:
+        ipv4_address: 172.28.2.41
+    command: redis-sentinel /etc/redis/sentinel.conf
+    restart: unless-stopped
+    labels:
+      - "app=idp-cms"
+      - "role=sentinel"
+      - "node=2"
+
+  # =========================================================================
+  # MinIO 节点3和4（部署在服务器2）
+  # =========================================================================
+  minio3:
+    image: minio/minio:latest
+    container_name: ha-minio3
+    hostname: minio3
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-MinioSecurePass123!}
+      MINIO_DISTRIBUTED_MODE_ENABLED: "yes"
+      MINIO_DISTRIBUTED_NODES: "http://minio{1...4}:9000/data"
+    volumes:
+      - minio3_data:/data
+    networks:
+      ha-network:
+        ipv4_address: 172.28.2.50
+    command: server http://minio{1...4}:9000/data --console-address ":9001"
+    extra_hosts:
+      - "minio1:172.28.0.20"
+      - "minio2:172.28.0.21"
+    ports:
+      - "9002:9000"
+      - "9003:9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    restart: unless-stopped
+    labels:
+      - "app=idp-cms"
+      - "role=storage"
+      - "node=3"
+
+  minio4:
+    image: minio/minio:latest
+    container_name: ha-minio4
+    hostname: minio4
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-MinioSecurePass123!}
+      MINIO_DISTRIBUTED_MODE_ENABLED: "yes"
+      MINIO_DISTRIBUTED_NODES: "http://minio{1...4}:9000/data"
+    volumes:
+      - minio4_data:/data
+    networks:
+      ha-network:
+        ipv4_address: 172.28.2.51
+    command: server http://minio{1...4}:9000/data --console-address ":9001"
+    extra_hosts:
+      - "minio1:172.28.0.20"
+      - "minio2:172.28.0.21"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    restart: unless-stopped
+    labels:
+      - "app=idp-cms"
+      - "role=storage"
+      - "node=4"
+
 volumes:
+  redis_replica_data:
+    name: node2-redis-replica-data
+  redis_sentinel2_data:
+    name: node2-redis-sentinel2-data
+  opensearch_data:
+    name: node2-opensearch-data
+  opensearch_logs:
+    name: node2-opensearch-logs
   django_static:
     name: node2-django-static
   django_media:
     name: node2-django-media
+  minio3_data:
+    name: ha-minio3-data
+  minio4_data:
+    name: ha-minio4-data
+

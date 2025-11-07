@@ -53,13 +53,20 @@ COPY . .
 ARG NEXT_PUBLIC_API_URL=http://localhost:8000
 ARG NEXT_PUBLIC_SITE_URL=http://localhost:3000
 ARG NEXT_PUBLIC_PORTAL_SITE=localhost
+ARG NEXT_PUBLIC_CMS_URL=http://localhost:8000
 
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
 ENV NEXT_PUBLIC_PORTAL_SITE=$NEXT_PUBLIC_PORTAL_SITE
+ENV NEXT_PUBLIC_CMS_URL=$NEXT_PUBLIC_CMS_URL
 
 # 构建应用
 RUN npm run build
+
+# 🚀 Standalone模式：复制静态文件到standalone目录
+# Next.js standalone模式需要手动复制public和.next/static
+RUN cp -r public .next/standalone/ && \
+    cp -r .next/static .next/standalone/.next/
 
 # 清理开发依赖，减小最终镜像大小
 RUN npm prune --production
@@ -67,5 +74,7 @@ RUN npm prune --production
 # 暴露端口
 EXPOSE 3000
 
-# 启动生产服务器
-CMD ["npm", "start"]
+# 🚀 切换到standalone目录并启动
+# Next.js standalone模式需要在standalone目录中运行
+WORKDIR /app/.next/standalone
+CMD ["node", "server.js"]

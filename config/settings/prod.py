@@ -49,7 +49,9 @@ CACHES = {
 STATICFILES_STORAGE = "django.contrib.staticfiles.storage.ManifestStaticFilesStorage"
 
 # 邮件配置（生产环境）
-EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+# 🔇 暂时禁用邮件发送功能（工作流通知不会发送邮件，但不影响工作流运行）
+EMAIL_BACKEND = "django.core.mail.backends.dummy.EmailBackend"
+# EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"  # 需要邮件功能时取消注释
 EMAIL_HOST = os.getenv("EMAIL_HOST")
 EMAIL_PORT = int(os.getenv("EMAIL_PORT", "587"))
 EMAIL_USE_TLS = True
@@ -121,7 +123,8 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 
 # CSRF安全配置
 CSRF_COOKIE_AGE = 3600  # 1小时
-CSRF_COOKIE_HTTPONLY = True
+# 允许JS读取csrftoken以在AJAX请求中设置X-CSRFToken
+CSRF_COOKIE_HTTPONLY = False
 CSRF_COOKIE_SAMESITE = "Lax"
 _csrf_origins = os.getenv("CSRF_TRUSTED_ORIGINS", "")
 CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in _csrf_origins.split(",") if origin.strip()]
@@ -199,3 +202,5 @@ if DISABLE_RATE_LIMIT:
         "DEFAULT_THROTTLE_CLASSES": [],
         "DEFAULT_THROTTLE_RATES": {}
     }
+
+    

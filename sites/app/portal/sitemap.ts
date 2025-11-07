@@ -11,9 +11,14 @@ import { getMainSite } from '@/lib/config/sites'
  */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // 🎯 使用统一配置系统
-  const baseUrl = env.get('NEXT_PUBLIC_SITE_URL');
+  let baseUrl = env.get('NEXT_PUBLIC_SITE_URL');
   const apiUrl = env.getCmsOrigin(); // 自动选择内部/外部地址
   const site = env.get('SITE_HOSTNAME');
+
+  // 🔧 修复：如果是默认占位符，使用实际域名
+  if (baseUrl === 'https://yourdomain.com' || baseUrl.includes('yourdomain')) {
+    baseUrl = 'http://www.hubeitoday.com.cn';
+  }
 
   console.log(`[Sitemap] Generating sitemap for site: ${site}`);
   console.log(`[Sitemap] API URL: ${apiUrl}`);
@@ -64,16 +69,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
  */
 async function fetchAllArticles(apiUrl: string, site: string): Promise<any[]> {
   const allArticles: any[] = [];
-  let page = 1;
-  const size = 100; // 每页100条
+  let offset = 0;
+  const limit = 100; // 每次获取100条
   let hasMore = true;
 
   console.log(`[Sitemap] Starting to fetch articles for site: ${site}`);
 
-  while (hasMore) {
+  while (hasMore && allArticles.length < 1000) { // 限制最多1000篇文章进入sitemap
     try {
-      // 构建 API URL，添加 site 参数
-      const fetchUrl = `${apiUrl}/api/articles?site=${encodeURIComponent(site)}&page=${page}&size=${size}&order=-publish_at`;
+      // 使用正确的API格式：/api/articles/?offset=X&limit=Y
+      const fetchUrl = `${apiUrl}/api/articles/?offset=${offset}&limit=${limit}`;
       console.log(`[Sitemap] Fetching: ${fetchUrl}`);
       
       const response = await fetch(fetchUrl, {
@@ -82,11 +87,11 @@ async function fetchAllArticles(apiUrl: string, site: string): Promise<any[]> {
           'Content-Type': 'application/json',
         },
         // 添加超时控制
-        signal: AbortSignal.timeout(10000), // 10秒超时
+        signal: AbortSignal.timeout(15000), // 15秒超时
       });
 
       if (!response.ok) {
-        console.error(`[Sitemap] Failed to fetch articles page ${page}`);
+        console.error(`[Sitemap] Failed to fetch articles offset ${offset}`);
         console.error(`[Sitemap] Status: ${response.status} ${response.statusText}`);
         
         try {
@@ -101,37 +106,46 @@ async function fetchAllArticles(apiUrl: string, site: string): Promise<any[]> {
       const data = await response.json();
       const items = data.items || data.results || data.data || [];
       
-      console.log(`[Sitemap] Page ${page}: fetched ${items.length} articles`);
+      console.log(`[Sitemap] Offset ${offset}: fetched ${items.length} articles, total so far: ${allArticles.length + items.length}`);
 
       if (items.length === 0) {
         hasMore = false;
       } else {
-        allArticles.push(...items);
+        // 只添加有slug的文章
+        const validItems = items.filter((item: any) => item.slug);
+        allArticles.push(...validItems);
         
-        // 检查是否还有更多页面
+        // 检查是否还有更多
         if (data.pagination) {
           hasMore = data.pagination.has_next;
         } else {
-          // 如果没有分页信息，检查返回的项目数
-          hasMore = items.length === size;
+          // 如果返回的数量少于limit，说明没有更多了
+          hasMore = items.length === limit;
         }
         
-        page++;
+        offset += limit;
       }
 
-      // 安全限制：最多获取10页（1000篇文章）
-      if (page > 10) {
-        console.warn('Sitemap: Reached maximum page limit (10 pages)');
+      // 安全限制：最多1000篇文章（SEO最佳实践）
+      if (allArticles.length >= 1000) {
+        console.warn('[Sitemap] Reached 1000 articles limit (SEO best practice)');
         break;
       }
     } catch (error) {
-      console.error(`Error fetching articles page ${page}:`, error);
+      console.error(`Error fetching articles offset ${offset}:`, error);
       break;
     }
   }
 
+  console.log(`[Sitemap] Total articles fetched: ${allArticles.length}`);
   return allArticles;
 }
+
+/**
+ * 🔧 强制动态生成sitemap，不要在构建时预渲染
+ * 这样可以确保每次请求时都从数据库获取最新文章列表
+ */
+export const dynamic = 'force-dynamic';
 
 /**
  * sitemap 重新验证时间（秒）

@@ -319,7 +319,7 @@ const ChannelStrip: React.FC<ChannelStripProps> = ({
                   {/* 元信息 - 响应式显示 */}
                   <div className="flex items-center justify-between news-meta-small">
                     <div className="flex items-center space-x-1 md:space-x-2">
-                      <span className="truncate">{article.source}</span>
+                      <span className="truncate">{article.channel?.name || article.author || '本站'}</span>
                       <span className="hidden md:inline">•</span>
                       <span className="hidden md:inline">{formatTimeAgo(article.publish_time)}</span>
                     </div>

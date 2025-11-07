@@ -317,6 +317,14 @@ class TagSuggestionWidget {
     }
 
     getCSRFToken() {
+        // 优先从 cookie 读取 csrftoken（Django 标准做法）
+        const cookie = document.cookie
+            .split('; ')
+            .find(row => row.startsWith('csrftoken='));
+        if (cookie) {
+            return cookie.split('=')[1];
+        }
+        // 备用：从隐藏字段读取
         const token = document.querySelector('[name=csrfmiddlewaretoken]');
         return token ? token.value : '';
     }

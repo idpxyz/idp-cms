@@ -10,7 +10,8 @@ ENV PYTHONUNBUFFERED=1
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PIP_DEFAULT_TIMEOUT=20
 ENV PIP_RETRIES=3
-ENV PIP_NO_CACHE_DIR=1
+# 注意：不禁用 pip 缓存，提高构建速度
+# ENV PIP_NO_CACHE_DIR=1
 
 # 安装系统依赖（切换至就近镜像并强制 IPv4，加速构建）
 RUN set -eux; \
@@ -20,8 +21,8 @@ RUN set -eux; \
     echo "deb https://mirrors.aliyun.com/debian-security $codename-security main contrib non-free non-free-firmware" >> /etc/apt/sources.list; \
     # Debian 12+ 使用 deb822 格式的 sources，优先级高于 sources.list，这里移除以避免回落到 deb.debian.org
     rm -f /etc/apt/sources.list.d/debian.sources; \
-    # 配置 pip 使用国内镜像（阿里云）并增加清华作为后备
-    printf "[global]\nindex-url = https://mirrors.aliyun.com/pypi/simple/\nextra-index-url = https://pypi.tuna.tsinghua.edu.cn/simple\ntrusted-host = mirrors.aliyun.com pypi.tuna.tsinghua.edu.cn\nretries = 5\ntimeout = 30\n" > /etc/pip.conf; \
+    # 配置 pip 使用国内镜像（清华）并增加官方 PyPI 作为后备
+    printf "[global]\nindex-url = https://pypi.tuna.tsinghua.edu.cn/simple\nextra-index-url = https://pypi.org/simple\ntrusted-host = pypi.tuna.tsinghua.edu.cn\nretries = 3\ntimeout = 20\n" > /etc/pip.conf; \
     apt-get -o Acquire::ForceIPv4=true -o Acquire::Retries=3 update; \
     apt-get install -y --no-install-recommends \
       gcc \
@@ -42,18 +43,20 @@ WORKDIR /app
 # Development stage
 FROM base AS development
 
-# 复制 requirements（使用单一 requirements.txt）
+# 先复制 requirements.txt（利用 Docker 层缓存）
 COPY requirements.txt ./requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
 
-# 复制项目文件
+# 安装 Python 依赖（这一层会被缓存，除非 requirements.txt 变化）
+RUN pip install -r requirements.txt
+
+# 复制项目文件（放在最后，避免代码改动导致重装依赖）
 COPY . .
 
 # 创建媒体和静态文件目录
 RUN mkdir -p media static
 
-# 创建日志目录并设置权限（生产环境）
-RUN mkdir -p /var/log/django && chown -R django:django /var/log/django
+# 创建非 root 用户（开发环境也需要）
+RUN groupadd -r django && useradd --no-log-init -r -g django django || true
 
 # 创建日志目录并设置权限
 RUN mkdir -p /var/log/django && chown -R django:django /var/log/django
@@ -64,11 +67,13 @@ CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
 # Test stage
 FROM base AS test
 
-# 复制 requirements（使用单一 requirements.txt）
+# 先复制 requirements.txt（利用 Docker 层缓存）
 COPY requirements.txt ./requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
 
-# 复制项目文件
+# 安装 Python 依赖（这一层会被缓存，除非 requirements.txt 变化）
+RUN pip install -r requirements.txt
+
+# 复制项目文件（放在最后，避免代码改动导致重装依赖）
 COPY . .
 
 # 创建媒体和静态文件目录
@@ -86,11 +91,14 @@ FROM base AS production
 # 创建非 root 用户
 RUN groupadd -r django && useradd --no-log-init -r -g django django
 
-# 复制 requirements（使用单一 requirements.txt）
+# 先复制 requirements.txt（利用 Docker 层缓存）
 COPY requirements.txt ./requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
 
-# 复制项目文件
+# 安装 Python 依赖（这一层会被缓存，除非 requirements.txt 变化）
+# 💡 关键优化：这一层只有在 requirements.txt 变化时才会重建
+RUN pip install -r requirements.txt
+
+# 复制项目文件（放在最后，避免代码改动导致重装依赖）
 COPY . .
 
 # 创建媒体和静态文件目录

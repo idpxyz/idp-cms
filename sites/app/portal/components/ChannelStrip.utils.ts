@@ -155,29 +155,29 @@ export async function getChannelArticles(
     
     // 转换API数据格式为ChannelStripItem
     const channelStripItems: ChannelStripItem[] = articles.map((article: any) => ({
-      id: article.id?.toString() || '',
-      title: article.title || '',
-      excerpt: article.excerpt || '',
-      image_url: article.image_url || '',
-      publish_time: article.publish_at || article.updated_at || new Date().toISOString(),
-      author: article.author || '未知作者',
-      source: article.source || article.channel?.name || '来源',
-      channel: {
-        id: article.channel?.slug || channelSlug,
-        name: article.channel?.name || channelSlug,
-        slug: article.channel?.slug || channelSlug,
-      },
-      category: categorySlug ? {
-        id: categorySlug,
-        name: categorySlug,
-        slug: categorySlug,
-      } : undefined,
-      slug: article.slug || '',
-      is_breaking: article.is_breaking || false,
-      is_live: article.is_live || false,
-      view_count: article.view_count || 0,
-      comment_count: article.comment_count || 0,
-      tags: article.tags || [],
+        id: article.id?.toString() || '',
+        title: article.title || '',
+        excerpt: article.excerpt || '',
+        image_url: article.image_url || '',
+        publish_time: article.publish_at || article.updated_at || new Date().toISOString(),
+        author: article.author || '未知作者',
+        source: article.channel?.name || article.author || '本站',
+        channel: {
+          id: article.channel?.slug || channelSlug,
+          name: article.channel?.name || '新闻',
+          slug: article.channel?.slug || channelSlug,
+        },
+        category: categorySlug ? {
+          id: categorySlug,
+          name: categorySlug,
+          slug: categorySlug,
+        } : undefined,
+        slug: article.slug || '',
+        is_breaking: article.is_breaking || false,
+        is_live: article.is_live || false,
+        view_count: article.view_count || 0,
+        comment_count: article.comment_count || 0,
+        tags: article.tags || [],
     }));
 
     return channelStripItems;
@@ -221,10 +221,10 @@ export async function getChannelArticles(
         image_url: article.hero_image_url || article.featured_image_url || '',
         publish_time: article.publish_time,
         author: article.author_name || article.author || '未知作者',
-        source: article.source || article.channel?.name || '',
+        source: article.channel?.name || article.author || '本站',
         channel: {
           id: article.channel?.id || channelSlug,
-          name: article.channel?.name || channelSlug,
+d额          name: article.channel?.name || '新闻',
           slug: article.channel?.slug || channelSlug,
         },
         category: article.category ? {

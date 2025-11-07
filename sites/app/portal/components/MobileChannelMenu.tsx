@@ -128,33 +128,6 @@ const MobileChannelMenu: React.FC<MobileChannelMenuProps> = ({
               ))}
             </div>
           </div>
-
-          {/* 底部快捷链接 */}
-          <div className="border-t border-gray-200 p-4 bg-gray-50">
-            <div className="space-y-2">
-              <Link
-                href="/portal/search"
-                onClick={onClose}
-                className="flex items-center space-x-3 p-3 text-gray-700 hover:bg-white hover:text-red-600 rounded-lg transition-colors"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-                <span className="font-medium">搜索</span>
-              </Link>
-              
-              <Link
-                href="/portal/trending"
-                onClick={onClose}
-                className="flex items-center space-x-3 p-3 text-gray-700 hover:bg-white hover:text-red-600 rounded-lg transition-colors"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                </svg>
-                <span className="font-medium">热门趋势</span>
-              </Link>
-            </div>
-          </div>
         </div>
       </div>
     </div>

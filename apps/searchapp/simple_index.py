@@ -151,6 +151,10 @@ ARTICLE_MAPPING = {
             "allow_aggregate": {"type": "boolean"},
             "canonical_url": {"type": "keyword"},
             "external_article_url": {"type": "keyword"},
+            
+            # === 图片字段 ===
+            "image_url": {"type": "keyword"},          # 封面图片或正文第一张图片
+            "cover_image_url": {"type": "keyword"},    # 封面图片
         }
     }
 }

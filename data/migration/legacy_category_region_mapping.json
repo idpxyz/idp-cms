@@ -1,0 +1,3341 @@
+{
+  "summary": {
+    "total": 476,
+    "mapped": 159,
+    "unmapped": 317
+  },
+  "mapping": [
+    {
+      "old_id": 1,
+      "old_name": "新闻",
+      "pid": 0,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 2,
+      "old_name": "时政",
+      "pid": 0,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 3,
+      "old_name": "党建",
+      "pid": 0,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 4,
+      "old_name": "金融",
+      "pid": 0,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 5,
+      "old_name": "社会",
+      "pid": 0,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 6,
+      "old_name": "法制",
+      "pid": 0,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 7,
+      "old_name": "经济",
+      "pid": 0,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 8,
+      "old_name": "证券",
+      "pid": 7,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 9,
+      "old_name": "理财",
+      "pid": 7,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 10,
+      "old_name": "商会",
+      "pid": 0,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 11,
+      "old_name": "投资",
+      "pid": 7,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 12,
+      "old_name": "资讯",
+      "pid": 0,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 13,
+      "old_name": "民生",
+      "pid": 0,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 14,
+      "old_name": "家居",
+      "pid": 13,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 15,
+      "old_name": "健康",
+      "pid": 13,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 16,
+      "old_name": "民生",
+      "pid": 13,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 17,
+      "old_name": "医疗",
+      "pid": 13,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 18,
+      "old_name": "文化",
+      "pid": 0,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 19,
+      "old_name": "文化",
+      "pid": 18,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 20,
+      "old_name": "书画",
+      "pid": 18,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 21,
+      "old_name": "娱乐",
+      "pid": 18,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 22,
+      "old_name": "艺术",
+      "pid": 18,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 23,
+      "old_name": "体育",
+      "pid": 0,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 24,
+      "old_name": "公示",
+      "pid": 18,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 26,
+      "old_name": "科技",
+      "pid": 0,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 27,
+      "old_name": "教育",
+      "pid": 0,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 28,
+      "old_name": "房产",
+      "pid": 0,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 29,
+      "old_name": "汽车",
+      "pid": 0,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 30,
+      "old_name": "旅游",
+      "pid": 0,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 32,
+      "old_name": "视频",
+      "pid": 0,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 33,
+      "old_name": "美图",
+      "pid": 0,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 34,
+      "old_name": "首页推荐资料",
+      "pid": 0,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 35,
+      "old_name": "三楚人物",
+      "pid": 34,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 39,
+      "old_name": "爆料台",
+      "pid": 34,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 40,
+      "old_name": "观楚台",
+      "pid": 34,
+      "suggested_region_slug": "hubei",
+      "reason": "fallback-hubei:观楚台"
+    },
+    {
+      "old_id": 41,
+      "old_name": "美食",
+      "pid": 0,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 42,
+      "old_name": "荆楚各地",
+      "pid": 34,
+      "suggested_region_slug": "hubei",
+      "reason": "fallback-hubei:荆楚各地"
+    },
+    {
+      "old_id": 43,
+      "old_name": "武汉网站",
+      "pid": 34,
+      "suggested_region_slug": "wuhan",
+      "reason": "kw:武汉"
+    },
+    {
+      "old_id": 44,
+      "old_name": "武昌起义",
+      "pid": 43,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 45,
+      "old_name": "汉口文化",
+      "pid": 43,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 46,
+      "old_name": "汉阳文化",
+      "pid": 43,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 47,
+      "old_name": "武汉网视",
+      "pid": 43,
+      "suggested_region_slug": "wuhan",
+      "reason": "kw:武汉"
+    },
+    {
+      "old_id": 48,
+      "old_name": "专题资讯",
+      "pid": 43,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 49,
+      "old_name": "房产资讯",
+      "pid": 43,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 50,
+      "old_name": "美容保养",
+      "pid": 43,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 51,
+      "old_name": "汽车保险",
+      "pid": 43,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 52,
+      "old_name": "驾校考试",
+      "pid": 43,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 53,
+      "old_name": "优惠活动",
+      "pid": 43,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 54,
+      "old_name": "吃喝玩乐",
+      "pid": 43,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 55,
+      "old_name": "美食特产",
+      "pid": 43,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 56,
+      "old_name": "武汉风情",
+      "pid": 43,
+      "suggested_region_slug": "wuhan",
+      "reason": "kw:武汉"
+    },
+    {
+      "old_id": 58,
+      "old_name": "黄石网站",
+      "pid": 34,
+      "suggested_region_slug": "huangshi",
+      "reason": "kw:黄石"
+    },
+    {
+      "old_id": 59,
+      "old_name": "专题资讯",
+      "pid": 34,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 60,
+      "old_name": "黄石文化",
+      "pid": 34,
+      "suggested_region_slug": "huangshi",
+      "reason": "kw:黄石"
+    },
+    {
+      "old_id": 61,
+      "old_name": "青铜故里",
+      "pid": 34,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 62,
+      "old_name": "黄石网视",
+      "pid": 34,
+      "suggested_region_slug": "huangshi",
+      "reason": "kw:黄石"
+    },
+    {
+      "old_id": 63,
+      "old_name": "工业文化",
+      "pid": 34,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 64,
+      "old_name": "房产资讯",
+      "pid": 34,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 65,
+      "old_name": "美容保养",
+      "pid": 34,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 66,
+      "old_name": "汽车保险",
+      "pid": 34,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 67,
+      "old_name": "驾校考试",
+      "pid": 34,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 68,
+      "old_name": "优惠活动",
+      "pid": 34,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 69,
+      "old_name": "吃喝玩乐",
+      "pid": 58,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 70,
+      "old_name": "美食特产",
+      "pid": 58,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 71,
+      "old_name": "黄石风情",
+      "pid": 58,
+      "suggested_region_slug": "huangshi",
+      "reason": "kw:黄石"
+    },
+    {
+      "old_id": 73,
+      "old_name": "十堰网站",
+      "pid": 34,
+      "suggested_region_slug": "shiyan",
+      "reason": "kw:十堰"
+    },
+    {
+      "old_id": 74,
+      "old_name": "专题资讯",
+      "pid": 34,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 75,
+      "old_name": "十堰文化",
+      "pid": 34,
+      "suggested_region_slug": "shiyan",
+      "reason": "kw:十堰"
+    },
+    {
+      "old_id": 76,
+      "old_name": "鄂西文化",
+      "pid": 34,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 77,
+      "old_name": "汽车之城",
+      "pid": 34,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 78,
+      "old_name": "十堰网视",
+      "pid": 34,
+      "suggested_region_slug": "shiyan",
+      "reason": "kw:十堰"
+    },
+    {
+      "old_id": 79,
+      "old_name": "房产资讯",
+      "pid": 34,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 80,
+      "old_name": "美容保养",
+      "pid": 34,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 81,
+      "old_name": "汽车/保险",
+      "pid": 34,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 82,
+      "old_name": "驾校考试",
+      "pid": 34,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 83,
+      "old_name": "优惠活动",
+      "pid": 34,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 84,
+      "old_name": "吃喝玩乐",
+      "pid": 73,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 85,
+      "old_name": "美食特产",
+      "pid": 73,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 86,
+      "old_name": "十堰风情",
+      "pid": 73,
+      "suggested_region_slug": "shiyan",
+      "reason": "kw:十堰"
+    },
+    {
+      "old_id": 88,
+      "old_name": "荆州网站",
+      "pid": 34,
+      "suggested_region_slug": "jingzhou",
+      "reason": "kw:荆州"
+    },
+    {
+      "old_id": 89,
+      "old_name": "专题资讯",
+      "pid": 88,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 90,
+      "old_name": "荆州文化",
+      "pid": 88,
+      "suggested_region_slug": "jingzhou",
+      "reason": "kw:荆州"
+    },
+    {
+      "old_id": 91,
+      "old_name": "荆楚文化",
+      "pid": 88,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 92,
+      "old_name": "三国文化",
+      "pid": 88,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 93,
+      "old_name": "荆州网视",
+      "pid": 88,
+      "suggested_region_slug": "jingzhou",
+      "reason": "kw:荆州"
+    },
+    {
+      "old_id": 94,
+      "old_name": "房产资讯",
+      "pid": 88,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 95,
+      "old_name": "美容保养",
+      "pid": 88,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 96,
+      "old_name": "汽车/保险",
+      "pid": 88,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 97,
+      "old_name": "驾校考试",
+      "pid": 88,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 98,
+      "old_name": "吃喝玩乐",
+      "pid": 88,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 100,
+      "old_name": "荆州风情",
+      "pid": 88,
+      "suggested_region_slug": "jingzhou",
+      "reason": "kw:荆州"
+    },
+    {
+      "old_id": 102,
+      "old_name": "宜昌网站",
+      "pid": 34,
+      "suggested_region_slug": "yichang",
+      "reason": "kw:宜昌"
+    },
+    {
+      "old_id": 103,
+      "old_name": "专题资讯",
+      "pid": 102,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 104,
+      "old_name": "宜昌文化",
+      "pid": 102,
+      "suggested_region_slug": "yichang",
+      "reason": "kw:宜昌"
+    },
+    {
+      "old_id": 105,
+      "old_name": "水电之都",
+      "pid": 102,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 106,
+      "old_name": "钢琴之城",
+      "pid": 102,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 107,
+      "old_name": "宜昌网视",
+      "pid": 102,
+      "suggested_region_slug": "yichang",
+      "reason": "kw:宜昌"
+    },
+    {
+      "old_id": 108,
+      "old_name": "房产资讯",
+      "pid": 102,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 109,
+      "old_name": "美容保养",
+      "pid": 102,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 110,
+      "old_name": "汽车/保险",
+      "pid": 102,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 111,
+      "old_name": "驾校考试",
+      "pid": 102,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 112,
+      "old_name": "优惠活动",
+      "pid": 102,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 113,
+      "old_name": "吃喝玩乐",
+      "pid": 102,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 114,
+      "old_name": "美食特产",
+      "pid": 88,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 115,
+      "old_name": "宜昌风情",
+      "pid": 102,
+      "suggested_region_slug": "yichang",
+      "reason": "kw:宜昌"
+    },
+    {
+      "old_id": 117,
+      "old_name": "襄阳网站",
+      "pid": 34,
+      "suggested_region_slug": "xiangyang",
+      "reason": "kw:襄阳"
+    },
+    {
+      "old_id": 118,
+      "old_name": "专题资讯",
+      "pid": 117,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 119,
+      "old_name": "襄阳文化",
+      "pid": 117,
+      "suggested_region_slug": "xiangyang",
+      "reason": "kw:襄阳"
+    },
+    {
+      "old_id": 120,
+      "old_name": "汉水文化",
+      "pid": 117,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 121,
+      "old_name": "襄阳网视",
+      "pid": 117,
+      "suggested_region_slug": "xiangyang",
+      "reason": "kw:襄阳"
+    },
+    {
+      "old_id": 122,
+      "old_name": "优惠活动",
+      "pid": 117,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 123,
+      "old_name": "房产资讯",
+      "pid": 117,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 124,
+      "old_name": "美容保养",
+      "pid": 117,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 125,
+      "old_name": "汽车/保险",
+      "pid": 117,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 126,
+      "old_name": "驾校考试",
+      "pid": 117,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 127,
+      "old_name": "吃喝玩乐",
+      "pid": 117,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 128,
+      "old_name": "美食特产",
+      "pid": 117,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 129,
+      "old_name": "襄阳风情",
+      "pid": 117,
+      "suggested_region_slug": "xiangyang",
+      "reason": "kw:襄阳"
+    },
+    {
+      "old_id": 132,
+      "old_name": "最新楼盘",
+      "pid": 43,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 133,
+      "old_name": "家居装修",
+      "pid": 43,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 134,
+      "old_name": "租房售房",
+      "pid": 43,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 135,
+      "old_name": "武汉文化",
+      "pid": 43,
+      "suggested_region_slug": "wuhan",
+      "reason": "kw:武汉"
+    },
+    {
+      "old_id": 136,
+      "old_name": "武汉房产",
+      "pid": 43,
+      "suggested_region_slug": "wuhan",
+      "reason": "kw:武汉"
+    },
+    {
+      "old_id": 139,
+      "old_name": "美在武汉",
+      "pid": 43,
+      "suggested_region_slug": "wuhan",
+      "reason": "kw:武汉"
+    },
+    {
+      "old_id": 142,
+      "old_name": "黄石文化",
+      "pid": 58,
+      "suggested_region_slug": "huangshi",
+      "reason": "kw:黄石"
+    },
+    {
+      "old_id": 143,
+      "old_name": "黄石汽车",
+      "pid": 58,
+      "suggested_region_slug": "huangshi",
+      "reason": "kw:黄石"
+    },
+    {
+      "old_id": 145,
+      "old_name": "最新楼盘",
+      "pid": 58,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 146,
+      "old_name": "家居装修",
+      "pid": 58,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 147,
+      "old_name": "租房售房",
+      "pid": 58,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 149,
+      "old_name": "美在黄石",
+      "pid": 58,
+      "suggested_region_slug": "huangshi",
+      "reason": "kw:黄石"
+    },
+    {
+      "old_id": 152,
+      "old_name": "十堰文化",
+      "pid": 73,
+      "suggested_region_slug": "shiyan",
+      "reason": "kw:十堰"
+    },
+    {
+      "old_id": 155,
+      "old_name": "最新楼盘",
+      "pid": 73,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 156,
+      "old_name": "家居装修",
+      "pid": 73,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 157,
+      "old_name": "租房售房",
+      "pid": 73,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 159,
+      "old_name": "美在十堰",
+      "pid": 73,
+      "suggested_region_slug": "shiyan",
+      "reason": "kw:十堰"
+    },
+    {
+      "old_id": 162,
+      "old_name": "荆州文化",
+      "pid": 88,
+      "suggested_region_slug": "jingzhou",
+      "reason": "kw:荆州"
+    },
+    {
+      "old_id": 163,
+      "old_name": "荆州汽车",
+      "pid": 88,
+      "suggested_region_slug": "jingzhou",
+      "reason": "kw:荆州"
+    },
+    {
+      "old_id": 164,
+      "old_name": "汽车资讯",
+      "pid": 88,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 165,
+      "old_name": "荆州房产",
+      "pid": 88,
+      "suggested_region_slug": "jingzhou",
+      "reason": "kw:荆州"
+    },
+    {
+      "old_id": 166,
+      "old_name": "最新楼盘",
+      "pid": 88,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 167,
+      "old_name": "家居装修",
+      "pid": 88,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 168,
+      "old_name": "租房售房",
+      "pid": 88,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 169,
+      "old_name": "荆州旅游美食",
+      "pid": 88,
+      "suggested_region_slug": "jingzhou",
+      "reason": "kw:荆州"
+    },
+    {
+      "old_id": 170,
+      "old_name": "美在荆州",
+      "pid": 88,
+      "suggested_region_slug": "jingzhou",
+      "reason": "kw:荆州"
+    },
+    {
+      "old_id": 172,
+      "old_name": "宜昌文化",
+      "pid": 102,
+      "suggested_region_slug": "yichang",
+      "reason": "kw:宜昌"
+    },
+    {
+      "old_id": 175,
+      "old_name": "最新楼盘",
+      "pid": 102,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 176,
+      "old_name": "家居装修",
+      "pid": 102,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 177,
+      "old_name": "租房售房",
+      "pid": 102,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 178,
+      "old_name": "宜昌旅游美食",
+      "pid": 102,
+      "suggested_region_slug": "yichang",
+      "reason": "kw:宜昌"
+    },
+    {
+      "old_id": 179,
+      "old_name": "美食特产",
+      "pid": 102,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 180,
+      "old_name": "美在宜昌",
+      "pid": 102,
+      "suggested_region_slug": "yichang",
+      "reason": "kw:宜昌"
+    },
+    {
+      "old_id": 183,
+      "old_name": "襄阳文化",
+      "pid": 117,
+      "suggested_region_slug": "xiangyang",
+      "reason": "kw:襄阳"
+    },
+    {
+      "old_id": 186,
+      "old_name": "最新楼盘",
+      "pid": 117,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 187,
+      "old_name": "家居装修",
+      "pid": 117,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 188,
+      "old_name": "租房售房",
+      "pid": 117,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 190,
+      "old_name": "美在襄阳",
+      "pid": 117,
+      "suggested_region_slug": "xiangyang",
+      "reason": "kw:襄阳"
+    },
+    {
+      "old_id": 194,
+      "old_name": "鄂州网站",
+      "pid": 34,
+      "suggested_region_slug": "ezhou",
+      "reason": "kw:鄂州"
+    },
+    {
+      "old_id": 195,
+      "old_name": "荆门网站",
+      "pid": 34,
+      "suggested_region_slug": "jingmen",
+      "reason": "kw:荆门"
+    },
+    {
+      "old_id": 196,
+      "old_name": "黄冈网站",
+      "pid": 34,
+      "suggested_region_slug": "huanggang",
+      "reason": "kw:黄冈"
+    },
+    {
+      "old_id": 197,
+      "old_name": "孝感网站",
+      "pid": 34,
+      "suggested_region_slug": "xiaogan",
+      "reason": "kw:孝感"
+    },
+    {
+      "old_id": 198,
+      "old_name": "咸宁网站",
+      "pid": 34,
+      "suggested_region_slug": "xianning",
+      "reason": "kw:咸宁"
+    },
+    {
+      "old_id": 199,
+      "old_name": "随州网站",
+      "pid": 34,
+      "suggested_region_slug": "suizhou",
+      "reason": "kw:随州"
+    },
+    {
+      "old_id": 200,
+      "old_name": "恩施网站",
+      "pid": 34,
+      "suggested_region_slug": "enshi",
+      "reason": "kw:恩施"
+    },
+    {
+      "old_id": 201,
+      "old_name": "仙桃网站",
+      "pid": 34,
+      "suggested_region_slug": "xiantao",
+      "reason": "kw:仙桃"
+    },
+    {
+      "old_id": 202,
+      "old_name": "潜江网站",
+      "pid": 34,
+      "suggested_region_slug": "qianjiang",
+      "reason": "kw:潜江"
+    },
+    {
+      "old_id": 203,
+      "old_name": "天门网站",
+      "pid": 34,
+      "suggested_region_slug": "tianmen",
+      "reason": "kw:天门"
+    },
+    {
+      "old_id": 204,
+      "old_name": "神农架林区",
+      "pid": 34,
+      "suggested_region_slug": "shennongjia",
+      "reason": "kw:神农架"
+    },
+    {
+      "old_id": 205,
+      "old_name": "专题资讯",
+      "pid": 194,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 206,
+      "old_name": "鄂州文化",
+      "pid": 194,
+      "suggested_region_slug": "ezhou",
+      "reason": "kw:鄂州"
+    },
+    {
+      "old_id": 207,
+      "old_name": "鄂州汽车",
+      "pid": 194,
+      "suggested_region_slug": "ezhou",
+      "reason": "kw:鄂州"
+    },
+    {
+      "old_id": 208,
+      "old_name": "鄂州房产",
+      "pid": 194,
+      "suggested_region_slug": "ezhou",
+      "reason": "kw:鄂州"
+    },
+    {
+      "old_id": 209,
+      "old_name": "鄂州旅游美食",
+      "pid": 194,
+      "suggested_region_slug": "ezhou",
+      "reason": "kw:鄂州"
+    },
+    {
+      "old_id": 210,
+      "old_name": "美在鄂州",
+      "pid": 194,
+      "suggested_region_slug": "ezhou",
+      "reason": "kw:鄂州"
+    },
+    {
+      "old_id": 211,
+      "old_name": "鄂州文化",
+      "pid": 194,
+      "suggested_region_slug": "ezhou",
+      "reason": "kw:鄂州"
+    },
+    {
+      "old_id": 212,
+      "old_name": "鄂州历史",
+      "pid": 194,
+      "suggested_region_slug": "ezhou",
+      "reason": "kw:鄂州"
+    },
+    {
+      "old_id": 213,
+      "old_name": "鱼米之乡",
+      "pid": 194,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 214,
+      "old_name": "鄂州网视",
+      "pid": 194,
+      "suggested_region_slug": "ezhou",
+      "reason": "kw:鄂州"
+    },
+    {
+      "old_id": 215,
+      "old_name": "美容保养",
+      "pid": 194,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 216,
+      "old_name": "驾校考试",
+      "pid": 194,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 217,
+      "old_name": "汽车/保险",
+      "pid": 194,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 218,
+      "old_name": "优惠活动",
+      "pid": 194,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 219,
+      "old_name": "房产资讯",
+      "pid": 194,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 220,
+      "old_name": "最新楼盘",
+      "pid": 194,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 221,
+      "old_name": "居家装修",
+      "pid": 194,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 222,
+      "old_name": "租房售房",
+      "pid": 194,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 223,
+      "old_name": "吃喝玩乐",
+      "pid": 194,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 224,
+      "old_name": "美食特产",
+      "pid": 194,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 225,
+      "old_name": "鄂州风情",
+      "pid": 194,
+      "suggested_region_slug": "ezhou",
+      "reason": "kw:鄂州"
+    },
+    {
+      "old_id": 230,
+      "old_name": "专题资讯",
+      "pid": 195,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 231,
+      "old_name": "荆门文化",
+      "pid": 195,
+      "suggested_region_slug": "jingmen",
+      "reason": "kw:荆门"
+    },
+    {
+      "old_id": 233,
+      "old_name": "荆门房产",
+      "pid": 195,
+      "suggested_region_slug": "jingmen",
+      "reason": "kw:荆门"
+    },
+    {
+      "old_id": 235,
+      "old_name": "美在荆门",
+      "pid": 195,
+      "suggested_region_slug": "jingmen",
+      "reason": "kw:荆门"
+    },
+    {
+      "old_id": 236,
+      "old_name": "荆门文化",
+      "pid": 195,
+      "suggested_region_slug": "jingmen",
+      "reason": "kw:荆门"
+    },
+    {
+      "old_id": 237,
+      "old_name": "荆楚文化",
+      "pid": 195,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 238,
+      "old_name": "文化传统",
+      "pid": 195,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 239,
+      "old_name": "荆门网视",
+      "pid": 195,
+      "suggested_region_slug": "jingmen",
+      "reason": "kw:荆门"
+    },
+    {
+      "old_id": 240,
+      "old_name": "美容保养",
+      "pid": 195,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 241,
+      "old_name": "驾校考试",
+      "pid": 195,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 242,
+      "old_name": "汽车/保险",
+      "pid": 195,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 243,
+      "old_name": "优惠活动",
+      "pid": 195,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 244,
+      "old_name": "房产资讯",
+      "pid": 195,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 245,
+      "old_name": "最新楼盘",
+      "pid": 195,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 246,
+      "old_name": "家居装修",
+      "pid": 195,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 247,
+      "old_name": "租房售房",
+      "pid": 195,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 248,
+      "old_name": "吃喝玩乐",
+      "pid": 195,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 249,
+      "old_name": "美食特产",
+      "pid": 195,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 250,
+      "old_name": "荆门风情",
+      "pid": 195,
+      "suggested_region_slug": "jingmen",
+      "reason": "kw:荆门"
+    },
+    {
+      "old_id": 255,
+      "old_name": "专题资讯",
+      "pid": 196,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 256,
+      "old_name": "黄冈文化",
+      "pid": 196,
+      "suggested_region_slug": "huanggang",
+      "reason": "kw:黄冈"
+    },
+    {
+      "old_id": 257,
+      "old_name": "黄冈汽车",
+      "pid": 196,
+      "suggested_region_slug": "huanggang",
+      "reason": "kw:黄冈"
+    },
+    {
+      "old_id": 259,
+      "old_name": "旅游美食",
+      "pid": 196,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 260,
+      "old_name": "美在黄冈",
+      "pid": 196,
+      "suggested_region_slug": "huanggang",
+      "reason": "kw:黄冈"
+    },
+    {
+      "old_id": 261,
+      "old_name": "黄冈文化",
+      "pid": 196,
+      "suggested_region_slug": "huanggang",
+      "reason": "kw:黄冈"
+    },
+    {
+      "old_id": 262,
+      "old_name": "民间艺术",
+      "pid": 196,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 263,
+      "old_name": "文化传统",
+      "pid": 196,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 264,
+      "old_name": "黄冈网视",
+      "pid": 196,
+      "suggested_region_slug": "huanggang",
+      "reason": "kw:黄冈"
+    },
+    {
+      "old_id": 265,
+      "old_name": "美容保养",
+      "pid": 196,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 266,
+      "old_name": "驾校考试",
+      "pid": 196,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 267,
+      "old_name": "汽车/保险",
+      "pid": 196,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 268,
+      "old_name": "优惠活动",
+      "pid": 196,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 269,
+      "old_name": "房产资讯",
+      "pid": 196,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 270,
+      "old_name": "最新楼盘",
+      "pid": 196,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 271,
+      "old_name": "家居装修",
+      "pid": 196,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 272,
+      "old_name": "租房售房",
+      "pid": 196,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 273,
+      "old_name": "吃喝玩乐",
+      "pid": 196,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 274,
+      "old_name": "美食特产",
+      "pid": 196,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 275,
+      "old_name": "黄冈风情",
+      "pid": 196,
+      "suggested_region_slug": "huanggang",
+      "reason": "kw:黄冈"
+    },
+    {
+      "old_id": 279,
+      "old_name": "专题资讯",
+      "pid": 197,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 280,
+      "old_name": "孝感文化",
+      "pid": 197,
+      "suggested_region_slug": "xiaogan",
+      "reason": "kw:孝感"
+    },
+    {
+      "old_id": 282,
+      "old_name": "孝感房产",
+      "pid": 197,
+      "suggested_region_slug": "xiaogan",
+      "reason": "kw:孝感"
+    },
+    {
+      "old_id": 284,
+      "old_name": "美在孝感",
+      "pid": 197,
+      "suggested_region_slug": "xiaogan",
+      "reason": "kw:孝感"
+    },
+    {
+      "old_id": 285,
+      "old_name": "孝感文化",
+      "pid": 197,
+      "suggested_region_slug": "xiaogan",
+      "reason": "kw:孝感"
+    },
+    {
+      "old_id": 286,
+      "old_name": "民间艺术",
+      "pid": 197,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 287,
+      "old_name": "文化传统",
+      "pid": 197,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 288,
+      "old_name": "孝感网视",
+      "pid": 197,
+      "suggested_region_slug": "xiaogan",
+      "reason": "kw:孝感"
+    },
+    {
+      "old_id": 289,
+      "old_name": "美容保养",
+      "pid": 197,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 290,
+      "old_name": "驾校考试",
+      "pid": 197,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 291,
+      "old_name": "汽车/保险",
+      "pid": 197,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 292,
+      "old_name": "优惠活动",
+      "pid": 197,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 293,
+      "old_name": "房产资讯",
+      "pid": 197,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 294,
+      "old_name": "最新楼盘",
+      "pid": 197,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 295,
+      "old_name": "家居装修",
+      "pid": 197,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 296,
+      "old_name": "租房售房",
+      "pid": 197,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 297,
+      "old_name": "吃喝玩乐",
+      "pid": 197,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 298,
+      "old_name": "美食特产",
+      "pid": 197,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 299,
+      "old_name": "孝感风情",
+      "pid": 197,
+      "suggested_region_slug": "xiaogan",
+      "reason": "kw:孝感"
+    },
+    {
+      "old_id": 303,
+      "old_name": "专题资讯",
+      "pid": 198,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 304,
+      "old_name": "咸宁文化",
+      "pid": 198,
+      "suggested_region_slug": "xianning",
+      "reason": "kw:咸宁"
+    },
+    {
+      "old_id": 305,
+      "old_name": "咸宁汽车",
+      "pid": 198,
+      "suggested_region_slug": "xianning",
+      "reason": "kw:咸宁"
+    },
+    {
+      "old_id": 308,
+      "old_name": "美在咸宁",
+      "pid": 198,
+      "suggested_region_slug": "xianning",
+      "reason": "kw:咸宁"
+    },
+    {
+      "old_id": 309,
+      "old_name": "咸宁文化",
+      "pid": 198,
+      "suggested_region_slug": "xianning",
+      "reason": "kw:咸宁"
+    },
+    {
+      "old_id": 310,
+      "old_name": "民间艺术",
+      "pid": 198,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 311,
+      "old_name": "文化传统",
+      "pid": 198,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 312,
+      "old_name": "咸宁网视",
+      "pid": 198,
+      "suggested_region_slug": "xianning",
+      "reason": "kw:咸宁"
+    },
+    {
+      "old_id": 313,
+      "old_name": "美容保养",
+      "pid": 198,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 314,
+      "old_name": "驾校考试",
+      "pid": 198,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 315,
+      "old_name": "汽车/保险",
+      "pid": 198,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 316,
+      "old_name": "优惠活动",
+      "pid": 198,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 317,
+      "old_name": "房产资讯",
+      "pid": 198,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 318,
+      "old_name": "最新楼盘",
+      "pid": 198,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 319,
+      "old_name": "家居装修",
+      "pid": 198,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 320,
+      "old_name": "租房售房",
+      "pid": 198,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 321,
+      "old_name": "吃喝玩乐",
+      "pid": 198,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 322,
+      "old_name": "美食特产",
+      "pid": 198,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 323,
+      "old_name": "咸宁风情",
+      "pid": 198,
+      "suggested_region_slug": "xianning",
+      "reason": "kw:咸宁"
+    },
+    {
+      "old_id": 327,
+      "old_name": "专题资讯",
+      "pid": 199,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 328,
+      "old_name": "随州文化",
+      "pid": 199,
+      "suggested_region_slug": "suizhou",
+      "reason": "kw:随州"
+    },
+    {
+      "old_id": 329,
+      "old_name": "随州汽车",
+      "pid": 199,
+      "suggested_region_slug": "suizhou",
+      "reason": "kw:随州"
+    },
+    {
+      "old_id": 330,
+      "old_name": "随州房产",
+      "pid": 199,
+      "suggested_region_slug": "suizhou",
+      "reason": "kw:随州"
+    },
+    {
+      "old_id": 331,
+      "old_name": "旅游美食",
+      "pid": 199,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 332,
+      "old_name": "美在随州",
+      "pid": 199,
+      "suggested_region_slug": "suizhou",
+      "reason": "kw:随州"
+    },
+    {
+      "old_id": 333,
+      "old_name": "随州文化",
+      "pid": 199,
+      "suggested_region_slug": "suizhou",
+      "reason": "kw:随州"
+    },
+    {
+      "old_id": 334,
+      "old_name": "民间艺术",
+      "pid": 199,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 335,
+      "old_name": "文化传统",
+      "pid": 199,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 336,
+      "old_name": "随州网视",
+      "pid": 199,
+      "suggested_region_slug": "suizhou",
+      "reason": "kw:随州"
+    },
+    {
+      "old_id": 337,
+      "old_name": "美容保养",
+      "pid": 199,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 338,
+      "old_name": "驾校考试",
+      "pid": 199,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 339,
+      "old_name": "汽车/保险",
+      "pid": 199,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 340,
+      "old_name": "优惠活动",
+      "pid": 199,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 341,
+      "old_name": "房产资讯",
+      "pid": 199,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 342,
+      "old_name": "最新楼盘",
+      "pid": 199,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 343,
+      "old_name": "家居装修",
+      "pid": 199,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 344,
+      "old_name": "租房售房",
+      "pid": 199,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 345,
+      "old_name": "美食特产",
+      "pid": 199,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 346,
+      "old_name": "吃喝玩乐",
+      "pid": 199,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 347,
+      "old_name": "随州风情",
+      "pid": 199,
+      "suggested_region_slug": "suizhou",
+      "reason": "kw:随州"
+    },
+    {
+      "old_id": 351,
+      "old_name": "专题资讯",
+      "pid": 200,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 352,
+      "old_name": "恩施文化",
+      "pid": 200,
+      "suggested_region_slug": "enshi",
+      "reason": "kw:恩施"
+    },
+    {
+      "old_id": 356,
+      "old_name": "美在恩施",
+      "pid": 200,
+      "suggested_region_slug": "enshi",
+      "reason": "kw:恩施"
+    },
+    {
+      "old_id": 357,
+      "old_name": "恩施文化",
+      "pid": 200,
+      "suggested_region_slug": "enshi",
+      "reason": "kw:恩施"
+    },
+    {
+      "old_id": 358,
+      "old_name": "民间艺术",
+      "pid": 200,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 359,
+      "old_name": "文化传统",
+      "pid": 200,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 360,
+      "old_name": "恩施网视",
+      "pid": 200,
+      "suggested_region_slug": "enshi",
+      "reason": "kw:恩施"
+    },
+    {
+      "old_id": 361,
+      "old_name": "美容保养",
+      "pid": 200,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 362,
+      "old_name": "驾校考试",
+      "pid": 200,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 363,
+      "old_name": "汽车/保险",
+      "pid": 200,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 364,
+      "old_name": "优惠活动",
+      "pid": 200,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 365,
+      "old_name": "房产资讯",
+      "pid": 200,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 366,
+      "old_name": "最新楼盘",
+      "pid": 200,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 367,
+      "old_name": "家居装修",
+      "pid": 200,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 368,
+      "old_name": "租房售房",
+      "pid": 200,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 369,
+      "old_name": "吃喝玩乐",
+      "pid": 200,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 370,
+      "old_name": "美食特产",
+      "pid": 200,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 371,
+      "old_name": "恩施风情",
+      "pid": 200,
+      "suggested_region_slug": "enshi",
+      "reason": "kw:恩施"
+    },
+    {
+      "old_id": 375,
+      "old_name": "专题资讯",
+      "pid": 201,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 376,
+      "old_name": "仙桃文化",
+      "pid": 201,
+      "suggested_region_slug": "xiantao",
+      "reason": "kw:仙桃"
+    },
+    {
+      "old_id": 378,
+      "old_name": "仙桃房产",
+      "pid": 201,
+      "suggested_region_slug": "xiantao",
+      "reason": "kw:仙桃"
+    },
+    {
+      "old_id": 380,
+      "old_name": "美在仙桃",
+      "pid": 201,
+      "suggested_region_slug": "xiantao",
+      "reason": "kw:仙桃"
+    },
+    {
+      "old_id": 381,
+      "old_name": "仙桃文化",
+      "pid": 201,
+      "suggested_region_slug": "xiantao",
+      "reason": "kw:仙桃"
+    },
+    {
+      "old_id": 382,
+      "old_name": "民间艺术",
+      "pid": 201,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 383,
+      "old_name": "文化传统",
+      "pid": 201,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 384,
+      "old_name": "仙桃网视",
+      "pid": 201,
+      "suggested_region_slug": "xiantao",
+      "reason": "kw:仙桃"
+    },
+    {
+      "old_id": 385,
+      "old_name": "美容保养",
+      "pid": 201,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 386,
+      "old_name": "驾校考试",
+      "pid": 201,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 387,
+      "old_name": "汽车/保险",
+      "pid": 201,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 388,
+      "old_name": "优惠活动",
+      "pid": 201,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 389,
+      "old_name": "房产资讯",
+      "pid": 201,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 390,
+      "old_name": "最新楼盘",
+      "pid": 201,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 391,
+      "old_name": "家居装修",
+      "pid": 201,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 392,
+      "old_name": "租房售房",
+      "pid": 201,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 393,
+      "old_name": "吃喝玩乐",
+      "pid": 201,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 394,
+      "old_name": "美食特产",
+      "pid": 201,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 395,
+      "old_name": "仙桃风情",
+      "pid": 201,
+      "suggested_region_slug": "xiantao",
+      "reason": "kw:仙桃"
+    },
+    {
+      "old_id": 399,
+      "old_name": "专题资讯",
+      "pid": 202,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 400,
+      "old_name": "潜江文化",
+      "pid": 202,
+      "suggested_region_slug": "qianjiang",
+      "reason": "kw:潜江"
+    },
+    {
+      "old_id": 401,
+      "old_name": "潜江汽车",
+      "pid": 202,
+      "suggested_region_slug": "qianjiang",
+      "reason": "kw:潜江"
+    },
+    {
+      "old_id": 402,
+      "old_name": "潜江房产",
+      "pid": 202,
+      "suggested_region_slug": "qianjiang",
+      "reason": "kw:潜江"
+    },
+    {
+      "old_id": 404,
+      "old_name": "美在潜江",
+      "pid": 202,
+      "suggested_region_slug": "qianjiang",
+      "reason": "kw:潜江"
+    },
+    {
+      "old_id": 405,
+      "old_name": "潜江文化",
+      "pid": 202,
+      "suggested_region_slug": "qianjiang",
+      "reason": "kw:潜江"
+    },
+    {
+      "old_id": 406,
+      "old_name": "民间艺术",
+      "pid": 202,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 407,
+      "old_name": "文化传统",
+      "pid": 202,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 408,
+      "old_name": "潜江网视",
+      "pid": 202,
+      "suggested_region_slug": "qianjiang",
+      "reason": "kw:潜江"
+    },
+    {
+      "old_id": 409,
+      "old_name": "美容保养",
+      "pid": 202,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 410,
+      "old_name": "驾校考试",
+      "pid": 202,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 411,
+      "old_name": "汽车/保险",
+      "pid": 202,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 412,
+      "old_name": "优惠活动",
+      "pid": 202,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 413,
+      "old_name": "房产资讯",
+      "pid": 202,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 414,
+      "old_name": "最新楼盘",
+      "pid": 202,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 415,
+      "old_name": "家居装修",
+      "pid": 202,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 416,
+      "old_name": "租房售房",
+      "pid": 202,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 417,
+      "old_name": "吃喝玩乐",
+      "pid": 202,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 418,
+      "old_name": "美食特产",
+      "pid": 202,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 420,
+      "old_name": "潜江风情",
+      "pid": 202,
+      "suggested_region_slug": "qianjiang",
+      "reason": "kw:潜江"
+    },
+    {
+      "old_id": 424,
+      "old_name": "专题资讯",
+      "pid": 203,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 425,
+      "old_name": "天门文化",
+      "pid": 203,
+      "suggested_region_slug": "tianmen",
+      "reason": "kw:天门"
+    },
+    {
+      "old_id": 426,
+      "old_name": "天门汽车",
+      "pid": 203,
+      "suggested_region_slug": "tianmen",
+      "reason": "kw:天门"
+    },
+    {
+      "old_id": 428,
+      "old_name": "旅游美食",
+      "pid": 203,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 429,
+      "old_name": "美在天门",
+      "pid": 203,
+      "suggested_region_slug": "tianmen",
+      "reason": "kw:天门"
+    },
+    {
+      "old_id": 430,
+      "old_name": "天门文化",
+      "pid": 203,
+      "suggested_region_slug": "tianmen",
+      "reason": "kw:天门"
+    },
+    {
+      "old_id": 431,
+      "old_name": "民间艺术",
+      "pid": 203,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 432,
+      "old_name": "文化传统",
+      "pid": 203,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 433,
+      "old_name": "天门网视",
+      "pid": 203,
+      "suggested_region_slug": "tianmen",
+      "reason": "kw:天门"
+    },
+    {
+      "old_id": 434,
+      "old_name": "美容保养",
+      "pid": 203,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 435,
+      "old_name": "驾校考试",
+      "pid": 203,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 436,
+      "old_name": "汽车/保险",
+      "pid": 203,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 437,
+      "old_name": "优惠活动",
+      "pid": 203,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 438,
+      "old_name": "房产资讯",
+      "pid": 203,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 439,
+      "old_name": "最新楼盘",
+      "pid": 203,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 440,
+      "old_name": "家居装修",
+      "pid": 203,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 441,
+      "old_name": "租房售房",
+      "pid": 203,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 442,
+      "old_name": "吃喝玩乐",
+      "pid": 203,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 443,
+      "old_name": "美食特产",
+      "pid": 203,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 444,
+      "old_name": "天门风情",
+      "pid": 203,
+      "suggested_region_slug": "tianmen",
+      "reason": "kw:天门"
+    },
+    {
+      "old_id": 472,
+      "old_name": "租房售房",
+      "pid": 197,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 473,
+      "old_name": "美食特产",
+      "pid": 197,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 475,
+      "old_name": "湖北新闻奖",
+      "pid": 0,
+      "suggested_region_slug": "hubei",
+      "reason": "kw:湖北"
+    },
+    {
+      "old_id": 491,
+      "old_name": "关于今日湖北",
+      "pid": 0,
+      "suggested_region_slug": "hubei",
+      "reason": "kw:湖北"
+    },
+    {
+      "old_id": 500,
+      "old_name": "首页广告幻灯片",
+      "pid": 34,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 501,
+      "old_name": "头条新闻",
+      "pid": 0,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 502,
+      "old_name": "首页幻灯片",
+      "pid": 34,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 503,
+      "old_name": "导航栏",
+      "pid": 34,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 504,
+      "old_name": "武汉幻灯片",
+      "pid": 43,
+      "suggested_region_slug": "wuhan",
+      "reason": "kw:武汉"
+    },
+    {
+      "old_id": 505,
+      "old_name": "黄石幻灯片",
+      "pid": 58,
+      "suggested_region_slug": "huangshi",
+      "reason": "kw:黄石"
+    },
+    {
+      "old_id": 506,
+      "old_name": "十堰幻灯片",
+      "pid": 73,
+      "suggested_region_slug": "shiyan",
+      "reason": "kw:十堰"
+    },
+    {
+      "old_id": 507,
+      "old_name": "荆州幻灯片",
+      "pid": 88,
+      "suggested_region_slug": "jingzhou",
+      "reason": "kw:荆州"
+    },
+    {
+      "old_id": 508,
+      "old_name": "宜昌幻灯片",
+      "pid": 102,
+      "suggested_region_slug": "yichang",
+      "reason": "kw:宜昌"
+    },
+    {
+      "old_id": 509,
+      "old_name": "襄阳幻灯片",
+      "pid": 117,
+      "suggested_region_slug": "xiangyang",
+      "reason": "kw:襄阳"
+    },
+    {
+      "old_id": 510,
+      "old_name": "仙桃幻灯片",
+      "pid": 201,
+      "suggested_region_slug": "xiantao",
+      "reason": "kw:仙桃"
+    },
+    {
+      "old_id": 511,
+      "old_name": "天门幻灯片",
+      "pid": 203,
+      "suggested_region_slug": "tianmen",
+      "reason": "kw:天门"
+    },
+    {
+      "old_id": 512,
+      "old_name": "恩施幻灯片",
+      "pid": 200,
+      "suggested_region_slug": "enshi",
+      "reason": "kw:恩施"
+    },
+    {
+      "old_id": 513,
+      "old_name": "潜江幻灯片",
+      "pid": 202,
+      "suggested_region_slug": "qianjiang",
+      "reason": "kw:潜江"
+    },
+    {
+      "old_id": 514,
+      "old_name": "随州幻灯片",
+      "pid": 199,
+      "suggested_region_slug": "suizhou",
+      "reason": "kw:随州"
+    },
+    {
+      "old_id": 515,
+      "old_name": "咸宁幻灯片",
+      "pid": 198,
+      "suggested_region_slug": "xianning",
+      "reason": "kw:咸宁"
+    },
+    {
+      "old_id": 516,
+      "old_name": "孝感幻灯片",
+      "pid": 197,
+      "suggested_region_slug": "xiaogan",
+      "reason": "kw:孝感"
+    },
+    {
+      "old_id": 518,
+      "old_name": "鄂州幻灯片",
+      "pid": 194,
+      "suggested_region_slug": "ezhou",
+      "reason": "kw:鄂州"
+    },
+    {
+      "old_id": 519,
+      "old_name": "荆门幻灯片",
+      "pid": 195,
+      "suggested_region_slug": "jingmen",
+      "reason": "kw:荆门"
+    },
+    {
+      "old_id": 520,
+      "old_name": "黄冈幻灯片",
+      "pid": 196,
+      "suggested_region_slug": "huanggang",
+      "reason": "kw:黄冈"
+    },
+    {
+      "old_id": 525,
+      "old_name": "健康咸宁",
+      "pid": 198,
+      "suggested_region_slug": "xianning",
+      "reason": "kw:咸宁"
+    },
+    {
+      "old_id": 526,
+      "old_name": "社会新闻",
+      "pid": 0,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 527,
+      "old_name": "专题",
+      "pid": 0,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 535,
+      "old_name": "社会新闻",
+      "pid": 58,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 536,
+      "old_name": "社会新闻",
+      "pid": 194,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 537,
+      "old_name": "社会新闻",
+      "pid": 195,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 538,
+      "old_name": "社会新闻",
+      "pid": 196,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 540,
+      "old_name": "社会新闻",
+      "pid": 73,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 541,
+      "old_name": "社会新闻",
+      "pid": 88,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 542,
+      "old_name": "社会新闻",
+      "pid": 102,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 543,
+      "old_name": "社会新闻",
+      "pid": 117,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 544,
+      "old_name": "社会新闻",
+      "pid": 201,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 545,
+      "old_name": "社会新闻",
+      "pid": 203,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 546,
+      "old_name": "社会新闻",
+      "pid": 200,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 547,
+      "old_name": "社会新闻",
+      "pid": 202,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 548,
+      "old_name": "社会新闻",
+      "pid": 199,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 549,
+      "old_name": "社会新闻",
+      "pid": 198,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 550,
+      "old_name": "社会新闻",
+      "pid": 197,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 553,
+      "old_name": "汽车之城",
+      "pid": 73,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 563,
+      "old_name": "商会天地",
+      "pid": 58,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 564,
+      "old_name": "法治天地",
+      "pid": 58,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 571,
+      "old_name": "企业资讯",
+      "pid": 0,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 574,
+      "old_name": "企业信息",
+      "pid": 0,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 575,
+      "old_name": "军事",
+      "pid": 0,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 576,
+      "old_name": "非遗视点",
+      "pid": 0,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 577,
+      "old_name": "文艺之音",
+      "pid": 0,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 578,
+      "old_name": "杏坛网事",
+      "pid": 0,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 579,
+      "old_name": "理财2",
+      "pid": 7,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 581,
+      "old_name": "廉政",
+      "pid": 0,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 582,
+      "old_name": "国内",
+      "pid": 0,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 583,
+      "old_name": "专题",
+      "pid": 0,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 584,
+      "old_name": "访谈",
+      "pid": 0,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 585,
+      "old_name": "军事",
+      "pid": 0,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 586,
+      "old_name": "中部之声",
+      "pid": 0,
+      "suggested_region_slug": "hubei",
+      "reason": "fallback-hubei:中部之声"
+    },
+    {
+      "old_id": 587,
+      "old_name": "朱子文化苑",
+      "pid": 18,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 588,
+      "old_name": "朱子文化动态",
+      "pid": 587,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 589,
+      "old_name": "家庭文化博览",
+      "pid": 587,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 590,
+      "old_name": "会员风采",
+      "pid": 0,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 591,
+      "old_name": "会员风采",
+      "pid": 587,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 592,
+      "old_name": "原创文学",
+      "pid": 587,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 593,
+      "old_name": "动漫吧",
+      "pid": 587,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 594,
+      "old_name": "合作交流",
+      "pid": 587,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 595,
+      "old_name": "市场监管",
+      "pid": 0,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 596,
+      "old_name": "重磅话题",
+      "pid": 595,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 597,
+      "old_name": "监管聚焦",
+      "pid": 595,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 598,
+      "old_name": "政策解读",
+      "pid": 595,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 599,
+      "old_name": "专家点评",
+      "pid": 595,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 600,
+      "old_name": "防疫专栏",
+      "pid": 595,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 601,
+      "old_name": "监管先锋",
+      "pid": 595,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 602,
+      "old_name": "品牌湖北",
+      "pid": 595,
+      "suggested_region_slug": "hubei",
+      "reason": "kw:湖北"
+    },
+    {
+      "old_id": 603,
+      "old_name": "大检时代",
+      "pid": 595,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 604,
+      "old_name": "乡村振兴",
+      "pid": 0,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 605,
+      "old_name": "产品引领",
+      "pid": 604,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 606,
+      "old_name": "品牌映像",
+      "pid": 604,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 607,
+      "old_name": "生活图话",
+      "pid": 604,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 608,
+      "old_name": "桃花源记",
+      "pid": 604,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 609,
+      "old_name": "江湖灵秀",
+      "pid": 604,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 610,
+      "old_name": "乡振头条",
+      "pid": 604,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 611,
+      "old_name": "文旅频道",
+      "pid": 0,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 612,
+      "old_name": "文旅活动",
+      "pid": 611,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 613,
+      "old_name": "灵秀湖北",
+      "pid": 611,
+      "suggested_region_slug": "hubei",
+      "reason": "kw:湖北"
+    },
+    {
+      "old_id": 614,
+      "old_name": "美丽乡村",
+      "pid": 611,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 615,
+      "old_name": "产品秀场",
+      "pid": 611,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 616,
+      "old_name": "楚天游记",
+      "pid": 611,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 617,
+      "old_name": "乡村振兴",
+      "pid": 0,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 618,
+      "old_name": "三农热点",
+      "pid": 617,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 619,
+      "old_name": "三农新闻",
+      "pid": 617,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 620,
+      "old_name": "新农业新农人",
+      "pid": 617,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 621,
+      "old_name": "湖北地理标志农产品",
+      "pid": 617,
+      "suggested_region_slug": "hubei",
+      "reason": "kw:湖北"
+    },
+    {
+      "old_id": 622,
+      "old_name": "乡村振兴在行动",
+      "pid": 617,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 623,
+      "old_name": "三农专题",
+      "pid": 617,
+      "suggested_region_slug": null,
+      "reason": "unmapped"
+    },
+    {
+      "old_id": 624,
+      "old_name": "爱上湖北",
+      "pid": 617,
+      "suggested_region_slug": "hubei",
+      "reason": "kw:湖北"
+    },
+    {
+      "old_id": 625,
+      "old_name": "武汉市",
+      "pid": 621,
+      "suggested_region_slug": "wuhan",
+      "reason": "kw:武汉"
+    },
+    {
+      "old_id": 626,
+      "old_name": "黄石市",
+      "pid": 621,
+      "suggested_region_slug": "huangshi",
+      "reason": "kw:黄石"
+    },
+    {
+      "old_id": 627,
+      "old_name": "襄阳市",
+      "pid": 621,
+      "suggested_region_slug": "xiangyang",
+      "reason": "kw:襄阳"
+    },
+    {
+      "old_id": 628,
+      "old_name": "十堰市",
+      "pid": 621,
+      "suggested_region_slug": "shiyan",
+      "reason": "kw:十堰"
+    },
+    {
+      "old_id": 629,
+      "old_name": "荆州市",
+      "pid": 621,
+      "suggested_region_slug": "jingzhou",
+      "reason": "kw:荆州"
+    },
+    {
+      "old_id": 630,
+      "old_name": "宜昌市",
+      "pid": 621,
+      "suggested_region_slug": "yichang",
+      "reason": "kw:宜昌"
+    },
+    {
+      "old_id": 631,
+      "old_name": "荆门市",
+      "pid": 621,
+      "suggested_region_slug": "jingmen",
+      "reason": "kw:荆门"
+    },
+    {
+      "old_id": 632,
+      "old_name": "鄂州市",
+      "pid": 621,
+      "suggested_region_slug": "ezhou",
+      "reason": "kw:鄂州"
+    },
+    {
+      "old_id": 633,
+      "old_name": "孝感市",
+      "pid": 621,
+      "suggested_region_slug": "xiaogan",
+      "reason": "kw:孝感"
+    },
+    {
+      "old_id": 634,
+      "old_name": "黄冈市",
+      "pid": 621,
+      "suggested_region_slug": "huanggang",
+      "reason": "kw:黄冈"
+    },
+    {
+      "old_id": 635,
+      "old_name": "咸宁市",
+      "pid": 621,
+      "suggested_region_slug": "xianning",
+      "reason": "kw:咸宁"
+    },
+    {
+      "old_id": 636,
+      "old_name": "随州市",
+      "pid": 621,
+      "suggested_region_slug": "suizhou",
+      "reason": "kw:随州"
+    },
+    {
+      "old_id": 637,
+      "old_name": "恩施市",
+      "pid": 621,
+      "suggested_region_slug": "enshi",
+      "reason": "kw:恩施"
+    },
+    {
+      "old_id": 638,
+      "old_name": "仙桃市",
+      "pid": 621,
+      "suggested_region_slug": "xiantao",
+      "reason": "kw:仙桃"
+    },
+    {
+      "old_id": 639,
+      "old_name": "潜江市",
+      "pid": 621,
+      "suggested_region_slug": "qianjiang",
+      "reason": "kw:潜江"
+    },
+    {
+      "old_id": 640,
+      "old_name": "天门市",
+      "pid": 621,
+      "suggested_region_slug": "tianmen",
+      "reason": "kw:天门"
+    },
+    {
+      "old_id": 641,
+      "old_name": "神农架林区",
+      "pid": 621,
+      "suggested_region_slug": "shennongjia",
+      "reason": "kw:神农架"
+    }
+  ]
+}

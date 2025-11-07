@@ -1,0 +1,55 @@
+============================================================
+🔍 Environment Variables Validation Report
+============================================================
+Environment: development
+Total variables: 31
+Required variables: 5
+Missing: 0
+Warnings: 0
+Errors: 0
+
+✅ Environment validation PASSED
+============================================================
+72 objects imported automatically (use -v 2 for details).
+
+{
+  "channels": [
+    {
+      "id": 1,
+      "name": "民生",
+      "slug": "foo",
+      "order": 0
+    },
+    {
+      "id": 2,
+      "name": "社会",
+      "slug": "society",
+      "order": 0
+    },
+    {
+      "id": 3,
+      "name": "科技",
+      "slug": "tech",
+      "order": 1
+    },
+    {
+      "id": 4,
+      "name": "财经",
+      "slug": "finance",
+      "order": 2
+    },
+    {
+      "id": 5,
+      "name": "体育",
+      "slug": "sports",
+      "order": 3
+    },
+    {
+      "id": 6,
+      "name": "娱乐",
+      "slug": "entertainment",
+      "order": 4
+    }
+  ],
+  "categories": []
+}

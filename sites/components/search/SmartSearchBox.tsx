@@ -137,6 +137,8 @@ export default function SmartSearchBox({
     // 添加到搜索历史
     addToHistory(trimmedQuery);
 
+    // 清空输入框
+    setQuery('');
     setShowSuggestions(false);
     setSelectedIndex(-1);
     

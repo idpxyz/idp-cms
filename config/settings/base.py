@@ -306,8 +306,8 @@ REST_FRAMEWORK = {
     "DEFAULT_RENDERER_CLASSES": [
         "rest_framework.renderers.JSONRenderer",
     ],
-    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
-    "PAGE_SIZE": 20,
+    "DEFAULT_PAGINATION_CLASS": "apps.api.pagination.LargeLimitOffsetPagination",  # 自定义分页，支持大limit
+    "PAGE_SIZE": 20,  # 默认页大小
     "DEFAULT_THROTTLE_CLASSES": [
         "rest_framework.throttling.AnonRateThrottle",
         "rest_framework.throttling.UserRateThrottle"
@@ -396,6 +396,18 @@ CELERY_BEAT_SCHEDULE = {
     'generate-behavior-insights': {
         'task': 'apps.core.tasks.data_sync.generate_user_behavior_insights',
         'schedule': 21600.0,  # 每6小时生成一次行为洞察
+    },
+    
+    # ⏰ 定时发布文章 - 每分钟检查一次
+    'publish-scheduled-articles': {
+        'task': 'news.publish_scheduled_articles',
+        'schedule': 60.0,  # 每1分钟执行一次
+    },
+    
+    # 🧹 清理过期的定时发布文章 - 每小时检查一次
+    'clean-expired-scheduled-articles': {
+        'task': 'news.clean_expired_scheduled_articles',
+        'schedule': 3600.0,  # 每1小时执行一次
     },
 }
 

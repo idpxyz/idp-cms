@@ -113,7 +113,7 @@ function transformArticleData(article: any): TopicStripItem {
     image_url: article.main_image?.url || article.image_url || '',
     publish_time: article.first_published_at || article.published_at || article.created_at || new Date().toISOString(),
     author: article.author?.name || article.author || '未知作者',
-    source: article.source || '专题报道',
+    source: article.channel?.name || article.author || '专题报道',
     channel: {
       id: article.channel?.id?.toString() || '1',
       name: article.channel?.name || '综合',

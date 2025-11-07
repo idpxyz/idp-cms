@@ -26,7 +26,7 @@ import {
   trackDwell,
 } from "@/lib/tracking/analytics";
 import { useMultipleIntersectionObserver } from "@/lib/hooks/useIntersectionObserver";
-import { formatDateTime } from "@/lib/utils/date";
+import { getRelativeTime } from "@/lib/utils/date";
 import { useChannels } from "../ChannelContext";
 import { useAdaptiveLinkSSR } from "@/app/portal/hooks/useAdaptiveLink";
 import ModernNewsItem from "./ModernNewsItem";
@@ -146,10 +146,10 @@ const NewsItem = React.memo(({
                         </h3>
                         <div className="flex items-center justify-between text-xs text-gray-500">
                           <span className="truncate">
-                            {news.source || news.author || news.channel?.name}
+                            {news.channel?.name || news.author || '本站'}
                           </span>
                           <span className="flex-shrink-0 ml-2">
-                            {formatDateTime(news.publish_time || news.publish_at)}
+                            {getRelativeTime(news.publish_time || news.publish_at)}
                           </span>
                           <div className="flex items-center space-x-3 flex-shrink-0 ml-2">
                             {news.final_score && (
@@ -223,8 +223,8 @@ const TodayHeadlines = ({
               </a>
             </h4>
             <div className="news-meta flex justify-between">
-              <span>{headline.source || headline.author}</span>
-              <span>{formatDateTime(headline.publish_time || headline.publish_at)}</span>
+              <span>{headline.channel?.name || headline.author || '本站'}</span>
+              <span>{getRelativeTime(headline.publish_time || headline.publish_at)}</span>
             </div>
           </div>
         ))}
@@ -311,7 +311,7 @@ const EditorsChoice = ({
                 </a>
               </h4>
               <div className="text-xs text-gray-500 flex justify-between">
-                <span>{article.source || article.author}</span>
+                <span>{article.channel?.name || article.author || '本站'}</span>
                 <span className="text-yellow-500">⭐ 编辑精选</span>
               </div>
             </div>
@@ -1200,24 +1200,9 @@ export default function NewsContent({
           <div className="lg:col-span-2 space-y-4 order-1">
             {/* 新闻流标题 */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <span className="text-2xl">🧠</span>
-                  <div>
-                    <h2 className="text-xl font-bold text-gray-900">智能推荐</h2>
-                    <p className="text-sm text-gray-600">
-                      基于{getStrategyDisplayName(recommendationStrategy)}为您精选内容
-                    </p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="text-sm font-medium text-blue-600">
-                    {newsList.length} 篇文章
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    置信度: {(confidenceScore * 100).toFixed(0)}%
-                  </div>
-                </div>
+              <div className="flex items-center space-x-3">
+                <span className="text-2xl">🧠</span>
+                <h2 className="text-xl font-bold text-gray-900">智能推荐</h2>
               </div>
             </div>
 
@@ -1264,8 +1249,8 @@ export default function NewsContent({
                       </p>
                       <div className="flex items-center justify-between text-sm text-gray-500">
                         <div className="flex items-center space-x-4">
-                          <span>{news.source || news.author || '未知来源'}</span>
-                          <span>{formatDateTime(news.publish_time || news.publish_at)}</span>
+                          <span>{news.channel?.name || news.author || '本站'}</span>
+                          <span>{getRelativeTime(news.publish_time || news.publish_at)}</span>
                         </div>
                         <div className="flex items-center space-x-2">
                           {news.is_featured && (

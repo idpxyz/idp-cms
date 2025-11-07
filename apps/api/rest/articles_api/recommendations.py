@@ -37,6 +37,7 @@ def article_recommendations(request, article_slug):
     - site: 站点标识（主机名或site_id）
     - limit: 返回数量，默认6，最大20
     - exclude_id: 排除的文章ID（通常是当前文章）
+    - exclude_channel: 排除指定频道的文章（用于避免与相关文章重复）
     - fields: 字段白名单选择
     - include: 关联展开
     """
@@ -54,6 +55,7 @@ def article_recommendations(request, article_slug):
         includes = request.query_params.get("include", "").split(",") if request.query_params.get("include") else []
         limit = min(int(request.query_params.get("limit", 6)), 20)  # 限制最大20条
         exclude_id = request.query_params.get("exclude_id")
+        exclude_channel = request.query_params.get("exclude_channel")  # 🎯 新增：排除指定频道
         
         # 3. 获取当前文章信息
         try:
@@ -81,7 +83,8 @@ def article_recommendations(request, article_slug):
         recommendations = []
         
         # 策略1: 同频道推荐 (40% = 2-3篇)
-        if current_article.channel:
+        # 🎯 如果指定了exclude_channel，则跳过同频道推荐
+        if current_article.channel and not (exclude_channel and current_article.channel.slug == exclude_channel):
             channel_limit = max(1, int(limit * 0.4))
             channel_articles = base_queryset.filter(
                 channel=current_article.channel
@@ -92,6 +95,28 @@ def article_recommendations(request, article_slug):
             )[:channel_limit]
             
             recommendations.extend(list(channel_articles))
+        elif exclude_channel:
+            # 🎯 如果排除了当前频道，增加跨频道推荐
+            # 获取其他频道的热门文章来填补空缺
+            cross_channel_limit = max(2, int(limit * 0.4))
+            exclude_ids = [current_article.id]
+            if exclude_id:
+                try:
+                    exclude_ids.append(int(exclude_id))
+                except (ValueError, TypeError):
+                    pass
+            
+            cross_channel_articles = base_queryset.exclude(
+                id__in=exclude_ids
+            ).exclude(
+                channel__slug=exclude_channel  # 排除指定频道
+            ).select_related('channel', 'cover').order_by(
+                '-is_featured',
+                '-weight',
+                '-first_published_at'
+            )[:cross_channel_limit]
+            
+            recommendations.extend(list(cross_channel_articles))
         
         # 策略2: 同标签推荐 (30% = 1-2篇)
         if hasattr(current_article, 'tags') and current_article.tags.exists():
@@ -107,11 +132,17 @@ def article_recommendations(request, article_slug):
                     except (ValueError, TypeError):
                         pass
                 
-                tag_articles = base_queryset.filter(
+                tag_query = base_queryset.filter(
                     tags__in=current_tags
                 ).exclude(
                     id__in=exclude_ids
-                ).select_related('channel', 'cover').distinct().order_by(
+                )
+                
+                # 🎯 如果指定了exclude_channel，也排除该频道的文章
+                if exclude_channel:
+                    tag_query = tag_query.exclude(channel__slug=exclude_channel)
+                
+                tag_articles = tag_query.select_related('channel', 'cover').distinct().order_by(
                     '-weight', '-first_published_at'
                 )[:tag_limit]
                 
@@ -127,11 +158,17 @@ def article_recommendations(request, article_slug):
                 except (ValueError, TypeError):
                     pass
             
-            hot_articles = base_queryset.exclude(
+            hot_query = base_queryset.exclude(
                 id__in=exclude_ids
             ).filter(
                 is_featured=True  # 热门/精选文章
-            ).select_related('channel', 'cover').order_by(
+            )
+            
+            # 🎯 如果指定了exclude_channel，也排除该频道的文章
+            if exclude_channel:
+                hot_query = hot_query.exclude(channel__slug=exclude_channel)
+            
+            hot_articles = hot_query.select_related('channel', 'cover').order_by(
                 '-weight', '-first_published_at'
             )[:hot_limit]
             
@@ -147,9 +184,15 @@ def article_recommendations(request, article_slug):
                 except (ValueError, TypeError):
                     pass
             
-            recent_articles = base_queryset.exclude(
+            recent_query = base_queryset.exclude(
                 id__in=exclude_ids
-            ).select_related('channel', 'cover').order_by(
+            )
+            
+            # 🎯 如果指定了exclude_channel，也排除该频道的文章
+            if exclude_channel:
+                recent_query = recent_query.exclude(channel__slug=exclude_channel)
+            
+            recent_articles = recent_query.select_related('channel', 'cover').order_by(
                 '-first_published_at'
             )[:remaining]
             

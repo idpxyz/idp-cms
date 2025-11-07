@@ -1,0 +1,259 @@
+# =============================================================================
+# 高可用模式 - 共享基础设施
+# =============================================================================
+# 包含所有有状态服务，供所有应用节点共享
+# 
+# 服务列表：
+# - PostgreSQL: 主数据库 (172.28.0.10)
+# - ClickHouse: 分析数据库 (172.28.0.30)
+# - Redis: 缓存/会话/Celery队列 (172.28.0.20)
+# - OpenSearch: 搜索引擎 (172.28.0.40)
+# - MinIO: 对象存储 (172.28.0.50, 可选)
+# 
+# 部署顺序：
+# 1. 先部署此基础设施: docker-compose -f docker-compose-ha-infra.yml up -d
+# 2. 再部署应用节点: docker-compose -f docker-compose-ha-node1.yml up -d
+# =============================================================================
+
+networks:
+  ha-network:
+    name: idp-ha-network
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
+
+services:
+  # =========================================================================
+  # PostgreSQL 主数据库
+  # =========================================================================
+  postgres:
+    image: postgres:17  # 🔒 统一为开发环境版本 17.6
+    container_name: ha-postgres
+    hostname: postgres-master
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-news_ha}
+      POSTGRES_USER: ${POSTGRES_USER:-news}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-news}  # 🔒 统一为开发环境密码
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --lc-collate=C --lc-ctype=C"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./logs/postgres:/var/log/postgresql
+    ports:
+      - "5432:5432"
+    networks:
+      ha-network:
+        ipv4_address: 172.28.0.10
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-news}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    labels:
+      - "app=idp-cms"
+      - "role=database"
+      - "tier=infrastructure"
+
+  # =========================================================================
+  # Redis - 缓存、会话、Celery队列
+  # =========================================================================
+  redis:
+    image: redis:7  # 🔒 统一为开发环境版本 7.4.5
+    container_name: ha-redis
+    hostname: redis-master
+    command: >
+      sh -c "echo 'bind 0.0.0.0' > /tmp/redis.conf &&
+             echo 'port 6379' >> /tmp/redis.conf &&
+             echo 'protected-mode no' >> /tmp/redis.conf &&
+             echo 'requirepass ${REDIS_PASSWORD:-devredis123}' >> /tmp/redis.conf &&  # 🔒 统一为开发环境密码
+             echo 'maxmemory 2gb' >> /tmp/redis.conf &&
+             echo 'maxmemory-policy allkeys-lru' >> /tmp/redis.conf &&
+             echo 'save 900 1' >> /tmp/redis.conf &&
+             echo 'save 300 10' >> /tmp/redis.conf &&
+             echo 'save 60 10000' >> /tmp/redis.conf &&
+             echo 'appendonly yes' >> /tmp/redis.conf &&
+             echo 'appendfsync everysec' >> /tmp/redis.conf &&
+             echo 'loglevel notice' >> /tmp/redis.conf &&
+             echo 'logfile \"\"' >> /tmp/redis.conf &&
+             redis-server /tmp/redis.conf"
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      ha-network:
+        ipv4_address: 172.28.0.20
+    healthcheck:
+      test: ["CMD", "redis-cli", "--no-auth-warning", "-a", "${REDIS_PASSWORD:-devredis123}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    labels:
+      - "app=idp-cms"
+      - "role=cache"
+      - "tier=infrastructure"
+
+  # =========================================================================
+  # ClickHouse - 分析数据库
+  # =========================================================================
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.3  # 🔒 统一为开发环境版本 24.3.18
+    container_name: ha-clickhouse
+    hostname: clickhouse
+    environment:
+      CLICKHOUSE_DB: ${CLICKHOUSE_DB:-analytics}
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-default}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-thends}  # 🔒 统一为开发环境密码
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+      - clickhouse_logs:/var/log/clickhouse-server
+    ports:
+      - "8123:8123"  # HTTP 接口
+      - "9000:9000"  # Native 接口
+    networks:
+      ha-network:
+        ipv4_address: 172.28.0.30
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    healthcheck:
+      test: ["CMD", "clickhouse-client", "--query", "SELECT 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    restart: unless-stopped
+    labels:
+      - "app=idp-cms"
+      - "role=analytics"
+      - "tier=infrastructure"
+
+  # =========================================================================
+  # OpenSearch - 搜索引擎
+  # =========================================================================
+  opensearch:
+    image: opensearchproject/opensearch:3.2.0  # 🔒 完全对齐本地开发环境
+    container_name: ha-opensearch
+    environment:
+      - discovery.type=single-node
+      - plugins.security.disabled=true  # 🔒 与本地完全一致
+      - DISABLE_INSTALL_DEMO_CONFIG=true  # 🔒 阻止演示配置自动安装
+      - OPENSEARCH_INITIAL_ADMIN_PASSWORD=OpenSearch@Admin123!  # 🔒 3.2.0安装脚本必需
+      - bootstrap.memory_lock=true
+      - OPENSEARCH_JAVA_OPTS=-Xms1g -Xmx1g -Djava.security.egd=file:/dev/urandom -Dsecurerandom.source=file:/dev/./urandom  # 🔒 使用非阻塞随机数
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    devices:
+      - "/dev/urandom:/dev/random"  # 将阻塞的 /dev/random 映射为 /dev/urandom
+    volumes:
+      - opensearch_data:/usr/share/opensearch/data
+      - opensearch_logs:/usr/share/opensearch/logs
+      - ./opensearch.yml:/usr/share/opensearch/config/opensearch.yml:ro  # 🔒 与本地完全一致
+    ports:
+      - "9200:9200"
+      - "9600:9600"
+    networks:
+      ha-network:
+        ipv4_address: 172.28.0.40
+    # 健康检查暂时禁用 - OpenSearch 启动需要2-3分钟，且是可选服务
+    # 如需启用搜索功能，可在服务启动后手动验证
+    # healthcheck:
+    #   test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+    #   interval: 30s
+    #   timeout: 10s
+    #   retries: 5
+    #   start_period: 180s
+    restart: unless-stopped
+    labels:
+      - "app=idp-cms"
+      - "role=search"
+      - "tier=infrastructure"
+
+  # =========================================================================
+  # MinIO - 对象存储 (可选)
+  # =========================================================================
+  minio:
+    image: minio/minio:RELEASE.2025-07-23T15-54-02Z  # 🔒 统一为开发环境版本
+    container_name: ha-minio
+    hostname: minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-minioadmin}  # 🔒 统一为开发环境密码
+    volumes:
+      - minio_data:/data
+    ports:
+      - "9002:9000"  # MinIO API (避免与 ClickHouse 9000 端口冲突)
+      - "9001:9001"  # MinIO Console
+    networks:
+      ha-network:
+        ipv4_address: 172.28.0.50
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    labels:
+      - "app=idp-cms"
+      - "role=storage"
+      - "tier=infrastructure"
+
+  # =========================================================================
+  # MinIO 自动配置 - 创建桶并设置权限
+  # =========================================================================
+  minio-setup:
+    image: minio/mc:RELEASE.2025-07-21T05-28-08Z
+    container_name: ha-minio-setup
+    networks:
+      - ha-network
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      sleep 5;
+      mc alias set ha-minio http://minio:9000 ${MINIO_ACCESS_KEY:-minioadmin} ${MINIO_SECRET_KEY:-minioadmin};
+      
+      # 创建双桶结构
+      mc mb -p ha-minio/idp-media-prod-public || true;
+      mc mb -p ha-minio/idp-media-prod-private || true;
+      
+      # 设置桶权限
+      mc anonymous set public ha-minio/idp-media-prod-public;
+      mc anonymous set none ha-minio/idp-media-prod-private;
+      
+      echo '✅ MinIO buckets setup completed:';
+      echo '  - idp-media-prod-public (public)';
+      echo '  - idp-media-prod-private (private)';
+      exit 0;
+      "
+    restart: "no"
+    labels:
+      - "app=idp-cms"
+      - "role=setup"
+      - "tier=infrastructure"
+
+volumes:
+  postgres_data:
+    name: ha-postgres-data
+  redis_data:
+    name: ha-redis-data
+  clickhouse_data:
+    name: ha-clickhouse-data
+  clickhouse_logs:
+    name: ha-clickhouse-logs
+  opensearch_data:
+    name: ha-opensearch-data
+  opensearch_logs:
+    name: ha-opensearch-logs
+  minio_data:
+    name: ha-minio-data
+

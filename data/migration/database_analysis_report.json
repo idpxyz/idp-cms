@@ -1,0 +1,432 @@
+{
+  "analysis": {
+    "old_system": {
+      "total_categories": 476,
+      "root_categories": 43,
+      "category_groups": {
+        "1": {
+          "name": "新闻",
+          "total_descendants": 1,
+          "max_depth": 0,
+          "direct_children": 0
+        },
+        "2": {
+          "name": "时政",
+          "total_descendants": 1,
+          "max_depth": 0,
+          "direct_children": 0
+        },
+        "3": {
+          "name": "党建",
+          "total_descendants": 1,
+          "max_depth": 0,
+          "direct_children": 0
+        },
+        "4": {
+          "name": "金融",
+          "total_descendants": 1,
+          "max_depth": 0,
+          "direct_children": 0
+        },
+        "5": {
+          "name": "社会",
+          "total_descendants": 1,
+          "max_depth": 0,
+          "direct_children": 0
+        },
+        "6": {
+          "name": "法制",
+          "total_descendants": 1,
+          "max_depth": 0,
+          "direct_children": 0
+        },
+        "7": {
+          "name": "经济",
+          "total_descendants": 5,
+          "max_depth": 1,
+          "direct_children": 4
+        },
+        "10": {
+          "name": "商会",
+          "total_descendants": 1,
+          "max_depth": 0,
+          "direct_children": 0
+        },
+        "12": {
+          "name": "资讯",
+          "total_descendants": 1,
+          "max_depth": 0,
+          "direct_children": 0
+        },
+        "13": {
+          "name": "民生",
+          "total_descendants": 5,
+          "max_depth": 1,
+          "direct_children": 4
+        },
+        "18": {
+          "name": "文化",
+          "total_descendants": 12,
+          "max_depth": 2,
+          "direct_children": 6
+        },
+        "23": {
+          "name": "体育",
+          "total_descendants": 1,
+          "max_depth": 0,
+          "direct_children": 0
+        },
+        "26": {
+          "name": "科技",
+          "total_descendants": 1,
+          "max_depth": 0,
+          "direct_children": 0
+        },
+        "27": {
+          "name": "教育",
+          "total_descendants": 1,
+          "max_depth": 0,
+          "direct_children": 0
+        },
+        "28": {
+          "name": "房产",
+          "total_descendants": 1,
+          "max_depth": 0,
+          "direct_children": 0
+        },
+        "29": {
+          "name": "汽车",
+          "total_descendants": 1,
+          "max_depth": 0,
+          "direct_children": 0
+        },
+        "30": {
+          "name": "旅游",
+          "total_descendants": 1,
+          "max_depth": 0,
+          "direct_children": 0
+        },
+        "32": {
+          "name": "视频",
+          "total_descendants": 1,
+          "max_depth": 0,
+          "direct_children": 0
+        },
+        "33": {
+          "name": "美图",
+          "total_descendants": 1,
+          "max_depth": 0,
+          "direct_children": 0
+        },
+        "34": {
+          "name": "首页推荐资料",
+          "total_descendants": 21,
+          "max_depth": 2,
+          "direct_children": 44
+        },
+        "41": {
+          "name": "美食",
+          "total_descendants": 1,
+          "max_depth": 0,
+          "direct_children": 0
+        },
+        "475": {
+          "name": "湖北新闻奖",
+          "total_descendants": 1,
+          "max_depth": 0,
+          "direct_children": 0
+        },
+        "491": {
+          "name": "关于今日湖北",
+          "total_descendants": 1,
+          "max_depth": 0,
+          "direct_children": 0
+        },
+        "501": {
+          "name": "头条新闻",
+          "total_descendants": 1,
+          "max_depth": 0,
+          "direct_children": 0
+        },
+        "526": {
+          "name": "社会新闻",
+          "total_descendants": 1,
+          "max_depth": 0,
+          "direct_children": 0
+        },
+        "527": {
+          "name": "专题",
+          "total_descendants": 1,
+          "max_depth": 0,
+          "direct_children": 0
+        },
+        "571": {
+          "name": "企业资讯",
+          "total_descendants": 1,
+          "max_depth": 0,
+          "direct_children": 0
+        },
+        "574": {
+          "name": "企业信息",
+          "total_descendants": 1,
+          "max_depth": 0,
+          "direct_children": 0
+        },
+        "575": {
+          "name": "军事",
+          "total_descendants": 1,
+          "max_depth": 0,
+          "direct_children": 0
+        },
+        "576": {
+          "name": "非遗视点",
+          "total_descendants": 1,
+          "max_depth": 0,
+          "direct_children": 0
+        },
+        "577": {
+          "name": "文艺之音",
+          "total_descendants": 1,
+          "max_depth": 0,
+          "direct_children": 0
+        },
+        "578": {
+          "name": "杏坛网事",
+          "total_descendants": 1,
+          "max_depth": 0,
+          "direct_children": 0
+        },
+        "581": {
+          "name": "廉政",
+          "total_descendants": 1,
+          "max_depth": 0,
+          "direct_children": 0
+        },
+        "582": {
+          "name": "国内",
+          "total_descendants": 1,
+          "max_depth": 0,
+          "direct_children": 0
+        },
+        "583": {
+          "name": "专题",
+          "total_descendants": 1,
+          "max_depth": 0,
+          "direct_children": 0
+        },
+        "584": {
+          "name": "访谈",
+          "total_descendants": 1,
+          "max_depth": 0,
+          "direct_children": 0
+        },
+        "585": {
+          "name": "军事",
+          "total_descendants": 1,
+          "max_depth": 0,
+          "direct_children": 0
+        },
+        "586": {
+          "name": "中部之声",
+          "total_descendants": 1,
+          "max_depth": 0,
+          "direct_children": 0
+        },
+        "590": {
+          "name": "会员风采",
+          "total_descendants": 1,
+          "max_depth": 0,
+          "direct_children": 0
+        },
+        "595": {
+          "name": "市场监管",
+          "total_descendants": 9,
+          "max_depth": 1,
+          "direct_children": 8
+        },
+        "604": {
+          "name": "乡村振兴",
+          "total_descendants": 7,
+          "max_depth": 1,
+          "direct_children": 6
+        },
+        "611": {
+          "name": "文旅频道",
+          "total_descendants": 6,
+          "max_depth": 1,
+          "direct_children": 5
+        },
+        "617": {
+          "name": "乡村振兴",
+          "total_descendants": 13,
+          "max_depth": 2,
+          "direct_children": 7
+        }
+      }
+    },
+    "dimensions": {
+      "地理维度": {
+        "count": 112,
+        "percentage": 23.52941176470588
+      },
+      "内容类型": {
+        "count": 67,
+        "percentage": 14.07563025210084
+      },
+      "行业领域": {
+        "count": 11,
+        "percentage": 2.3109243697478994
+      },
+      "民生服务": {
+        "count": 42,
+        "percentage": 8.823529411764707
+      },
+      "文化娱乐": {
+        "count": 41,
+        "percentage": 8.61344537815126
+      },
+      "其他领域": {
+        "count": 28,
+        "percentage": 5.88235294117647
+      }
+    }
+  },
+  "recommendations": {
+    "plan_a": {
+      "channels": [
+        {
+          "name": "新闻资讯",
+          "slug": "news",
+          "description": "时政、社会、法制、党建"
+        },
+        {
+          "name": "经济财经",
+          "slug": "finance",
+          "description": "金融、证券、理财、投资、房产"
+        },
+        {
+          "name": "文化娱乐",
+          "slug": "culture",
+          "description": "文化、艺术、娱乐、书画"
+        },
+        {
+          "name": "民生服务",
+          "slug": "livelihood",
+          "description": "民生、健康、医疗、家居、美食"
+        },
+        {
+          "name": "体育运动",
+          "slug": "sports",
+          "description": "体育相关"
+        },
+        {
+          "name": "科技数码",
+          "slug": "tech",
+          "description": "科技、互联网"
+        },
+        {
+          "name": "教育培训",
+          "slug": "education",
+          "description": "教育相关"
+        },
+        {
+          "name": "汽车旅游",
+          "slug": "auto-travel",
+          "description": "汽车、旅游"
+        }
+      ],
+      "categories": [
+        {
+          "name": "湖北",
+          "slug": "hubei",
+          "parent": null
+        },
+        {
+          "name": "武汉",
+          "slug": "wuhan",
+          "parent": "hubei"
+        },
+        {
+          "name": "黄石",
+          "slug": "huangshi",
+          "parent": "hubei"
+        },
+        {
+          "name": "十堰",
+          "slug": "shiyan",
+          "parent": "hubei"
+        },
+        {
+          "name": "荆州",
+          "slug": "jingzhou",
+          "parent": "hubei"
+        },
+        {
+          "name": "宜昌",
+          "slug": "yichang",
+          "parent": "hubei"
+        },
+        {
+          "name": "襄阳",
+          "slug": "xiangyang",
+          "parent": "hubei"
+        },
+        {
+          "name": "鄂州",
+          "slug": "ezhou",
+          "parent": "hubei"
+        },
+        {
+          "name": "荆门",
+          "slug": "jingmen",
+          "parent": "hubei"
+        },
+        {
+          "name": "黄冈",
+          "slug": "huanggang",
+          "parent": "hubei"
+        },
+        {
+          "name": "咸宁",
+          "slug": "xianning",
+          "parent": "hubei"
+        },
+        {
+          "name": "随州",
+          "slug": "suizhou",
+          "parent": "hubei"
+        },
+        {
+          "name": "恩施",
+          "slug": "enshi",
+          "parent": "hubei"
+        },
+        {
+          "name": "仙桃",
+          "slug": "xiantao",
+          "parent": "hubei"
+        },
+        {
+          "name": "潜江",
+          "slug": "qianjiang",
+          "parent": "hubei"
+        },
+        {
+          "name": "天门",
+          "slug": "tianmen",
+          "parent": "hubei"
+        },
+        {
+          "name": "神农架",
+          "slug": "shennongjia",
+          "parent": "hubei"
+        },
+        {
+          "name": "全国",
+          "slug": "national",
+          "parent": null
+        }
+      ]
+    }
+  }
+}

@@ -526,8 +526,7 @@ export default function HeroCarousel({
 
                   {/* 元信息 */}
                   <div className="flex items-center hero-meta">
-                    {item.source && <span className="mr-4">{item.source}</span>}
-                    {item.author && <span className="mr-4">作者：{item.author}</span>}
+                    {(item.channel?.name || item.author) && <span className="mr-4">{item.channel?.name || item.author}</span>}
                     {item.publish_time && <span>{formatDateTime(item.publish_time)}</span>}
                   </div>
                 </div>

@@ -34,7 +34,8 @@ def suggest_tags(request):
         data = request.data
         
         title = data.get('title', '').strip()
-        content = data.get('content', '').strip()
+        # 接受 content 或 body，统一为 content 变量
+        content = (data.get('content') or data.get('body') or '').strip()
         site_id = data.get('site_id')
         
         # 基本验证
@@ -47,7 +48,7 @@ def suggest_tags(request):
         # 获取标签建议
         result = tag_suggestion_api.get_suggestions_for_article({
             'title': title,
-            'body': content,
+            'body': content,  # 服务层优先读取 body
             'site_id': site_id
         })
         
@@ -97,6 +98,9 @@ def batch_suggest_tags(request):
         for article in articles:
             try:
                 article_id = article.get('id')
+                # 兼容 content/body 两种键名
+                if 'body' not in article and 'content' in article:
+                    article = {**article, 'body': article.get('content')}
                 result = tag_suggestion_api.get_suggestions_for_article(article)
                 result['article_id'] = article_id
                 results.append(result)

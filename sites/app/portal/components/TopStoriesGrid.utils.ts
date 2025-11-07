@@ -281,11 +281,7 @@ function transformToTopStoryItem(item: any): TopStoryItem {
     publish_time: item.publish_at || item.first_published_at || item.created_at,
     author: item.author_name || item.author || '',
     channel: item.channel ? (
-      typeof item.channel === 'string' ? {
-        id: item.channel,
-        name: item.channel,
-        slug: item.channel
-      } : {
+      typeof item.channel === 'string' ? undefined : {
         id: item.channel.slug || item.channel.id?.toString() || '',
         name: item.channel.name || '',
         slug: item.channel.slug || item.channel.id?.toString() || ''

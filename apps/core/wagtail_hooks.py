@@ -12,7 +12,7 @@ from django.contrib import messages
 # from wagtail.contrib.modeladmin.options import (
 #     ModelAdmin, ModelAdminGroup, modeladmin_register)
 # from wagtail.contrib.modeladmin.views import IndexView
-from .models import SiteSettings, Channel, Region, Language, ExternalSite, CDNProvider, SiteCDNConfig
+from .models import SiteSettings, Channel, Region, Language, ExternalSite, CDNProvider, SiteCDNConfig, ChannelGroupPermission
 
 
 @hooks.register('construct_main_menu')
@@ -181,7 +181,7 @@ def add_cdn_menu(request, menu_items, **kwargs):
         menu_items.append(
             MenuItem(
                 'CDN服务提供商',
-                reverse('wagtailsnippets:list', args=['core', 'cdnprovider']),
+                reverse('wagtailsnippets_core_cdnprovider:list'),
                 icon_name='globe',
                 classname='icon icon-globe',
                 order=300
@@ -192,7 +192,7 @@ def add_cdn_menu(request, menu_items, **kwargs):
         menu_items.append(
             MenuItem(
                 '站点CDN配置',
-                reverse('wagtailsnippets:list', args=['core', 'sitecdnconfig']),
+                reverse('wagtailsnippets_core_sitecdnconfig:list'),
                 icon_name='site',
                 classname='icon icon-site',
                 order=301
@@ -322,3 +322,79 @@ def add_font_preview_script():
     });
     </script>
     """
+
+
+# ==========================================
+# 频道权限控制
+# ==========================================
+
+@hooks.register('construct_snippet_listing_queryset')
+def filter_channels_by_permission(queryset, request):
+    """
+    根据用户权限过滤频道列表
+    
+    只显示用户有权访问的频道
+    """
+    # 仅对 Channel 模型进行过滤
+    if queryset.model != Channel:
+        return queryset
+    
+    # 超级管理员可以看到所有频道
+    if request.user.is_superuser:
+        return queryset
+    
+    # 获取用户可访问的频道
+    accessible_channels = ChannelGroupPermission.get_accessible_channels(request.user)
+    
+    # 如果返回 None，表示无限制，返回所有频道
+    if accessible_channels is None:
+        return queryset
+    
+    # 否则只返回可访问的频道
+    return accessible_channels
+
+
+@hooks.register('before_edit_snippet')
+def check_channel_edit_permission(request, instance):
+    """
+    检查用户是否有权编辑该频道
+    """
+    if isinstance(instance, Channel):
+        if not request.user.is_superuser:
+            if not ChannelGroupPermission.user_can_edit_channel(request.user, instance):
+                messages.error(request, _('您没有权限编辑该频道'))
+                return redirect('wagtailsnippets:list', 'core', 'channel')
+
+
+@hooks.register('before_delete_snippet')
+def check_channel_delete_permission(request, instance):
+    """
+    检查用户是否有权删除该频道
+    """
+    if isinstance(instance, Channel):
+        if not request.user.is_superuser:
+            # 只有有编辑权限的用户才能删除
+            if not ChannelGroupPermission.user_can_edit_channel(request.user, instance):
+                messages.error(request, _('您没有权限删除该频道'))
+                return redirect('wagtailsnippets:list', 'core', 'channel')
+
+
+@hooks.register('construct_main_menu')
+def add_channel_permission_menu(request, menu_items, **kwargs):
+    """添加频道权限管理菜单"""
+    try:
+        # 只有超级管理员可以看到权限管理菜单
+        if request.user.is_superuser:
+            menu_items.append(
+                MenuItem(
+                    '🔐 频道权限管理',
+                    reverse('wagtailsnippets_core_channelgrouppermission:list'),
+                    icon_name='lock',
+                    classname='icon icon-lock',
+                    order=250
+                )
+            )
+    except Exception as e:
+        # 如果URL解析失败，跳过菜单添加
+        print(f"频道权限菜单添加失败: {e}")
+        pass

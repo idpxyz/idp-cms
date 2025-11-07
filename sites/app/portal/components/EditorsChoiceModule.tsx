@@ -49,7 +49,7 @@ export default function EditorsChoiceModule({ limit = 4 }: Props) {
                 </a>
               </h4>
               <div className="news-meta-small text-gray-500 flex justify-between">
-                <span>{article.source || article.author}</span>
+                <span>{article.channel?.name || article.author || '本站'}</span>
                 <span className="text-yellow-500">⭐ 编辑精选</span>
               </div>
             </div>

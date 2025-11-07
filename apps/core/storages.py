@@ -88,20 +88,16 @@ class PublicMediaStorage(S3Boto3Storage):
                 # 判断是否为localhost访问
                 is_localhost = 'localhost' in http_host or '127.0.0.1' in http_host
                 
-                # 决策逻辑：
-                # 1. 浏览器访问localhost → 使用外部URL
-                # 2. Admin访问 → 使用外部URL  
-                # 3. API请求且非localhost → 使用内部URL
-                # 4. 其他情况 → 使用外部URL（默认安全策略）
+                # 决策逻辑（简化版）：
+                # 1. Admin访问 → 使用外部URL  
+                # 2. 浏览器访问 → 使用外部URL
+                # 3. 其他情况 → 使用外部URL（默认安全策略）
+                # 注：不再使用内部URL，避免浏览器无法访问的问题
                 
-                if is_browser and is_localhost:
-                    return False  # 浏览器访问localhost，使用外部URL
-                elif is_admin_path:
-                    return False  # Admin访问，使用外部URL
-                elif not is_browser and not is_localhost:
-                    return True   # API请求且非localhost，使用内部URL
+                if is_admin_path or is_browser:
+                    return False  # Admin或浏览器访问，使用外部URL
                 else:
-                    return False  # 默认使用外部URL
+                    return False  # 默认使用外部URL，确保浏览器可访问
                     
         except Exception:
             # 异常情况下使用外部URL（更安全）

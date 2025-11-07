@@ -74,15 +74,25 @@ interface Article {
   };
 }
 
-// 🚀 优化：直接使用内部 API，添加超时控制
+// 🚀 优化：服务端直接使用 ArticleService，避免HTTP调用
 async function getArticle(slug: string, site?: string): Promise<Article | null> {
   try {
     const decodedSlug = decodeURIComponent(slug);
-    // 🚀 关键修复：服务端使用容器内部地址，客户端使用公共地址
-    const baseUrl = typeof window === 'undefined' 
-      ? "http://localhost:3000"  // 服务端：使用容器内部地址
-      : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"); // 客户端：使用公共地址
-
+    
+    // 🚀 服务端优化：直接使用 ArticleService，避免 HTTP 调用自己
+    if (typeof window === 'undefined') {
+      const { articleService } = await import("@/lib/api/ArticleService");
+      const result = await articleService.findBySlug(decodedSlug, {
+        site,
+        include_drafts: false,
+        include_content: true,
+        cache_ttl: 300,
+      });
+      return result.article;
+    }
+    
+    // 🌐 客户端：使用公共地址
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
     const url = new URL(`${baseUrl}/api/articles/${decodedSlug}`);
     if (site) {
       url.searchParams.set("site", site);
@@ -141,84 +151,83 @@ async function getRelatedArticles(
   currentTags: string[] = []
 ): Promise<any[]> {
   try {
-    // 🚀 关键修复：服务端使用内部地址，避免网络回环
-    const baseUrl = typeof window === 'undefined' 
-      ? "http://localhost:3000"  // 服务端：使用容器内部地址
-      : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"); // 客户端：使用公共地址
-
+    let items: any[] = [];
+    
+    // 🚀 服务端优化：使用容器 hostname 访问自己
+    const baseUrl = typeof window === 'undefined'
+      ? (process.env.HOSTNAME ? `http://${process.env.HOSTNAME}:3000` : "http://frontend-node1:3000")
+      : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
+    
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 2000); // 🚀 优化：减少到2秒
+    const timeoutId = setTimeout(() => controller.abort(), 2000);
 
     try {
-      // 获取更多文章用于智能筛选
       const response = await fetch(
         `${baseUrl}/api/news?channel=${encodeURIComponent(channelSlug)}&limit=15`,
         {
-          next: { revalidate: 300 },
           headers: { "Content-Type": "application/json" },
           signal: controller.signal,
         }
       );
-
       clearTimeout(timeoutId);
-
+      
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
       }
 
       const data = await response.json();
-      const items = (data?.data || data?.items || [])
+      items = (data?.data || data?.items || [])
         .filter((it: any) => it && it.slug && it.slug !== currentSlug);
-
-      // 🎯 智能排序算法
-      const scoredArticles = items.map((article: any) => {
-        let score = 0;
-
-        // 1. 标签相似度得分 (0-40分)
-        if (currentTags.length > 0 && article.tags && article.tags.length > 0) {
-          const commonTags = currentTags.filter(tag => article.tags.includes(tag));
-          score += (commonTags.length / Math.max(currentTags.length, article.tags.length)) * 40;
-        }
-
-        // 2. 时间衰减得分 (0-30分) - 越新越好，但不过分偏向
-        const publishDate = new Date(article.publish_at);
-        const now = new Date();
-        const daysOld = (now.getTime() - publishDate.getTime()) / (1000 * 60 * 60 * 24);
-        const timeScore = Math.max(0, 30 - (daysOld * 2)); // 15天后时间得分为0
-        score += timeScore;
-
-        // 3. 热度得分 (0-30分) - 基于view_count
-        if (article.view_count) {
-          const viewScore = Math.min(30, Math.log10(article.view_count + 1) * 10);
-          score += viewScore;
-        }
-
-        return {
-          ...article,
-          _score: score
-        };
-      });
-
-      // 按得分排序，返回前4篇
-      const topArticles = scoredArticles
-        .sort((a: any, b: any) => b._score - a._score)
-        .slice(0, 4)
-        .map((it: any) => ({
-          id: it.id,
-          title: it.title,
-          slug: it.slug,
-          publish_at: it.publish_at,
-          image_url: it.image_url || (it.cover && it.cover.url) || null,
-          channel: it.channel || { slug: channelSlug, name: it.channel?.name },
-          source: it.source || it.channel?.name || "",
-          tags: it.tags || [],
-        }));
-
-      return topArticles;
     } catch (fetchError) {
       clearTimeout(timeoutId);
       throw fetchError;
     }
+
+    // 🎯 智能排序算法
+    const scoredArticles = items.map((article: any) => {
+      let score = 0;
+
+      // 1. 标签相似度得分 (0-40分)
+      if (currentTags.length > 0 && article.tags && article.tags.length > 0) {
+        const commonTags = currentTags.filter(tag => article.tags.includes(tag));
+        score += (commonTags.length / Math.max(currentTags.length, article.tags.length)) * 40;
+      }
+
+      // 2. 时间衰减得分 (0-30分) - 越新越好，但不过分偏向
+      const publishDate = new Date(article.publish_at);
+      const now = new Date();
+      const daysOld = (now.getTime() - publishDate.getTime()) / (1000 * 60 * 60 * 24);
+      const timeScore = Math.max(0, 30 - (daysOld * 2)); // 15天后时间得分为0
+      score += timeScore;
+
+      // 3. 热度得分 (0-30分) - 基于view_count
+      if (article.view_count) {
+        const viewScore = Math.min(30, Math.log10(article.view_count + 1) * 10);
+        score += viewScore;
+      }
+
+      return {
+        ...article,
+        _score: score
+      };
+    });
+
+    // 按得分排序，返回前4篇
+    const topArticles = scoredArticles
+      .sort((a: any, b: any) => b._score - a._score)
+      .slice(0, 4)
+      .map((it: any) => ({
+        id: it.id,
+        title: it.title,
+        slug: it.slug,
+        publish_at: it.publish_at,
+        image_url: it.image_url || (it.cover && it.cover.url) || null,
+        channel: it.channel || { slug: channelSlug, name: it.channel?.name },
+        source: it.source || it.channel?.name || "",
+        tags: it.tags || [],
+      }));
+
+    return topArticles;
   } catch (e: any) {
     if (e.name === "AbortError") {
       console.warn("Related articles fetch timeout (2s)");
@@ -346,6 +355,7 @@ export default async function ArticlePage({
             <RecommendedArticles
               articleSlug={article.slug}
               currentChannel={article.channel.slug}
+              excludeChannel={article.channel.slug}
               layout="sidebar"
             />
           </div>

@@ -9,6 +9,7 @@ from rest_framework.response import Response
 from rest_framework import status
 
 from apps.core.site_utils import get_site_from_request
+from apps.core.models import Channel
 from apps.searchapp.client import get_client
 from apps.searchapp.simple_index import get_index_name
 from ..utils import apply_field_filtering, generate_etag
@@ -108,6 +109,19 @@ def portal_articles(request):
                 if url:
                     slug_to_cover[row["slug"]] = url
         
+        # 获取所有channel信息
+        channel_slugs = list(set([
+            h.get("_source", {}).get("primary_channel_slug") or h.get("_source", {}).get("channel")
+            for h in hits.get("hits", [])
+            if h.get("_source", {}).get("primary_channel_slug") or h.get("_source", {}).get("channel")
+        ]))
+        
+        channels_dict = {}
+        if channel_slugs:
+            # 获取频道信息（不过滤站点，因为频道是跨站点共享的）
+            channels = Channel.objects.filter(slug__in=channel_slugs)
+            channels_dict = {ch.slug: {"id": ch.id, "slug": ch.slug, "name": ch.name} for ch in channels}
+        
         # 序列化结果
         items = []
         for h in hits.get("hits", []):
@@ -121,6 +135,9 @@ def portal_articles(request):
             if not cover_url:
                 cover_url = "/images/default-covers/default.svg"
             
+            channel_slug = s.get("primary_channel_slug") or s.get("channel")
+            channel_info = channels_dict.get(channel_slug) if channel_slug else None
+            
             item = {
                 "id": s.get("article_id") or h.get("_id"),
                 "title": s.get("title"),
@@ -128,7 +145,8 @@ def portal_articles(request):
                 "excerpt": s.get("summary") or "",
                 "cover_url": cover_url,  # 🚀 从 OpenSearch 数据或正文中提取
                 "publish_at": s.get("first_published_at") or s.get("publish_time"),
-                "channel_slug": s.get("primary_channel_slug") or s.get("channel"),
+                "channel_slug": channel_slug,
+                "channel": channel_info,
                 "region": s.get("region"),
                 "source_site": site,
                 "source_url": s.get("url") or "",

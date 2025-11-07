@@ -71,6 +71,9 @@ class ArticleIndexer:
         except Exception:
             pass
         
+        # 🖼️ 提取图片URL（封面或正文第一张图片）
+        image_url, cover_image_url = self._extract_image_urls(page)
+        
         # 构建基础文档
         doc = {
             "article_id": str(page.id),
@@ -112,6 +115,9 @@ class ArticleIndexer:
             "is_hero": bool(getattr(page, "is_hero", False)),
             "is_featured": bool(getattr(page, "is_featured", False)),
             "weight": float(getattr(page, "weight", 0)),
+            # 🖼️ 图片字段
+            "image_url": image_url,
+            "cover_image_url": cover_image_url,
         }
         
         # 🔥 热度标记：动态计算并添加虚拟频道标签
@@ -158,6 +164,59 @@ class ArticleIndexer:
         except Exception:
             pass
         return topics
+    
+    def _extract_image_urls(self, page) -> tuple:
+        """
+        提取图片URL
+        优先使用封面图片，如果没有则从正文提取第一张图片
+        返回: (image_url, cover_image_url) 元组
+        """
+        cover_image_url = None
+        image_url = None
+        
+        try:
+            # 1️⃣ 尝试获取封面图片
+            if hasattr(page, 'cover') and page.cover:
+                cover_image_url = self._get_image_url(page.cover)
+                image_url = cover_image_url  # 优先使用封面图片
+            
+            # 2️⃣ 如果没有封面，尝试从正文提取第一张图片
+            if not image_url and hasattr(page, 'extract_first_image_from_body'):
+                first_image = page.extract_first_image_from_body()
+                if first_image:
+                    image_url = self._get_image_url(first_image)
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning(
+                f"提取文章 {page.id} 图片URL时出错: {e}"
+            )
+        
+        return image_url, cover_image_url
+    
+    def _get_image_url(self, image) -> str:
+        """
+        从Wagtail Image对象获取URL
+        使用URLConfig确保返回浏览器可访问的完整URL
+        """
+        if not image:
+            return None
+        
+        try:
+            # 获取原始文件路径（MinIO中的路径）
+            if hasattr(image, 'file') and image.file:
+                file_path = str(image.file.name)
+                
+                # 使用URLConfig构建媒体代理URL
+                from apps.core.url_config import URLConfig
+                # for_internal=False 确保返回浏览器可访问的URL
+                return URLConfig.build_media_proxy_url(file_path, for_internal=False)
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning(
+                f"获取图片URL时出错: {e}"
+            )
+        
+        return None
     
     def _add_hotness_tags(self, doc: dict, page) -> dict:
         """

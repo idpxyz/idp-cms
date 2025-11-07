@@ -136,7 +136,7 @@ export async function GET(req: NextRequest) {
         excerpt: item.excerpt || "",
         image_url: imageUrl,
         cover: null,
-        channel: item.channel_slug ? { slug: item.channel_slug, name: item.channel_slug } : undefined,
+        channel: item.channel || (item.channel_slug ? { slug: item.channel_slug, name: item.channel_slug } : undefined),
         region: item.region,
         publish_at: item.publish_at,
         updated_at: item.updated_at,
